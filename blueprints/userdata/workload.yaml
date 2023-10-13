@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: userdata
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: userdata
+  template:
+    metadata:
+      labels:
+        app: userdata
+    spec:
+      nodeSelector:
+        intent: userdata
+      containers:
+      - name: userdata
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi

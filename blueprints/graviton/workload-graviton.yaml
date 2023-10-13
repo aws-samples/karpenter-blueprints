@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-graviton
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: workload-graviton
+  template:
+    metadata:
+      labels:
+        app: workload-graviton
+    spec:
+      nodeSelector:
+        intent: apps
+        kubernetes.io/arch: arm64
+      containers:
+      - name: workload-flexible
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi 

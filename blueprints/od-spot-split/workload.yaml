@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-split
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: workload-split
+  template:
+    metadata:
+      labels:
+        app: workload-split
+    spec:
+      nodeSelector:
+        intent: apps
+      tolerations: 
+      - key: "intent" 
+        operator: "Equal" 
+        value: "workload-split" 
+        effect: "NoSchedule" 
+      containers:
+      - name: workload-split
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        imagePullPolicy: Always
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi 
+      topologySpreadConstraints:
+        - labelSelector:
+            matchLabels:
+              app: workload-split
+          maxSkew: 1
+          topologyKey: capacity-spread
+          whenUnsatisfiable: DoNotSchedule

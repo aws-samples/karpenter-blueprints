@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: latest-current-ami
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: latest-current-ami
+  template:
+    metadata:
+      labels:
+        app: latest-current-ami
+    spec:
+      nodeSelector:
+        intent: latest-current-ami
+      containers:
+      - name: latest-current-ami
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi

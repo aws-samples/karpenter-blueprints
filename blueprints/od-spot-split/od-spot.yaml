@@ -1,0 +1,61 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: node-od
+spec:
+  requirements:
+    - key: capacity-spread
+      operator: In
+      values: ["1"]
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64"]
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["on-demand"]
+  limits:
+    resources:
+      cpu: 1000
+      memory: 500Gi
+  consolidation:
+    enabled: true
+  labels:
+    intent: apps
+  taints:
+  - key: intent
+    value: workload-split
+    effect: NoSchedule
+  providerRef:
+    name: default
+  ttlSecondsUntilExpired: 604800 # 7 Days = 7 * 24 * 60 * 60 Seconds
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: node-spot
+spec:
+  requirements:
+    - key: capacity-spread
+      operator: In
+      values: ["2","3","4","5"]
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64"]
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["spot", "on-demand"]
+  limits:
+    resources:
+      cpu: 1000
+      memory: 500Gi
+  consolidation:
+    enabled: true
+  labels:
+    intent: apps
+  taints:
+  - key: intent
+    value: workload-split
+    effect: NoSchedule
+  providerRef:
+    name: default
+  ttlSecondsUntilExpired: 604800 # 7 Days = 7 * 24 * 60 * 60 Seconds

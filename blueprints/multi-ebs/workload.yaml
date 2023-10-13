@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-ebs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: multi-ebs
+  template:
+    metadata:
+      labels:
+        app: multi-ebs
+    spec:
+      nodeSelector:
+        intent: multi-ebs
+      containers:
+      - name: multi-ebs
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi

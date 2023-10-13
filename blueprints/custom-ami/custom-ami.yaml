@@ -1,0 +1,40 @@
+apiVersion: karpenter.k8s.aws/v1alpha1
+kind: AWSNodeTemplate
+metadata:
+  name: custom-ami-template
+spec:
+  subnetSelector:
+    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  securityGroupSelector:
+    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  instanceProfile: "<<KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME>>"
+  amiSelector:
+    aws::name: "*amazon-eks-node-1.27-*"    
+    ## OTHER SELECTOR ATTRIBUTES
+    # karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+    # Name: my-ami
+    # MyAMITag: value
+    # aws::ids: "ami-123,ami-456"
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: custom-ami
+spec:
+  labels:
+    intent: custom-ami
+  requirements:
+    - key: "karpenter.k8s.aws/instance-hypervisor"
+      operator: NotIn
+      values: [""]
+    - key: karpenter.sh/capacity-type
+      operator: In
+      values: ["spot", "on-demand"]
+  consolidation:
+    enabled: true
+  limits:
+    resources:
+      cpu: 1000
+      memory: 500Gi
+  providerRef:
+    name: custom-ami-template

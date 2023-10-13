@@ -1,0 +1,24 @@
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: savings-plans
+spec:
+  labels:
+    intent: apps
+  weight: 100
+  requirements:
+  - key: "karpenter.k8s.aws/instance-family"
+    operator: In
+    values: ["c4"] 
+  ## Alternatively, you can configure fixed instance types
+  # - key: "node.kubernetes.io/instance-type"
+  #   operator: In
+  #   values: ["c4.xlarge"] # 4 vCPUs
+  limits:
+    resources:
+      cpu: 20 # For example: Limit to launch up to 5 c4.xlarge instances
+  consolidation:
+    enabled: true
+  ttlSecondsUntilExpired: 604800
+  providerRef:
+    name: default

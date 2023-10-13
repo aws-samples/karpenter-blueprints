@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stateful
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: stateful
+  template:
+    metadata:
+      labels:
+        app: stateful
+    spec:
+      terminationGracePeriodSeconds: 0
+      nodeSelector:
+        intent: apps
+      containers:
+      - name: stateful
+        image: centos
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo Writing content every three minutes! Printing a random number: $(( $RANDOM % 1000 + 1 ))>> /data/out.txt; sleep 180; done"]
+        volumeMounts:
+        - name: persistent-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 1
+      volumes:
+      - name: persistent-storage
+        persistentVolumeClaim:
+          claimName: ebs-claim

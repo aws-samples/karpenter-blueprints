@@ -1,0 +1,44 @@
+apiVersion: karpenter.k8s.aws/v1alpha1
+kind: AWSNodeTemplate
+metadata:
+  name: latest-current-ami-template
+spec:
+  subnetSelector:
+    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  securityGroupSelector:
+    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  instanceProfile: "<<KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME>>"
+  amiSelector:
+    aws::name: '*-1.26-*' # Will get the latest AMI of this Kubernetes version
+    aws::owners: self,amazon
+  tags:
+    KubernetesVersion: '1.26'
+---
+apiVersion: karpenter.sh/v1alpha5
+kind: Provisioner
+metadata:
+  name: latest-current-ami
+spec:
+  labels:
+    intent: latest-current-ami
+  requirements:
+    - key: "karpenter.k8s.aws/instance-category"
+      operator: In
+      values: ["c", "m", "r", "i", "d"]
+    - key: "karpenter.k8s.aws/instance-cpu"
+      operator: In
+      values: ["4", "8", "16", "32", "48", "64"]
+    - key: karpenter.sh/capacity-type
+      operator: In
+      values: ["spot", "on-demand"]
+  kubeletConfiguration:
+    containerRuntime: containerd
+  limits:
+    resources:
+      cpu: 100000
+      memory: 5000Gi
+  consolidation:
+    enabled: true
+  ttlSecondsUntilExpired: 604800
+  providerRef:
+    name: latest-current-ami-template

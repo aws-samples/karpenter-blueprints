@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reserved-first
+spec:
+  replicas: 20
+  selector:
+    matchLabels:
+      app: reserved-first
+  template:
+    metadata:
+      labels:
+        app: reserved-first
+    spec:
+      nodeSelector:
+        intent: apps
+      containers:
+      - name: reserved-first
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 950m
+            memory: 512Mi

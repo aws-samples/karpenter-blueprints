@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-ami
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: custom-ami
+  template:
+    metadata:
+      labels:
+        app: custom-ami
+    spec:
+      nodeSelector:
+        intent: custom-ami
+      containers:
+      - name: custom-ami
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 512m
+            memory: 512Mi
