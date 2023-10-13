@@ -36,7 +36,7 @@ Here's the important configuration block within the spec of an `AWSNodeTemplate`
     aws::owners: self,amazon
 ```
 
-***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.27 which is either onwed by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
+***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.27 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
 
 ## Results
 After waiting for about one minute, you should see a machine ready, and all pods in a `Running` state, like this:

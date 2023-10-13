@@ -55,7 +55,7 @@ ip-10-0-121-24.eu-west-1.compute.internal   Ready    <none>   5m47s   v1.27.4-ek
 ip-10-0-49-93.eu-west-1.compute.internal    Ready    <none>   5m48s   v1.27.4-eks-8ccc7ba   spot            c5.large        default            eu-west-1a
 ```
 
-Notice how the `savings-plans` provisioner launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this provisioner. Additionaly, you see Karpenter launched a `c5.large` Spot instance for the rest of the pods using the `default` provisioner. Remember, each node always launch the `kubelet` and `kube-proxy` pods, that's why by Karpenter launched an extra node because 20 vCPUs of reserved capacity wasn't enough if system pods need to be included.
+Notice how the `savings-plans` provisioner launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this provisioner. Additionally, you see Karpenter launched a `c5.large` Spot instance for the rest of the pods using the `default` provisioner. Remember, each node always launch the `kubelet` and `kube-proxy` pods, that's why by Karpenter launched an extra node because 20 vCPUs of reserved capacity wasn't enough if system pods need to be included.
 
 ## Cleanup
 To remove all objects created, simply run the following commands:

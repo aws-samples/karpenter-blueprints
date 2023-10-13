@@ -1,4 +1,4 @@
-# Karpenter Blueprint: High-Availability by spreading Pods within multipe AZs and Nodes
+# Karpenter Blueprint: High-Availability by spreading Pods within multiple AZs and Nodes
 
 ## Purpose
 Karpenter can launch only one node for all pending pods. However, putting all application pods in the same node is not recommended if you want to have high-availability. To avoid this, and make the workload more highly-available, you can spread the pods within multiple availability zones (AZs). Additionally, you can configure a constraint to spread pods within multiple nodes in the same AZ. To do so, you configure [Topology Spread Constraints (TSC)](https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/) within a `Deployment` or `Pod`.

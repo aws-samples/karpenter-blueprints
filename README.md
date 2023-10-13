@@ -24,7 +24,7 @@ Before you get started, you need to have a Kubernetes cluster with Karpenter ins
 * (Optional*) Install the [Terraform CLI](https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
 * (Optional*) Install Helm ([the package manager for Kubernetes](https://helm.sh/docs/intro/install/))
 
-***NOTE:** If you're planning to use an existing EKS cluster, you don't need the **optional** prerequites.
+***NOTE:** If you're planning to use an existing EKS cluster, you don't need the **optional** prerequisites.
 
 ### Preparing to Deploy Blueprints
 Before you start deploying and testing blueprints, make sure you follow next steps. For example, all blueprints assume that you have an EKS cluster with Karpenter deployed, and others even required that you have a `default` Karpenter `Provisioner` deployed.
@@ -74,11 +74,11 @@ karpenter-5f97c944df-bm85s 1/1   Running 0        15m
 karpenter-5f97c944df-xr9jf 1/1   Running 0        15m
 ```
 
-You can now proceed to deploy the deafult Karpenter provisioner, and deploy any blueprint you want to test.
+You can now proceed to deploy the default Karpenter provisioner, and deploy any blueprint you want to test.
 
 #### Deploy a Karpenter Default Provisioner
 
-Before you start deploying a blueprint, you need to have a default [provisioner](https://karpenter.sh/docs/concepts/provisioners/) as some bleuprints need it. The Provisioner sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes.
+Before you start deploying a blueprint, you need to have a default [provisioner](https://karpenter.sh/docs/concepts/provisioners/) as some blueprints need it. The Provisioner sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes.
 
 Here's the default `Provisioner` and `AWSNodeTemplate` manifest you'll deploy, take your time to explore the configurations of the default provisioner as it's trying to be as flexible as possible:
 
@@ -129,12 +129,12 @@ spec:
     karpenter.sh/discovery: "<<CLUSTER_NAME>>"
     intent: apps
     project: karpenter-blueprints
-    KarpenerProvisionerName: "default"
+    KarpenterProvisionerName: "default"
     NodeType: "default"
     IntentLabel: "apps"
 ```
 
-If you're using the Terraform template provided in this repo, go back to the root folder of this project and run the bellow commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes. Otherwise, make sure you provide the proper vaules for the environment variables we'll use during this project. Run this to get the values from Terraform:
+If you're using the Terraform template provided in this repo, go back to the root folder of this project and run the bellow commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes. Otherwise, make sure you provide the proper values for the environment variables we'll use during this project. Run this to get the values from Terraform:
 
 ```
 export CLUSTER_NAME=$(terraform -chdir="cluster/terraform" output -raw cluster_name)
@@ -165,7 +165,7 @@ alias kl="kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-co
 
 #### Terraform Cleanup  (Optional)
 
-Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terrform created. To do so, run the following commands:
+Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:
 
 ```
 export TF_VAR_region=$AWS_REGION
@@ -180,13 +180,13 @@ After you have a cluster up and running with Karpenter installed, you can start 
 
 Here's the list of blueprints we have so far:
 
-* [High-Availability by spreading Pods within multipe AZs and Nodes](/blueprints/ha-az-nodes/)
+* [High-Availability by spreading Pods within multiple AZs and Nodes](/blueprints/ha-az-nodes/)
 * [Split Between On-Demand & Spot Instances](/blueprints/od-spot-split/)
 * [Prioritize Savings Plans and/or Reserved Instances](/blueprints/saving-plans/)
 * [Working with Graviton Instances](/blueprints/graviton)
 * [Overprovision capacity in advanced](/blueprints/overprovision/)
 * [Using multiple EBS volumes](/blueprints/multi-ebs/)
-* [Working wit Stateful Workloads using EBS](/blueprints/stateful/)
+* [Working with Stateful Workloads using EBS](/blueprints/stateful/)
 * [Update Nodes using Drift](/blueprints/update-nodes-with-drift/)
 * [Launching nodes using a custom AMI](/blueprints/custom-ami/)
 * [Launch Nodes with User Data](/blueprints/userdata/)
@@ -195,7 +195,7 @@ Here's the list of blueprints we have so far:
 
 ## Supported Versions
 
-The following table describes the list of resouces along with the versions where the blueprints in this repo have been tested.
+The following table describes the list of resources along with the versions where the blueprints in this repo have been tested.
 
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |

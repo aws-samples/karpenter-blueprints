@@ -1,7 +1,7 @@
-# Karpenter Blueprint: Working wit Stateful Workloads using EBS
+# Karpenter Blueprint: Working with Stateful Workloads using EBS
 
 ## Purpose
-For stateful workloads that use persistent volumes, Karpenter detects storage scheduling requirements when deciding which instance type to launch and in which AZ. If you have a `StorageClass` configured for multiple AZs, Karpenter randomly selects one AZ when the pod is created for the first time. If the same pod is then removed, a new pod is created to request the same Persistenet Volume Claim (PVC) and Karpenter takes this into consideration when choosing the AZ of an existing claim.
+For stateful workloads that use persistent volumes, Karpenter detects storage scheduling requirements when deciding which instance type to launch and in which AZ. If you have a `StorageClass` configured for multiple AZs, Karpenter randomly selects one AZ when the pod is created for the first time. If the same pod is then removed, a new pod is created to request the same Persistent Volume Claim (PVC) and Karpenter takes this into consideration when choosing the AZ of an existing claim.
 
 ## Requirements
 
@@ -10,7 +10,7 @@ For stateful workloads that use persistent volumes, Karpenter detects storage sc
 * The [Amazon EBS CSI driver](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html) installed in the cluster. If you're using the Terraform template in this repository, it's already configured.
 
 ## Deploy
-Let's start by creating the `PersistentVolumeClaim` and `StorageClass` to use only one AZ. To do so,first choose one of the AZs in the region where you deployed the EKS cluster. Run this command to get one auotmatically:
+Let's start by creating the `PersistentVolumeClaim` and `StorageClass` to use only one AZ. To do so,first choose one of the AZs in the region where you deployed the EKS cluster. Run this command to get one automatically:
 
 ```
 export FIRSTAZ=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[0].ZoneName' --output text)
@@ -114,7 +114,7 @@ Wait around two minutes, and consolidation will make sure to remove the node. Yo
 kubectl scale deployment stateful --replicas 3
 ```
 
-And you should see that Karpenter launches a replacement node in the AZ you choosed, and the pods are soon going to be in a `Running` state.
+And you should see that Karpenter launches a replacement node in the AZ you choose, and the pods are soon going to be in a `Running` state.
 
 **NOTE:** You might have a experience/simulate a node loss which can result in data corruption or loss. If this happens, when the new node launched by Karpenter is ready, pods might have a warning event like `Multi-Attach error for volume "pvc-19af27b8-fc0a-428d-bda5-552cb52b9806" Volume is already exclusively attached to one node and can't be attached to another`. You can wait around five minutes and the volume will try to get unattached, and attached again, making your pods successfully run again. Look at this series of events for reference:
 

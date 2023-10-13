@@ -21,7 +21,7 @@ If it’s an On-Demand Instance, Karpenter uses the `lowest-price` (LP) allocati
 You're going to use the `default` provisioner as there's no need to create a separate provisioner to launch Graviton instances.
 
 ## Results
-You can inpsect the pods from the `workload-flexible` deployment, but they don't have something in particular for Graviton instances other than asking for On-Demand capacity (`karpenter.sh/capacity-type: on-demand`) as a node selector. So, let's deploy the following assets:
+You can inspect the pods from the `workload-flexible` deployment, but they don't have something in particular for Graviton instances other than asking for On-Demand capacity (`karpenter.sh/capacity-type: on-demand`) as a node selector. So, let's deploy the following assets:
 
 ```
 kubectl apply -f workload-flexible.yaml
@@ -37,7 +37,7 @@ default-sgmkw   c6g.xlarge   eu-west-1b   ip-10-0-66-182.eu-west-1.compute.inter
 
 **NOTE:** All pods should be running now, and you didn't have to say anything special to Karpenter about which container image to use. Why? In Kubernetes, and by extension in Amazon EKS, the worker node-local supervisor called `kubelet` instructs the container runtime via a [standardized interface](https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/) to pull container images from a registry such as Amazon ECR and launch them, accordingly. All of which is multi-arch enabled and automated.
 
-Now, let's suppose that you've make the decision to go all-in with Graviton. Instead of creating a new provisioner, you can control that behaviour within the `Deployment` by using a `nodeSelector` of `kubernetes.io/arch: arm64` and without limiting to On-Demand only. This means that now chances are that Karpenter will launch a Spot instance as it's the one with a better price offering. Let's see, deploy the other workload:
+Now, let's suppose that you've make the decision to go all-in with Graviton. Instead of creating a new provisioner, you can control that behavior within the `Deployment` by using a `nodeSelector` of `kubernetes.io/arch: arm64` and without limiting to On-Demand only. This means that now chances are that Karpenter will launch a Spot instance as it's the one with a better price offering. Let's see, deploy the other workload:
 
 ```
 kubectl apply -f workload-graviton.yaml

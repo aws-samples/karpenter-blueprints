@@ -49,7 +49,7 @@ Now, when you deploy the actual workload you need  to do some work (such as a da
 kubectl apply -f workload.yaml
 ```
 
-Notice how your new pods are almost inmediatlly running, and some of the "dummy" pods are "Pending":
+Notice how your new pods are almost immediately running, and some of the "dummy" pods are "Pending":
 
 ```
 > kubectl get pods

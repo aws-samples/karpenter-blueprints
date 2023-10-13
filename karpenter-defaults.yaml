@@ -44,6 +44,6 @@ spec:
     karpenter.sh/discovery: "<<CLUSTER_NAME>>"
     intent: apps
     project: karpenter-blueprints
-    KarpenerProvisionerName: "default"
+    KarpenterProvisionerName: "default"
     NodeType: "default"
     IntentLabel: "apps"
