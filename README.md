@@ -206,7 +206,7 @@ The following table describes the list of resouces along with the versions where
 
 ## Feedback
 
-To post feedback, submit a new blueprint, or report bugs, please use the [Issues section](/issues) of this GitHub repo. 
+To post feedback, submit a new blueprint, or report bugs, please use the [Issues section](https://github.com/aws-samples/karpenter-blueprints/issues) of this GitHub repo. 
 
 ## License
 
