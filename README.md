@@ -74,6 +74,15 @@ karpenter-5f97c944df-bm85s 1/1   Running 0        15m
 karpenter-5f97c944df-xr9jf 1/1   Running 0        15m
 ```
 
+You can now proceed to deploy the default Karpenter provisioner, and deploy any blueprint you want to test.
+
+#### Deploy a Karpenter Default AWSNodeTemplate and Provisioner
+If you create a new EKS cluster following the previous steps a Karpenter AWSNodeTemplate "default" and a Karpenter Provisioner "default" are installed automatically.
+
+For existing cluster one can use the "./cluster/terraform/karpenter-awsnodetemplate-provisioner.tf" file to create this resources.
+
+**NOTE:**  For existing EKS cluster you have to modify the provided "karpenter-awsnodetemplate-provisioner.tf" according to your setup by properly modifying "subnetSelector", "securityGroupSelector" and "instanceProfile" and removing the "depends_on" section.
+
 You can now proceed to deploy any blueprint you want to test.
 
 #### Terraform Cleanup  (Optional)
