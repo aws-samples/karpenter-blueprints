@@ -77,6 +77,9 @@ karpenter-5f97c944df-xr9jf 1/1   Running 0        15m
 You can now proceed to deploy the default Karpenter provisioner, and deploy any blueprint you want to test.
 
 #### Deploy a Karpenter Default AWSNodeTemplate and Provisioner
+
+Before you start deploying a blueprint, you need to have a default [awsnodetemplate](https://karpenter.sh/docs/concepts/node-templates/) and a default [provisioner](https://karpenter.sh/docs/concepts/provisioners/) as some blueprints need it. Node Templates enable configuration of AWS specific settings. The Provisioner sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each provisioner must reference an AWSNodeTemplate using spec.providerRef.
+
 If you create a new EKS cluster following the previous steps a Karpenter AWSNodeTemplate "default" and a Karpenter Provisioner "default" are installed automatically.
 
 For existing cluster one can use the "./cluster/terraform/karpenter-awsnodetemplate-provisioner.tf" file to create this resources.
