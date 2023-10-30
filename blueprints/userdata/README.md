@@ -1,4 +1,4 @@
-# Karpenter Blueprint: Launch Nodes with User Data
+# Karpenter Blueprint: Customizing nodes with your own User Data automation
 
 ## Purpose
 When you need to bootstrap the data plane nodes to either overwrite certain Kubernetes settings, mount volumes or anything else you need to do when a node is launched. Within the `AWSNodeTemplate` there's a `userData` field you can use to control the [user data](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html) that is applied to your worker nodes. This way, you can continue using the [EKS optimized AMI](https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html) with any additional configuration you need to run on top of the base AMI.

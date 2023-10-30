@@ -1,7 +1,7 @@
 # Karpenter Blueprints for Amazon EKS
 
 ## Motivation
-[Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many teams to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes a different approach to provision compute capacity to the Kubernetes data plane, there are common workload patterns that you might be wondering how to configure to work properly. This repository includes a list of common workload examples, and some of them go in depth with the explanation of why configuring the `Provisioner`, `AWSNodeTemplate` and/or a `Deployment` in such a way is important.
+[Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many companies to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes an application-first approach to provision compute capacity for to the Kubernetes data plane, there are common workload scenarios that you might be wondering how to configure them properly. This repository includes a list of common workload scenarios, some of them go in depth with the explanation of why configuring Karpenter and Kubernetes objects in such a way is important.
 
 ## Blueprint Structure
 Each blueprint follows the same structure to help you better understand what's the motivation and the expected results:
@@ -103,6 +103,7 @@ You can now proceed to deploy any blueprint you want to test.
 Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:
 
 ```
+kubectl delete namespace karpenter
 export TF_VAR_region=$AWS_REGION
 terraform destroy -target="module.eks_blueprints_addons" --auto-approve
 terraform destroy -target="module.eks" --auto-approve
@@ -115,16 +116,16 @@ After you have a cluster up and running with Karpenter installed, you can start 
 
 Here's the list of blueprints we have so far:
 
-* [High-Availability by spreading Pods within multiple AZs and Nodes](/blueprints/ha-az-nodes/)
+* [High-Availability: Spread Pods across AZs & Nodes](/blueprints/ha-az-nodes/)
 * [Split Between On-Demand & Spot Instances](/blueprints/od-spot-split/)
 * [Prioritize Savings Plans and/or Reserved Instances](/blueprints/saving-plans/)
 * [Working with Graviton Instances](/blueprints/graviton)
-* [Overprovision capacity in advanced](/blueprints/overprovision/)
+* [Overprovision capacity in advanced to increase responsiveness](/blueprints/overprovision/)
 * [Using multiple EBS volumes](/blueprints/multi-ebs/)
 * [Working with Stateful Workloads using EBS](/blueprints/stateful/)
 * [Update Nodes using Drift](/blueprints/update-nodes-with-drift/)
-* [Launching nodes using a custom AMI](/blueprints/custom-ami/)
-* [Launch Nodes with User Data](/blueprints/userdata/)
+* [Launching nodes using custom AMIs](/blueprints/custom-ami/)
+* [Customizing nodes with your own User Data automation](/blueprints/userdata/)
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 
