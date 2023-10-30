@@ -78,13 +78,23 @@ You can now proceed to deploy the default Karpenter provisioner, and deploy any 
 
 #### Deploy a Karpenter Default AWSNodeTemplate and Provisioner
 
-Before you start deploying a blueprint, you need to have a default [awsnodetemplate](https://karpenter.sh/docs/concepts/node-templates/) and a default [provisioner](https://karpenter.sh/docs/concepts/provisioners/) as some blueprints need it. Node Templates enable configuration of AWS specific settings. The Provisioner sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each provisioner must reference an AWSNodeTemplate using spec.providerRef.
+Before you start deploying a blueprint, you need to have a default [AWSNodeTemplate](https://karpenter.sh/docs/concepts/node-templates/) and a default [Provisioner](https://karpenter.sh/docs/concepts/provisioners/) as some blueprints need them. `AWSNodeTemplate` enable configuration of AWS specific settings for EC2 instances launched by Karpenter. The `Provisioner` sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each provisioner must reference an `AWSNodeTemplate` using `spec.providerRef`.
 
-If you create a new EKS cluster following the previous steps a Karpenter AWSNodeTemplate "default" and a Karpenter Provisioner "default" are installed automatically.
+If you create a new EKS cluster following the previous steps, a Karpenter `AWSNodeTemplate` "default" and a Karpenter `Provisioner` "default" are installed automatically.
 
-For existing cluster one can use the "./cluster/terraform/karpenter-awsnodetemplate-provisioner.tf" file to create this resources.
+**NOTE:**  For existing EKS cluster you have to modify the provided `./cluster/terraform/karpenter.tf` according to your setup by properly modifying `subnetSelector`, `securityGroupSelector` and `instanceProfile` and removing the `depends_on` section. The `instanceProfile` is the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html#instance-profiles-manage-console), which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter provisioner. Typically, the instance profile name is the same as the IAM role, but to avoid errors, go to the IAM Console and get the instance profile name assigned to the role (not the ARN).
 
-**NOTE:**  For existing EKS cluster you have to modify the provided "karpenter-awsnodetemplate-provisioner.tf" according to your setup by properly modifying "subnetSelector", "securityGroupSelector" and "instanceProfile" and removing the "depends_on" section.
+You can see that the provisioner has been deployed by running this:
+
+```
+kubectl get provisioner
+```
+
+Throughout all the blueprints, you might need to review Karpenter logs, so let's create an alias for that to read logs by simply running `kl`:
+
+```
+alias kl="kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20"
+```
 
 You can now proceed to deploy any blueprint you want to test.
 
