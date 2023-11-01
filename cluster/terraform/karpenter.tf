@@ -1,24 +1,26 @@
-# Karpenter default AwsNodeTemplate and Provisioner
+# Karpenter default EC2NodeClass and NodePool
 
-resource "kubectl_manifest" "karpenter_default_awsnodetemplate" {
+resource "kubectl_manifest" "karpenter_default_ec2_node_class" {
   yaml_body = <<YAML
-apiVersion: karpenter.k8s.aws/v1alpha1
-kind: AWSNodeTemplate
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
 metadata:
   name: default
 spec:
-  subnetSelector:
-    karpenter.sh/discovery: ${local.name}
-  securityGroupSelector:
-    karpenter.sh/discovery: ${local.name}
-  instanceProfile: "${module.eks_blueprints_addons.karpenter.node_instance_profile_name}"
+  role: ${local.name}
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${local.name}
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${local.name}
   tags:
-    karpenter.sh/discovery: ${local.name}
+    IntentLabel: apps
+    KarpenterProvisionerName: default
+    NodeType: default
     intent: apps
+    karpenter.sh/discovery: ${local.name}
     project: karpenter-blueprints
-    KarpenterProvisionerName: "default"
-    NodeType: "default"
-    IntentLabel: "apps"
 YAML
   depends_on = [
     module.eks.cluster,
@@ -26,43 +28,46 @@ YAML
   ]
 }
 
-resource "kubectl_manifest" "karpenter_default_provisioner" {
+resource "kubectl_manifest" "karpenter_default_node_pool" {
   yaml_body = <<YAML
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
-  name: default
+  name: default 
 spec:
   labels:
     intent: apps
-  requirements:
-    - key: "karpenter.k8s.aws/instance-category"
-      operator: In
-      values: ["c", "m", "r", "i", "d"]
-    - key: "karpenter.k8s.aws/instance-cpu"
-      operator: In
-      values: ["4", "8", "16", "32", "48", "64"]
-    - key: karpenter.sh/capacity-type
-      operator: In
-      values: ["spot", "on-demand"]
-    - key: kubernetes.io/arch
-      operator: In
-      values: ["amd64", "arm64"]
-  kubeletConfiguration:
-    containerRuntime: containerd
-  limits:
-    resources:
-      cpu: 100000
-      memory: 5000Gi
-  consolidation:
-    enabled: true
-  ttlSecondsUntilExpired: 604800
-  providerRef:
-    name: default
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64", "arm64"]
+        - key: "karpenter.k8s.aws/instance-cpu"
+          operator: In
+          values: ["4", "8", "16", "32", "48", "64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["c", "m", "r", "i", "d"]
+      nodeClassRef:
+        name: default
+      kubeletConfiguration:
+        containerRuntime: containerd
+        systemReserved:
+          cpu: 100m
+          memory: 5000Gi
+  disruption:
+    consolidationPolicy: WhenEmpty
+    expireAfter: 604800s
+    consolidateAfter: 30s
+    
 YAML
   depends_on = [
     module.eks.cluster,
     module.eks_blueprints_addons.karpenter,
-    kubectl_manifest.karpenter_default_awsnodetemplate,
+    kubectl_manifest.karpenter_default_node_pool,
   ]
 }
