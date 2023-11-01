@@ -27,7 +27,7 @@ Before you get started, you need to have a Kubernetes cluster with Karpenter ins
 ***NOTE:** If you're planning to use an existing EKS cluster, you don't need the **optional** prerequisites.
 
 ### Preparing to Deploy Blueprints
-Before you start deploying and testing blueprints, make sure you follow next steps. For example, all blueprints assume that you have an EKS cluster with Karpenter deployed, and others even required that you have a `default` Karpenter `Provisioner` deployed.
+Before you start deploying and testing blueprints, make sure you follow next steps. For example, all blueprints assume that you have an EKS cluster with Karpenter deployed, and others even required that you have a `default` Karpenter `NodePool` deployed.
 
 #### Create an EKS Cluster using Terraform (Optional)
 
@@ -76,7 +76,7 @@ karpenter-5f97c944df-xr9jf 1/1   Running 0        15m
 
 You can now proceed to deploy the default Karpenter NodePool, and deploy any blueprint you want to test.
 
-#### Deploy a Karpenter Default EC2NodeClass and Provisioner
+#### Deploy a Karpenter Default EC2NodeClass and NodePool
 
 Before you start deploying a blueprint, you need to have a default [EC2NodeClass](https://karpenter.sh/preview/concepts/nodeclasses/) and a default [NodePool](https://karpenter.sh/docs/concepts/nodepools/) as some blueprints need them. `EC2NodeClass` enable configuration of AWS specific settings for EC2 instances launched by Karpenter. The `NodePool` sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each NodePool must reference an `EC2NodeClass` using `spec.nodeClassRef`.
 
@@ -120,7 +120,7 @@ terraform destroy --auto-approve
 
 ## Deploying a Blueprint
 
-After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a Provisioner, Node Template, and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
+After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a NodePool, EC2NodeClass and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
 
 Here's the list of blueprints we have so far:
 
