@@ -60,9 +60,7 @@ spec:
           cpu: 100m
           memory: 5000Gi
   disruption:
-    consolidationPolicy: WhenEmpty
-    expireAfter: 604800s
-    consolidateAfter: 30s
+    consolidationPolicy: WhenUnderutilized
     
 YAML
   depends_on = [
