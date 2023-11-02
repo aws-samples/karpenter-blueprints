@@ -5,10 +5,10 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  partition  = data.aws_partition.current.id
+  account_id         = data.aws_caller_identity.current.account_id
+  partition          = data.aws_partition.current.id
   node_iam_role_name = module.eks_blueprints_addons.karpenter.node_iam_role_name
-  iam_role_name = module.eks_blueprints_addons.karpenter.iam_role_name
+  iam_role_name      = module.eks_blueprints_addons.karpenter.iam_role_name
 }
 data "aws_iam_policy_document" "karpenter_policy" {
   version = "2012-10-17"
@@ -67,7 +67,7 @@ data "aws_iam_policy_document" "karpenter_policy" {
     sid    = "AllowScopedResourceCreationTagging"
     effect = "Allow"
 
-    actions   = ["ec2:CreateTags"]
+    actions = ["ec2:CreateTags"]
     resources = [
       "arn:${local.partition}:ec2:${var.region}:*:fleet/*",
       "arn:${local.partition}:ec2:${var.region}:*:instance/*",
@@ -115,7 +115,7 @@ data "aws_iam_policy_document" "karpenter_policy" {
     }
 
     condition {
-      test = "ForAllValues:StringEquals"
+      test     = "ForAllValues:StringEquals"
       variable = "aws:TagKeys"
       values = [
         "karpenter.sh/nodeclaim",
@@ -293,13 +293,13 @@ data "aws_iam_policy_document" "karpenter_policy" {
   }
 
   statement {
-    sid     = "AllowScopedInstanceProfileActions"
+    sid    = "AllowScopedInstanceProfileActions"
     effect = "Allow"
 
     actions = [
-        "iam:AddRoleToInstanceProfile", 
-    "iam:RemoveRoleFromInstanceProfile", 
-    "iam:DeleteInstanceProfile"
+      "iam:AddRoleToInstanceProfile",
+      "iam:RemoveRoleFromInstanceProfile",
+      "iam:DeleteInstanceProfile"
     ]
 
     resources = ["*"]

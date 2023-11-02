@@ -37,8 +37,8 @@ data "aws_ecrpublic_authorization_token" "token" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name       = "karpenter-blueprints"
-  region     = var.region
+  name   = "karpenter-blueprints"
+  region = var.region
 
   node_group_name = "managed-ondemand"
 
