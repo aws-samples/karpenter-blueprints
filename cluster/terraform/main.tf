@@ -37,14 +37,14 @@ data "aws_ecrpublic_authorization_token" "token" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name   = "karpenter-blueprints"
-  region = var.region
+  name       = "karpenter-blueprints"
+  region     = var.region
 
   node_group_name = "managed-ondemand"
 
   vpc_cidr = "10.0.0.0/16"
   # NOTE: You might need to change this less number of AZs depending on the region you're deploying to
-  azs      = slice(data.aws_availability_zones.available.names, 0, 2)
+  azs = slice(data.aws_availability_zones.available.names, 0, 2)
 
   tags = {
     blueprint = local.name
@@ -125,7 +125,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  # version = "1.9.3" <-- Ammend inline with changes
+  version = "1.10.1"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
@@ -153,7 +153,8 @@ module "eks_blueprints_addons" {
     ]
   }
 
-  enable_karpenter = true
+  enable_karpenter                           = true
+  karpenter_enable_instance_profile_creation = true
   karpenter = {
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password

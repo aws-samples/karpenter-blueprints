@@ -7,7 +7,8 @@ kind: EC2NodeClass
 metadata:
   name: default
 spec:
-  role: ${local.name}
+  role: "${local.node_iam_role_name}"
+  amiFamily: AL2 
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: ${local.name}
