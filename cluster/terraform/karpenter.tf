@@ -59,7 +59,7 @@ spec:
         containerRuntime: containerd
         systemReserved:
           cpu: 100m
-          memory: 5000Gi
+          memory: 100Mi
   disruption:
     consolidationPolicy: WhenUnderutilized
     
