@@ -55,7 +55,7 @@ spec:
           values: ["c", "m", "r", "i", "d"]
       nodeClassRef:
         name: default
-      kubeletConfiguration:
+      kubelet:
         containerRuntime: containerd
         systemReserved:
           cpu: 100m
