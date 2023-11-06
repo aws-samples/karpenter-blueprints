@@ -17,7 +17,7 @@ spec:
       MyAMITag: value
       Name: my-ami
       karpenter.sh/discovery: <<CLUSTER_NAME>>
-  role: $KARPENTER_NODE_ROLE
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>

@@ -44,16 +44,13 @@ If you're using the Terraform template provided in this repo, run the following 
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 ```
 
-> **Note:** The Karpenter `spec.instanceProfile` field has been removed from the EC2NodeClass in favor of > the spec.role field. Karpenter now auto-generates the instance profile in your `EC2NodeClass` given the role > that you specify.
->
->If you are using the terraform-aws-eks-blueprints-addons module, you can access the >`KARPENTER_NODE_IAM_ROLE_NAME` by using the output variable >module.eks_blueprints_addons.karpenter.node_iam_role_name.
+>  **Note:** If you are using the terraform-aws-eks-blueprints-addons module, you can access the `KARPENTER_NODE_IAM_ROLE_NAME` by using the output variable module.eks_blueprints_addons.karpenter.node_iam_role_name.
 >
 >Alternatively, you can manually locate the instance profile name in the AWS Identity and Access Management (IAM) Console by following these steps:
 >
 >- Navigate to the AWS IAM Console.
-> 
-> - Locate the specific IAM role that you intend to use with Karpenter (not the role's ARN).
-
+>
+>  - Locate the specific IAM role that you intend to use with Karpenter (not the role's ARN).
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
 
