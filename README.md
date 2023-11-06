@@ -145,8 +145,8 @@ The following table describes the list of resources along with the versions wher
 | --------------- | ------------------- |
 | [Kubernetes](https://kubernetes.io/releases/)      | 1.28                |
 | [Karpenter](https://github.com/aws/karpenter/releases)       | 0.32.1             |
-| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.5.5               |
-| [EKS Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | 1.9.2               |
+| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.6.3             |
+| [EKS Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | 1.11.0               |
 
 ## Feedback
 

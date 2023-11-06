@@ -38,9 +38,12 @@ data "aws_availability_zones" "available" {}
 
 locals {
   name   = "karpenter-blueprints"
+  
   region = var.region
 
   node_group_name = "managed-ondemand"
+
+  node_iam_role_name = module.eks_blueprints_addons.karpenter.node_iam_role_name
 
   vpc_cidr = "10.0.0.0/16"
   # NOTE: You might need to change this less number of AZs depending on the region you're deploying to
@@ -125,7 +128,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.10.1"
+  version = "1.11.0"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
