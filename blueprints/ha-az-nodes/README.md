@@ -6,7 +6,7 @@ Karpenter can launch only one node for all pending pods. However, putting all ap
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter provisioner as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default Provisioner"](../../README.md) section from this repository.
+* A `default` Karpenter 'NodePool' as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default NodePool"](../../README.md) section from this repository.
 
 ## Deploy
 
@@ -27,7 +27,7 @@ kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=t
 Wait one minute and you should see the pods running within two nodes in each AZ, run this command:
 
 ```
-kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
+kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should see an output similar to this:

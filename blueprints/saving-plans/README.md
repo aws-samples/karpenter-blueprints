@@ -60,10 +60,10 @@ kubectl apply -f workload.yaml
 ```
 
 ## Results
-Wait around three minutes to get all the pods running. Run the following command to see the nodes launched by Karpenter including the `NodePool-NAME` column to see which `NodePool` was used:
+Wait around three minutes to get all the pods running. Run the following command to see the nodes launched by Karpenter including the `NodePool-name` column to see which `NodePool` was used:
 
 ```
-kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/NodePool-name,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
+kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should get a similar output like this:

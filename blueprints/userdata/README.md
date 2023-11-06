@@ -15,35 +15,26 @@ When you need to bootstrap the data plane nodes to either overwrite certain Kube
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 
-  
 
 ## Deploy
 
 You need to create a new `EC2NodeClass` with the `userData` field, along with a `NodePool` to use this new template.
 
-  
-
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
-
-  
 
 ```
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
+export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
-  
->  **Note:** If you are using the terraform-aws-eks-blueprints-addons module, you can access the `KARPENTER_NODE_IAM_ROLE_NAME` by using the output variable module.eks_blueprints_addons.karpenter.node_iam_role_name.
->
->Alternatively, you can manually locate the instance profile name in the AWS Identity and Access Management (IAM) Console by following these steps:
->
->- Navigate to the AWS IAM Console.
->
->  - Locate the specific IAM role that you intend to use with Karpenter (not the role's ARN).
+
+> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/). which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
+
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `EC2NodeClass` and `NodePool`:
 
 ```
-sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
-sed -i "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
 kubectl apply -f .
 
 ```

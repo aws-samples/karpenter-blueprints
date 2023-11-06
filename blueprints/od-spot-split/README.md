@@ -37,7 +37,7 @@ kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=t
 Wait one minute and you should see the pods running within multiple nodes, run this command:
 
 ```
-kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/provisioner-name,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
+kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should see an output similar to this:
@@ -67,7 +67,7 @@ As you can see, pods were spread within the `spot` and `od` provisioners because
           whenUnsatisfiable: DoNotSchedule
 ```
 
-And each provisioner has a weight configured, the `od` provisioner has the following requirement:
+And each `NodePool` has a weight configured, the `od` NodePool has the following requirement:
 
 ```
     - key: capacity-spread

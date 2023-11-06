@@ -5,18 +5,7 @@ metadata:
 spec:
   amiFamily: AL2
   amiSelectorTerms:
-  - id: ami-123
-    name: '*amazon-eks-node-1.27-*'
-    tags:
-      MyAMITag: value
-      Name: my-ami
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
-  - id: ami-456
-    name: '*amazon-eks-node-1.27-*'
-    tags:
-      MyAMITag: value
-      Name: my-ami
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  - name: '*amazon-eks-node-1.27-*'
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:

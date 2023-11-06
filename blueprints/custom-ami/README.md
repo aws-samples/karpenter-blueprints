@@ -15,25 +15,37 @@ If you're using the Terraform template provided in this repo, run the following 
 
 ```
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
-export KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_profile_name)
+export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
 
-***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN), and `KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME` is the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html#instance-profiles-manage-console), which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter provisioner. Typically, the instance profile name is the same as the IAM role, but to avoid errors, go to the IAM Console and get the instance profile name assigned to the role (not the ARN).
+> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/). which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
+
 
 Now, make sure you're in this blueprint folder, then run the following command:
 
 ```
-sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" custom-ami.yaml
-sed -i "s/<<KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME>>/$KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME/g" custom-ami.yaml
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" custom-ami.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" custom-ami.yaml
+
+
 kubectl apply -f .
 ```
+Here's the important configuration block within the spec of an [`EC2NodeClass`](https://karpenter.sh/preview/concepts/nodeclasses/#specamiselectorterms)
 
-Here's the important configuration block within the spec of an `AWSNodeTemplate`: 
+**spec.amiSelectorTerms**
+
+AMISelectorTerms are used to configure custom AMIs for Karpenter to use, where the AMIs are discovered through ids, owners, name, and tags. This field is optional, and Karpenter will use the latest EKS-optimized AMIs for the AMIFamily if no amiSelectorTerms are specified. To select an AMI by name, use the name field in the selector term. To select an AMI by id, use the id field in the selector term. To ensure that AMIs are owned by the expected owner, use the owner field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to self,amazon.
+
+> **Tip**
+> AMIs may be specified by any AWS tag, including Name. Selecting by tag
+> or by name using wildcards (*) is supported.
 
 ```
-  amiSelector:
-    aws::name: "*amazon-eks-node-1.27-*"
-    aws::owners: self,amazon
+  amiSelectorTerms:
+    - name: "*amazon-eks-node-1.27-*"
+      owner: self
+    - name: "*amazon-eks-node-1.27-*"
+      owner: amazon
 ```
 
 ***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.27 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
