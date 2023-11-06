@@ -35,10 +35,11 @@ apiVersion: karpenter.sh/v1beta1
 kind: NodePool
 metadata:
   name: default 
-spec:
-  labels:
-    intent: apps
+spec:  
   template:
+    metadata:
+      labels:
+        intent: apps
     spec:
       requirements:
         - key: kubernetes.io/arch

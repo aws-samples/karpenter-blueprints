@@ -12,7 +12,7 @@ You need to create a new `EC2NodeClass` with the `userData` field, along with a 
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 
-``
+```
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 
 ```
