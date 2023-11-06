@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Launching nodes using custom AMIs
 
 ## Purpose
-When you need to launch nodes using a custom AMI that you've created (i.e. to pre-load base container images), you need to configure an `AWSNodeTemplate` properly to get the AMI you need. With Karpenter, you might be able to use AMIs for different CPU architectures or other specifications like GPUs. So, our recommendation is that you use a naming convention or a tag to easily identify which AMIs Karpenter can use to launch nodes.
+When you need to launch nodes using a custom AMI that you've created (i.e. to pre-load base container images), you need to configure an `EC2NodeClass` properly to get the AMI you need. With Karpenter, you might be able to use AMIs for different CPU architectures or other specifications like GPUs. So, our recommendation is that you use a naming convention or a tag to easily identify which AMIs Karpenter can use to launch nodes.
 
 ## Requirements
 

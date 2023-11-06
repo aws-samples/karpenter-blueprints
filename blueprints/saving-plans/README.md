@@ -7,30 +7,50 @@ You might want to consume your Saving Plans and/or Reserved Instances before any
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 * A list of instance types or families that match with your Savings Plans and/or Reserved Instances, along with the total number of vCPUs you've reserved.
-* A `default` Karpenter provisioner as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default Provisioner"](../../README.md) section from this repository.
+* A `default` Karpenter provisioner as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default NodePool"](../../README.md) section from this repository.
 
 ## Deploy
 Let's suppose you purchased a Saving Plans of 20 vCPUs for `c4` family. Your provisioner should look like this:
 
 ```
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
-  name: saving-plan
+  name: savings-plans
 spec:
-  labels:
-    intent: apps
-  weight: 100
-  requirements:
-  - key: "karpenter.k8s.aws/instance-family"
-    operator: In
-    values: ["c4"]
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 168h0m0s
   limits:
-    resources:
-      cpu: 20
+    cpu: "20"
+  template:
+    metadata:
+      labels:
+        intent: apps
+    spec:
+      nodeClassRef:
+        name: default
+      requirements:
+      - key: karpenter.k8s.aws/instance-family
+        operator: In
+        values:
+        - c4
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+  weight: 100
 ```
 
-Notice that the above `Provisioner` has a `weight` configuration of `100` and a `cpu` limit of 20 (5 x c4.xlarge instances).
+Notice that the above `NodePool` has a `weight` configuration of `100` and a `cpu` limit of 20 (5 x c4.xlarge instances).
 
 Deploy the prioritized provisioner and the sample workload with 20 pods requesting `950m` cpu units:
 
@@ -40,10 +60,10 @@ kubectl apply -f workload.yaml
 ```
 
 ## Results
-Wait around three minutes to get all the pods running. Run the following command to see the nodes launched by Karpenter including the `PROVISIONER-NAME` column to see which `Provisioner` was used:
+Wait around three minutes to get all the pods running. Run the following command to see the nodes launched by Karpenter including the `NodePool-NAME` column to see which `NodePool` was used:
 
 ```
-kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/provisioner-name,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
+kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/NodePool-name,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should get a similar output like this:

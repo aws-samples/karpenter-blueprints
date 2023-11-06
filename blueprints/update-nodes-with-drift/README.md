@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Update Nodes using Drift
 
 ## Purpose
-After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `Provisioner` and `ProviderRef`. A node can drift when a user changes their `Provisioner` or `ProviderRef`. Moreover, underlying infrastructure in the provider can be changed outside of the cluster. For example, configuring an `AMISelector` to match the control plane version in the `AWSNodeTemplate`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
+After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `NodePool` and `ProviderRef`. A node can drift when a user changes their `NodePool` or `ProviderRef`. Moreover, underlying infrastructure in the provider can be changed outside of the cluster. For example, configuring an `AMISelector` to match the control plane version in the `NodePool`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
 
 Karpenter's drift will reconcile when a node's AMI drifts from provisioning requirements. When upgrading a node, Karpenter will minimize the downtime of the applications on the node by initiating provisioning logic for a replacement node before terminating drifted nodes. Once Karpenter has begun provisioning the replacement node, Karpenter will cordon and drain the old node, terminating it when it’s fully drained, then finishing the upgrade.
 
@@ -30,7 +30,7 @@ Now, you need to restart Karpenter's pods, run this command:
 kubectl rollout restart deployment karpenter -n karpenter
 ```
 
-Once drift is enabled, let's create a new `AWSNodeTemplate` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. 
+Once drift is enabled, let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. 
 
 ```
   amiSelector:
@@ -42,16 +42,24 @@ If you're using the Terraform template provided in this repo, run the following 
 
 ```
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
-export KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_profile_name)
 ```
 
-***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN), and `KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME` is the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html#instance-profiles-manage-console), which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter provisioner. Typically, the instance profile name is the same as the IAM role, but to avoid errors, go to the IAM Console and get the instance profile name assigned to the role (not the ARN).
+> **Note:** The Karpenter `spec.instanceProfile` field has been removed from the EC2NodeClass in favor of > the spec.role field. Karpenter now auto-generates the instance profile in your `EC2NodeClass` given the role > that you specify.
+>
+>If you are using the terraform-aws-eks-blueprints-addons module, you can access the >`KARPENTER_NODE_IAM_ROLE_NAME` by using the output variable >module.eks_blueprints_addons.karpenter.node_iam_role_name.
+>
+>Alternatively, you can manually locate the instance profile name in the AWS Identity and Access Management (IAM) Console by following these steps:
+>
+>- Navigate to the AWS IAM Console.
+> 
+> - Locate the specific IAM role that you intend to use with Karpenter (not the role's ARN).
 
-Now, make sure you're in this blueprint folder, then run the following command to create the new `Provisioner` and `AWSNodeTemplate`:
+
+Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
 
 ```
-sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" latest-current-ami.yaml
-sed -i "s/<<KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME>>/$KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME/g" latest-current-ami.yaml
+sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
+sed -i "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
 kubectl apply -f .
 ```
 
@@ -74,10 +82,10 @@ NAME                                        STATUS   ROLES    AGE     VERSION
 ip-10-0-48-23.eu-west-1.compute.internal    Ready    <none>   6m28s   v1.26.7-eks-8ccc7ba
 ```
 
-Let's simulate a node upgrade by changing the EKS version in the `AWSNodeTemplate`, run this command:
+Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
-kubectl -n karpenter get awsnodetemplate latest-current-ami-template -o yaml | \
+kubectl -n karpenter get ec2nodeclass latest-current-ami-template -o yaml | \
   sed -e 's|1.26|1.27|' | \
   kubectl apply -f -
 ```
@@ -85,7 +93,7 @@ kubectl -n karpenter get awsnodetemplate latest-current-ami-template -o yaml | \
 You can confirm the update has been applied by running this command:
 
 ```
-kubectl get awsnodetemplate latest-current-ami-template -o yaml
+kubectl get ec2nodeclass latest-current-ami-template -o yaml
 ```
 
 Wait around two minutes, in the mean time, you can monitor Karpenter logs until you see something like this:
