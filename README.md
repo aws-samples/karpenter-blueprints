@@ -111,7 +111,6 @@ You can now proceed to deploy any blueprint you want to test.
 Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:
 
 ```
-kubectl delete namespace karpenter
 export TF_VAR_region=$AWS_REGION
 terraform destroy -target="module.eks_blueprints_addons" --auto-approve
 terraform destroy -target="module.eks" --auto-approve

@@ -7,7 +7,7 @@ spec:
     consolidationPolicy: WhenUnderutilized
     expireAfter: 168h0m0s
   limits:
-    cpu: "20"
+    cpu: "20" # For example: Limit to launch up to 5 c4.xlarge instances
   template:
     metadata:
       labels:
@@ -20,6 +20,10 @@ spec:
         operator: In
         values:
         - c4
+        # Alternatively, you can configure fixed instance types
+        # - key: "node.kubernetes.io/instance-type"
+        #   operator: In
+        #   values: ["c4.xlarge"] # 4 vCPUs
       - key: kubernetes.io/os
         operator: In
         values:

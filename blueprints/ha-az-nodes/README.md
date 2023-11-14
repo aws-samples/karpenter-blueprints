@@ -6,7 +6,7 @@ Karpenter can launch only one node for all pending pods. However, putting all ap
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter 'NodePool' as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default NodePool"](../../README.md) section from this repository.
+* A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
 
 ## Deploy
 

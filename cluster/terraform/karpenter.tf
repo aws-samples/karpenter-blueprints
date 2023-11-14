@@ -17,7 +17,7 @@ spec:
       karpenter.sh/discovery: ${local.name}
   tags:
     IntentLabel: apps
-    KarpenterProvisionerName: default
+    KarpenterNodePoolName: default
     NodeType: default
     intent: apps
     karpenter.sh/discovery: ${local.name}

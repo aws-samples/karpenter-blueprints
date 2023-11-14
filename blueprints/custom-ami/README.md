@@ -26,15 +26,12 @@ Now, make sure you're in this blueprint folder, then run the following command:
 ```
 sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" custom-ami.yaml
 sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" custom-ami.yaml
-
-
 kubectl apply -f .
 ```
-Here's the important configuration block within the spec of an [`EC2NodeClass`](https://karpenter.sh/preview/concepts/nodeclasses/#specamiselectorterms)
 
-**spec.amiSelectorTerms**
+Here's the important configuration block within the spec of an [`EC2NodeClass`](https://karpenter.sh/preview/concepts/nodeclasses/#specamiselectorterms): **spec.amiSelectorTerms**
 
-AMISelectorTerms are used to configure custom AMIs for Karpenter to use, where the AMIs are discovered through ids, owners, name, and tags. This field is optional, and Karpenter will use the latest EKS-optimized AMIs for the AMIFamily if no amiSelectorTerms are specified. To select an AMI by name, use the name field in the selector term. To select an AMI by id, use the id field in the selector term. To ensure that AMIs are owned by the expected owner, use the owner field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to self,amazon.
+`spec.amiSelectorTerms` are used to configure custom AMIs for Karpenter to use, where the AMIs are discovered through ids, owners, name, and tags. This field is optional, and Karpenter will use the latest **EKS-optimized AMIs** for the `AMIFamily` if no `amiSelectorTerms` are specified. To select an AMI by name, use the `name` field in the selector term. To select an AMI by id, use the `id` field in the selector term. To ensure that AMIs are owned by the expected owner, use the `owner` field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to `self,amazon`.
 
 > **Tip**
 > AMIs may be specified by any AWS tag, including Name. Selecting by tag
@@ -59,7 +56,7 @@ NAME                         READY   STATUS    RESTARTS   AGE
 custom-ami-bdf66b777-2g27q   1/1     Running   0          2m2s
 custom-ami-bdf66b777-dbkls   1/1     Running   0          2m2s
 custom-ami-bdf66b777-rzlsz   1/1     Running   0          2m2s
-❯ kubectl get machines
+❯ kubectl get nodeclaims
 NAME               TYPE       ZONE         NODE                                        READY   AGE
 custom-ami-2ht8b   m5.large   eu-west-1c   ip-10-0-103-91.eu-west-1.compute.internal   True    1m36s
 ```

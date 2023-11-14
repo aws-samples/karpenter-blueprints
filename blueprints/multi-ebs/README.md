@@ -18,15 +18,14 @@ export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw clu
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
 
-> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/). which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
+> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/). which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role (not the ARN).
 
 Now, make sure you're in this blueprint folder, then run the following command:
 
 ```
-sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
-sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" multi-ebs.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" multi-ebs.yaml
 kubectl apply -f .
-
 ```
 
 Here's the important configuration block within the spec of an `EC2NodeClass`: 
@@ -54,7 +53,7 @@ NAME                        READY   STATUS    RESTARTS   AGE
 multi-ebs-f4fb69fdd-kstj9   1/1     Running   0          2m34s
 multi-ebs-f4fb69fdd-t9xnl   1/1     Running   0          2m34s
 multi-ebs-f4fb69fdd-x42ss   1/1     Running   0          2m34s
-❯ kubectl get machines
+❯ kubectl get nodeclaims
 NAME              TYPE        ZONE         NODE                                       READY   AGE
 multi-ebs-chvzv   m5.xlarge   eu-west-1a   ip-10-0-43-92.eu-west-1.compute.internal   True    3m55s
 ```
