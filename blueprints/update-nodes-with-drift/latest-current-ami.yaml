@@ -5,9 +5,7 @@ metadata:
 spec:
   amiFamily: AL2
   amiSelectorTerms:
-  - name: '*-1.26-*'
-    owner: self
-  - name: '*-1.26-*'
+  - name: '*1.27*'
     owner: amazon
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
@@ -17,7 +15,7 @@ spec:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   tags:
-    KubernetesVersion: "1.26"
+    KubernetesVersion: "1.27"
 ---
 apiVersion: karpenter.sh/v1beta1
 kind: NodePool
@@ -35,7 +33,6 @@ spec:
       labels:
         intent: latest-current-ami
     spec:
-      kubelet: {}
       nodeClassRef:
         name: latest-current-ami-template
       requirements:

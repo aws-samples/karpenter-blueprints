@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Update Nodes using Drift
 
 ## Purpose
-After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `NodePool` and `ProviderRef`. A node can drift when a user changes their `NodePool` or `ProviderRef`. Moreover, underlying infrastructure in the provider can be changed outside of the cluster. For example, configuring an `AMISelector` to match the control plane version in the `NodePool`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
+After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `NodePool` and `nodeClassRef`. A node can drift when a user changes their `NodePool` or `nodeClassRef`. Moreover, underlying infrastructure in the nodepool can be changed outside of the cluster. For example, configuring an `amiSelectorTerms` to match the control plane version in the `NodePool`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
 
 Karpenter's drift will reconcile when a node's AMI drifts from provisioning requirements. When upgrading a node, Karpenter will minimize the downtime of the applications on the node by initiating provisioning logic for a replacement node before terminating drifted nodes. Once Karpenter has begun provisioning the replacement node, Karpenter will cordon and drain the old node, terminating it when it’s fully drained, then finishing the upgrade.
 
@@ -10,32 +10,39 @@ Karpenter's drift will reconcile when a node's AMI drifts from provisioning requ
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 
 ## Deploy
-Let's start by enabling the drift feature gate in Karpenter's configmap settings. To do so, run this command:
+Let's start by enabling the [drift](https://karpenter.sh/docs/concepts/disruption/#drift) feature gate in Karpenter's deployment environment variable. To do so, run this command:
 
 ```
-kubectl -n karpenter get cm karpenter-global-settings -o yaml | \
-  sed -e 's|featureGates.driftEnabled: "false"|featureGates.driftEnabled: "true"|' | \
+kubectl -n karpenter get deployment karpenter -o yaml | \
+  sed -e 's|Drift=false|Drift=true|' | \
   kubectl apply -f -
 ```
+
+**NOTE:** You might get this message: `Warning: resource deployments/karpenter is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by kubectl apply`. Your change will be applied, this warning appears the first time to inform you that the resource might be managed by something else. This annotation will get added and you won't see the warning going forward.
 
 You can confirm the configuration has been updated running the following command:
 
 ```
-kubectl -n karpenter get cm karpenter-global-settings -o jsonpath='{.data}' | grep driftEnabled
+kubectl -n karpenter get deployment karpenter -o jsonpath='{.spec.template.spec.containers[0].env}' | grep Drift
 ```
 
-Now, you need to restart Karpenter's pods, run this command:
+Now, you can confirm that the Karpenter pods have been recreated:
 
 ```
-kubectl rollout restart deployment karpenter -n karpenter
+❯ kubectl get pods -n karpenter
+NAME                         READY   STATUS    RESTARTS   AGE
+karpenter-7c6f4995bf-7dg5r   1/1     Running   0          2m34s
+karpenter-7c6f4995bf-82ttb   1/1     Running   0          2m34s
 ```
 
 Once drift is enabled, let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. 
 
 ```
-  amiSelector:
-    aws::name: '*-1.26-*' # Will get the latest AMI of this Kubernetes version
-    aws::owners: self,amazon
+  amiSelectorTerms:
+  - name: '*-1.27-*' # Will get the latest AMI of this Kubernetes version
+    owner: self
+  - name: '*-1.27-*' # Will get the latest AMI of this Kubernetes version
+    owner: amazon
 ```
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
@@ -51,13 +58,14 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
 
 ```
-sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
-sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" latest-current-ami.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" latest-current-ami.yaml
 kubectl apply -f .
 ```
 
 ## Results
-The pods from the sample workload should be running even if the node has a version that doesn't match with the control plane.
+
+Wait for around two minutes. The pods from the sample workload should be running even if the node has a version that doesn't match with the control plane.
 
 ```
 > kubectl get pods
@@ -67,19 +75,19 @@ latest-current-ami-5bbfbc98f7-n7mgs   1/1     Running   0            3m
 latest-current-ami-5bbfbc98f7-rxjjx   1/1     Running   0            3m
 ```
 
-You should see a new node registered with the latest AMI for EKS `v1.26`, like this:
+You should see a new node registered with the latest AMI for EKS `v1.27`, like this:
 
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                        STATUS   ROLES    AGE     VERSION
-ip-10-0-48-23.eu-west-1.compute.internal    Ready    <none>   6m28s   v1.26.7-eks-8ccc7ba
+ip-10-0-48-23.eu-west-1.compute.internal    Ready    <none>   6m28s   v1.27.4-eks-8ccc7ba
 ```
 
 Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
 kubectl -n karpenter get ec2nodeclass latest-current-ami-template -o yaml | \
-  sed -e 's|1.26|1.27|' | \
+  sed -e 's|1.27|1.28|' | \
   kubectl apply -f -
 ```
 
@@ -101,7 +109,7 @@ You should now see a new node with the latest AMI version that matches the contr
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                        STATUS   ROLES    AGE   VERSION
-ip-10-0-60-27.eu-west-1.compute.internal    Ready    <none>   20s   v1.27.4-eks-8ccc7ba
+ip-10-0-60-27.eu-west-1.compute.internal    Ready    <none>   20s   v1.28.3-eks-8ccc7ba
 ```
 
 You can repeat this process every time you need to run a controlled upgrade of the nodes.
