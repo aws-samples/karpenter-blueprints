@@ -5,8 +5,8 @@ metadata:
 spec:
   amiFamily: AL2
   amiSelectorTerms:
-  - name: '*1.27*'
-    owner: amazon
+    - id: <<AMD64PREVAMI>>
+    - id: <<ARM64PREVAMI>>
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
