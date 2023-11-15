@@ -82,9 +82,7 @@ Before you start deploying a blueprint, you need to have a default [EC2NodeClass
 
 If you create a new EKS cluster following the previous steps, a Karpenter `EC2NodeClass` "default" and a Karpenter `NodePool` "default" are installed automatically.
 
-**NOTE:**  For existing EKS cluster you have to modify the provided `./cluster/terraform/karpenter.tf` according to your setup by properly modifying `securityGroupSelectorTerm` and `subnetSelectorTerms` removing the `depends_on` section. 
-
-**NOTE:**  The Karpenter `spec.instanceProfile` field has been removed from the `EC2NodeClass` in favor of the spec.role field. Karpenter now auto-generates the instance profile in your `EC2NodeClass` given the role that you specify.
+**NOTE:**  For existing EKS cluster you have to modify the provided `./cluster/terraform/karpenter.tf` according to your setup by properly modifying `securityGroupSelectorTerm` and `subnetSelectorTerms` removing the `depends_on` section. ***If you're not using Terraform***, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
 
 You can see that the NodePool has been deployed by running this:
 
