@@ -6,7 +6,7 @@ For stateful workloads that use persistent volumes, Karpenter detects storage sc
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter provisioner as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default Provisioner"](../../README.md) section from this repository.
+* A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
 * The [Amazon EBS CSI driver](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html) installed in the cluster. If you're using the Terraform template in this repository, it's already configured.
 
 ## Deploy
@@ -20,7 +20,7 @@ echo $FIRSTAZ
 Then, run these commands to replace the placeholder with the AZ, and deploy the storage resources:
 
 ```
-sed -i "s/<<AVAILABILITY_ZONE>>/$FIRSTAZ/g" storage.yaml
+sed -i '' "s/<<AVAILABILITY_ZONE>>/$FIRSTAZ/g" storage.yaml
 kubectl apply -f storage.yaml
 ```
 
@@ -58,9 +58,9 @@ ebs-claim   Bound    pvc-d4c11e32-9da0-41d6-a477-d454a4aade94   4Gi        RWO  
 Notice that Karpenter launched a node in the AZ (using the value from `$FIRSTAZ` env var), following the constraint defined in the `StorageClass` (no need to constraint it within the `Deployment` or `Pod`):
 
 ```
-> kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/provisioner-name,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
-NAME                                       STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   PROVISIONER-NAME   ZONE
-ip-10-0-38-15.eu-west-1.compute.internal   Ready    <none>   2m22s   v1.27.4-eks-8ccc7ba   spot            m5.xlarge       default            eu-west-1a
+> kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
+NAME                                       STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
+ip-10-0-38-15.eu-west-1.compute.internal   Ready    <none>   2m22s   v1.28.3-eks-8ccc7ba   spot            m5.xlarge       default            eu-west-1a
 ```
 
 Let's read the file that the pods are writing to, like this:

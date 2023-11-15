@@ -1,44 +1,68 @@
-apiVersion: karpenter.k8s.aws/v1alpha1
-kind: AWSNodeTemplate
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
 metadata:
   name: latest-current-ami-template
 spec:
-  subnetSelector:
-    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
-  securityGroupSelector:
-    karpenter.sh/discovery: "<<CLUSTER_NAME>>"
-  instanceProfile: "<<KARPENTER_NODE_IAM_INSTANCE_PROFILE_NAME>>"
-  amiSelector:
-    aws::name: '*-1.26-*' # Will get the latest AMI of this Kubernetes version
-    aws::owners: self,amazon
+  amiFamily: AL2
+  amiSelectorTerms:
+    - id: <<AMD64PREVAMI>>
+    - id: <<ARM64PREVAMI>>
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
   tags:
-    KubernetesVersion: '1.26'
+    KubernetesVersion: "1.27"
 ---
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: latest-current-ami
 spec:
-  labels:
-    intent: latest-current-ami
-  requirements:
-    - key: "karpenter.k8s.aws/instance-category"
-      operator: In
-      values: ["c", "m", "r", "i", "d"]
-    - key: "karpenter.k8s.aws/instance-cpu"
-      operator: In
-      values: ["4", "8", "16", "32", "48", "64"]
-    - key: karpenter.sh/capacity-type
-      operator: In
-      values: ["spot", "on-demand"]
-  kubeletConfiguration:
-    containerRuntime: containerd
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 168h0m0s
   limits:
-    resources:
-      cpu: 100000
-      memory: 5000Gi
-  consolidation:
-    enabled: true
-  ttlSecondsUntilExpired: 604800
-  providerRef:
-    name: latest-current-ami-template
+    cpu: 100k
+    memory: 5000Gi
+  template:
+    metadata:
+      labels:
+        intent: latest-current-ami
+    spec:
+      nodeClassRef:
+        name: latest-current-ami-template
+      requirements:
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+        - i
+        - d
+      - key: karpenter.k8s.aws/instance-cpu
+        operator: In
+        values:
+        - "4"
+        - "8"
+        - "16"
+        - "32"
+        - "48"
+        - "64"
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64

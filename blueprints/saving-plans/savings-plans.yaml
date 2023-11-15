@@ -1,24 +1,39 @@
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: savings-plans
 spec:
-  labels:
-    intent: apps
-  weight: 100
-  requirements:
-  - key: "karpenter.k8s.aws/instance-family"
-    operator: In
-    values: ["c4"] 
-  ## Alternatively, you can configure fixed instance types
-  # - key: "node.kubernetes.io/instance-type"
-  #   operator: In
-  #   values: ["c4.xlarge"] # 4 vCPUs
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 168h0m0s
   limits:
-    resources:
-      cpu: 20 # For example: Limit to launch up to 5 c4.xlarge instances
-  consolidation:
-    enabled: true
-  ttlSecondsUntilExpired: 604800
-  providerRef:
-    name: default
+    cpu: "20" # For example: Limit to launch up to 5 c4.xlarge instances
+  template:
+    metadata:
+      labels:
+        intent: apps
+    spec:
+      nodeClassRef:
+        name: default
+      requirements:
+      - key: karpenter.k8s.aws/instance-family
+        operator: In
+        values:
+        - c4
+        # Alternatively, you can configure fixed instance types
+        # - key: "node.kubernetes.io/instance-type"
+        #   operator: In
+        #   values: ["c4.xlarge"] # 4 vCPUs
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+  weight: 100

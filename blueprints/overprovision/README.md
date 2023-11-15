@@ -8,7 +8,7 @@ To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https:
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter provisioner as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default Provisioner"](../../README.md) section from this repository.
+* A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
 
 ## Deploy
 Let's start by deploying the "dummy" workload:
@@ -20,7 +20,7 @@ kubectl apply -f dummy-workload.yaml
 After waiting for around two minutes, notice how Karpenter will provision the machine(s) needed to run the "dummy" workload:
 
 ```
-> kubectl get machines
+> kubectl get nodeclaims
 NAME            TYPE          ZONE         NODE                                       READY   AGE
 default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    57s
 ```
@@ -79,7 +79,7 @@ workload-679c759476-sxjpt        1/1     Running   0          15s
 After waiting for around two minutes, you'll see all pods running and a new machine registered:
 
 ```
-> kubectl get machines                                                                                                        18s
+> kubectl get nodeclaims                                                                                                        18s
 NAME            TYPE          ZONE         NODE                                        READY   AGE
 default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal    True    14m
 default-s6dbs   m5.xlarge     eu-west-1a   ip-10-0-35-186.eu-west-1.compute.internal   True    2m8s
@@ -90,7 +90,7 @@ The new machine is simply there because some "dummy" pods were pending and they 
 ```
 > kubectl scale deployment dummy-workload --replicas 0
 deployment.apps/dummy-workload scaled
-> kubectl get machines
+> kubectl get nodeclaims
 NAME            TYPE          ZONE         NODE                                       READY   AGE
 default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    16m
 ```

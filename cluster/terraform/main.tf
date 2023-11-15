@@ -4,6 +4,10 @@ provider "aws" {
   alias  = "virginia"
 }
 
+provider "aws" {
+  region = local.region
+}
+
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
@@ -37,14 +41,16 @@ data "aws_ecrpublic_authorization_token" "token" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name   = "karpenter-blueprints"
-  region = var.region
-
+  name            = "karpenter-blueprints"
+  cluster_version = "1.28"
+  region          = var.region
   node_group_name = "managed-ondemand"
+
+  node_iam_role_name = module.eks_blueprints_addons.karpenter.node_iam_role_name
 
   vpc_cidr = "10.0.0.0/16"
   # NOTE: You might need to change this less number of AZs depending on the region you're deploying to
-  azs      = slice(data.aws_availability_zones.available.names, 0, 2)
+  azs = slice(data.aws_availability_zones.available.names, 0, 3)
 
   tags = {
     blueprint = local.name
@@ -56,10 +62,10 @@ locals {
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.13"
+  version = "19.16.0"
 
   cluster_name                   = local.name
-  cluster_version                = "1.28"
+  cluster_version                = local.cluster_version
   cluster_endpoint_public_access = true
 
   cluster_addons = {
@@ -81,6 +87,7 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  create_cloudwatch_log_group   = false
   create_cluster_security_group = false
   create_node_security_group    = false
 
@@ -125,7 +132,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.9.2"
+  version = "1.11.0"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
@@ -158,10 +165,13 @@ module "eks_blueprints_addons" {
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
-  karpenter_enable_spot_termination = true
+  karpenter_enable_spot_termination          = true
+  karpenter_enable_instance_profile_creation = true
+  karpenter_node = {
+    iam_role_use_name_prefix = false
+  }
 
   tags = local.tags
-
 }
 
 module "ebs_csi_driver_irsa" {
