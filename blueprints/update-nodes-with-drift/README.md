@@ -1,9 +1,9 @@
 # Karpenter Blueprint: Update Nodes using Drift
 
 ## Purpose
-After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `NodePool` and `nodeClassRef`. A node can drift when a user changes their `NodePool` or `nodeClassRef`. Moreover, underlying infrastructure in the nodepool can be changed outside of the cluster. For example, configuring an `amiSelectorTerms` to match the control plane version in the `NodePool`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
+After upgrading the Kubernetes control plane version, you might be wondering how to properly upgrade the data plane nodes launched by Karpenter. Currently, Karpenter has a feature gate to mark nodes as drifted. A drifted node is one whose spec and metadata does not match the spec of its `NodePool` and `nodeClassRef`. A node can drift when a user changes their `NodePool` or `nodeClassRef`. Moreover, underlying infrastructure in the nodepool can be changed outside of the cluster. For example, configuring an `amiSelectorTerms` to configure static AMI IDs match the control plane version in the `NodePool`. This allows you to control when to upgrade node's version or when a new AL2 EKS Optimized AMI is released, creating drifted nodes.
 
-Karpenter's drift will reconcile when a node's AMI drifts from provisioning requirements. When upgrading a node, Karpenter will minimize the downtime of the applications on the node by initiating provisioning logic for a replacement node before terminating drifted nodes. Once Karpenter has begun provisioning the replacement node, Karpenter will cordon and drain the old node, terminating it when it’s fully drained, then finishing the upgrade.
+Karpenter's drift will reconcile when a node's AMI drifts from `NodePool` requirements. When upgrading a node, Karpenter will minimize the downtime of the applications on the node by initiating `NodePool` logic for a replacement node before terminating drifted nodes. Once Karpenter has begun launching the replacement node, Karpenter will cordon and drain the old node, terminating it when it’s fully drained, then finishing the upgrade.
 
 ## Requirements
 
@@ -35,14 +35,12 @@ karpenter-7c6f4995bf-7dg5r   1/1     Running   0          2m34s
 karpenter-7c6f4995bf-82ttb   1/1     Running   0          2m34s
 ```
 
-Once drift is enabled, let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. 
+Once drift is enabled, let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. Within the `amiSelectorTerms` you'll configure the most recent AMIs (both for `amd64` and `arm64`) from a previous version of the control plane to test the drift feature.
 
 ```
   amiSelectorTerms:
-  - name: '*-1.27-*' # Will get the latest AMI of this Kubernetes version
-    owner: self
-  - name: '*-1.27-*' # Will get the latest AMI of this Kubernetes version
-    owner: amazon
+    - id: <<AMD64PREVAMI>>
+    - id: <<ARM64PREVAMI>>
 ```
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
