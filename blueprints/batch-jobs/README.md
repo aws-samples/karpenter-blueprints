@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Protecting batch jobs during the consolidation process
 
 ## Purpose
-Karpenter can actively reduce the cluster cost by identifying when nodes can be removed or replaced because they are empty or there are a cheaper one available after some workload change. This process is called [consolidation](https://karpenter.sh/preview/concepts/disruption/#consolidation), and it implies the disruption of pods that are running in the node, if any, as they need to be rescheduled into another node. In some cases, like when running long batch jobs, you don't want those pods to be interrupted. You want to run them from start to finish without disruption, and replace or delete the node once they finished. To achieve that, you can set the `karpenter.sh/do-not-disrupt: "true"` annotation on the pod (more information [here](https://karpenter.sh/preview/concepts/disruption/#pod-level-controls)). By opting pods out of this disruption, you are telling Karpenter that it should not voluntarily remove a node containing this pod.
+Karpenter can actively reduce the cluster cost by identifying when nodes can be removed or replaced because they are empty or there are a cheaper one available after some workload change. This process is called [consolidation](https://karpenter.sh/preview/concepts/disruption/#consolidation), and it implies the disruption of pods that are running in the node, if any, as they need to be rescheduled into another node. In some cases, like when running long batch jobs, you don't want those pods to be disrupted. You want to run them from start to finish without disruption, and replace or delete the node once they finish. To achieve that, you can set the `karpenter.sh/do-not-disrupt: "true"` annotation on the pod (more information [here](https://karpenter.sh/preview/concepts/disruption/#pod-level-controls)). By opting pods out of this disruption, you are telling Karpenter that it should not voluntarily remove a node containing this pod.
 
 ## Requirements
 
@@ -11,12 +11,12 @@ Karpenter can actively reduce the cluster cost by identifying when nodes can be 
 ## Deploy
 You are going to use the `default` NodePool.
 
-If you want to first observe the default behaviour explained before, jump to [(Optional) Simulating the default behaviour](#(optional)-simulating-the-default-behaviour). 
+If you want to first observe the default behaviour of pods being disrupted during the consolidation process, jump to [(Optional) Simulating the default behaviour](#(optional)-simulating-the-default-behaviour). 
 
-If you want to directly see how to avoid the interruption of jobs by the consolidation process, jump to [Preventing jobs of being evicted](#preventing-jobs-of-being-evicted).
+If you want to directly see how to avoid the disruption of jobs by the consolidation process, jump to [Preventing jobs of being evicted](#preventing-jobs-of-being-evicted).
 
 ### (optional) Simulating the default behaviour
-This section simulates the default behaviour of the pods explained before, in which the Karpenter consolidation process interrupts the pods running the jobs, and re-schedule them into the cheaper node. To simulate it, deploy the [workloads-evicted yaml](/karpenter-blueprints/blueprints/batch-jobs/workloads-evicted.yaml):
+This section simulates the default behaviour of the pods explained before, in which the Karpenter consolidation process disrupts the pods running the jobs, and re-schedule them into the cheaper node. To simulate it, deploy the [workloads-evicted yaml](/karpenter-blueprints/blueprints/batch-jobs/workloads-evicted.yaml):
 ```
 $> kubectl apply -f workloads-evicted.yaml
 deployment.apps/nginx created
@@ -28,7 +28,7 @@ This will create three pods that require **11 vCPU** in total:
 -  2-minutes job - 7 vCPU required
 - 5-minutes job - 2 vCPU required
 
-Karpenter launches the cheapest EC2 instance for the workloads: a **c6g.4xlarge** on-demand instance (16 vCPU, 32 GiB). You can check this by executing:
+During this test, Karpenter decided to launch a **c6g.4xlarge** on-demand instance (16 vCPU, 32 GiB). You can check this by executing:
 
 ```
 kubectl get nodes --label-columns node.kubernetes.io/instance-type
@@ -50,7 +50,7 @@ Now, the total number of vCPU required by the running pods are **4 vCPU**:
 - NGINX server - 2 vCPU required
 -  5-minutes job - 2 vCPU required 
 
-The default behaviour is the one defined in the NodePool: `consolidationPolicy: WhenUnderutilized`. Karpenter identifies the **c6g.4xlarge** (12 vCPU) is underutilized, and perform a consolidation replacement of the node. It launches a cheaper and smaller node: a **c6g.2xlarge** (8 vCPU) instance. You can check these logs by executing the following command in another terminal:
+The default behaviour is the one defined in the NodePool: `consolidationPolicy: WhenUnderutilized`. Karpenter identifies the **c6g.4xlarge** (12 vCPU) is underutilized, and performs a consolidation replacement of the node. It launches a cheaper and smaller node: a **c6g.2xlarge** (8 vCPU) instance. You can check these logs by executing the following command in another terminal:
 ```
 kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20
 ```
@@ -60,9 +60,9 @@ You should see these logs:
 ...
 {"level":"INFO","time":"2024-01-10T15:06:39.390Z","logger":"controller.nodeclaim.lifecycle","message":"launched nodeclaim","commit":"1072d3b","nodeclaim":"default-98tsh","nodepool":"default","provider-id":"aws:///eu-west-1a/i-0f329cada644371ec","instance-type":"c6g.2xlarge","zone":"eu-west-1a","capacity-type":"on-demand","allocatable":{"cpu":"7810m","ephemeral-storage":"17Gi","memory":"14003Mi","pods":"58","vpc.amazonaws.com/pod-eni":"38"}}
 ```
-The NGINX server and the 5-min job pods are rescheduled into the new c6g.2xlarge node, so **the job is restarted**, which is not ideal for batch jobs.
+The NGINX server and the 5-min job pods are rescheduled into the new c6g.2xlarge node, so **the job is restarted**, which will cause a disruption the job might not be prepared to handle like doing a checkpoint.
 
-After five minutes more, the job will finish, and Karpenter will replace the node with a **c6g.xlarge** instance (4 vCPU) for the NGINX server. You can repeat the previous steps to verify this behaviour.
+After five more minutes, the job will finish, and Karpenter will replace the node with a **c6g.xlarge** instance (4 vCPU) for the NGINX server. You can repeat the previous steps to verify this behaviour.
 
 To clean up, execute:
 ```
@@ -93,7 +93,7 @@ If you explore the [workloads-not-evicted yaml](/karpenter-blueprints/blueprints
 Go to [Results section](#results) to check the behaviour.
 
 ***NOTE:***
-The sample deployment only allows scheduling pods on on-demand instances (`nodeSelector: karpenter.sh/capacity-type: on-demand`) to show the replace consolidation mechanism, as for spot nodes Karpenter only uses the deletion consolidation mechanism to avid breaking the price-capacity-optimized strategy, as explained [here](https://karpenter.sh/preview/concepts/disruption/#consolidation).
+The sample deployment only allows scheduling pods on on-demand instances (`nodeSelector: karpenter.sh/capacity-type: on-demand`) to show the replace consolidation mechanism, as for spot nodes Karpenter only uses the deletion consolidation mechanism to avoid breaking the price-capacity-optimized strategy, as explained [here](https://karpenter.sh/preview/concepts/disruption/#consolidation).
 
 ## Results
 
@@ -102,7 +102,7 @@ Karpenter launches the cheapest EC2 instance for the workloads with at least **1
 ```
 kubectl get nodes --label-columns node.kubernetes.io/instance-type
 ```
-You should see something similar to this, where the new instance has been created a few seconds ago for the new workloads (labeled with `intent: apps`). Notice that there are two m4.large nodes created previously for the Karpenter pods (labeled with `intent: control-apps`):
+You should see something similar to this, where a new node just appeared:
 
 ```
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
@@ -146,7 +146,7 @@ You should see the following events indicating that Karpenter identified the nee
 ```
 
 
-### Consolitation Replace blocked due to ongoing job
+### Consolidation Replace blocked due to ongoing job
 
 Around two minutes after the deployment, the first job finishes:
 ```
@@ -175,14 +175,14 @@ $> kubectl describe node <node_name>
   Normal    DisruptionBlocked   36s karpenter   Cannot disrupt Node: Pod "default/5-min-job-9jc4b" has do not evict annotation
 ```
 
-### Consolidation replace allowed after last job finishes
-Around five minutes afer the deployment, the other job finishes:
+### Consolidation Replace allowed after last job finishes
+Around five minutes after the deployment, the other job finishes:
 ```
 $> kubectl get jobs
 NAME        COMPLETIONS   DURATION   AGE
 5-min-job   1/1           5m40s      5m46s
 ```
-Now, **it is possible to replace the node** by a cheaper and smaller instance because the the NGINX server can be interrupted as it does't contain the `karpenter.sh/do-not-disrupt: "true"` annotation. You can check this in the Karpenter logs terminal:
+Now, **it is possible to replace the node** by a cheaper and smaller instance because the the NGINX server can be disrupted as it does't contain the `karpenter.sh/do-not-disrupt: "true"` annotation. You can check this in the Karpenter logs terminal:
 ```
 {"level":"INFO","time":"2024-01-08T10:48:46.480Z","logger":"controller.disruption","message":"disrupting via consolidation replace, terminating 1 candidates ip-10-0-47-60.eu-west-1.compute.internal/c6g.4xlarge/on-demand and replacing with on-demand node from types c5n.2xlarge, r6a.2xlarge, m6a.2xlarge, m6id.xlarge, m7gd.xlarge and 103 other(s)","commit":"1072d3b"}
 ...
