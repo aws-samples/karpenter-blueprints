@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+    selector:
+        matchLabels:
+          app: nginx
+    replicas: 1
+    template:
+      metadata:
+        labels:  
+          app: nginx
+      spec:
+        nodeSelector:
+          intent: apps   
+          karpenter.sh/capacity-type: on-demand
+        containers:
+        - name: nginx
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          resources:
+              requests:
+                cpu: "2"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 2-min-job
+spec:
+  ttlSecondsAfterFinished: 10 #Eliminate job pods after 10 seconds of being completed
+  template:
+    spec:  
+      nodeSelector:
+        intent: apps   
+        karpenter.sh/capacity-type: on-demand
+      containers:
+      - name: 2-min-job
+        image: alpine
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "7"
+        command: ['sh', '-c', 'echo 2 minutes Job Pod is Running ; sleep 120']
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+    metadata:
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+  backoffLimit: 2
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: 5-min-job
+spec:
+  ttlSecondsAfterFinished: 10 #Eliminate job pods after 10 seconds of being completed
+  template:
+    spec:   
+      nodeSelector:
+        intent: apps   
+        karpenter.sh/capacity-type: on-demand   
+      containers:
+      - name: 5-min-job
+        image: alpine
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "2"
+        command: ['sh', '-c', 'echo 5 minutes Job Pod is Running ; sleep 300']
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+    metadata:
+      annotations:
+        karpenter.sh/do-not-disrupt: "true"
+  backoffLimit: 2
