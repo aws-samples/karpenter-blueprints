@@ -42,7 +42,7 @@ data "aws_availability_zones" "available" {}
 
 locals {
   name            = "karpenter-blueprints"
-  cluster_version = "1.28"
+  cluster_version = "1.29"
   region          = var.region
   node_group_name = "managed-ondemand"
 
@@ -62,8 +62,8 @@ locals {
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "19.19.1"
-
+  version = "20.8.3"
+ 
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
   cluster_endpoint_public_access = true
@@ -90,18 +90,8 @@ module "eks" {
   create_cloudwatch_log_group   = false
   create_cluster_security_group = false
   create_node_security_group    = false
-
-  manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    {
-      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
-      username = "system:node:{{EC2PrivateDNSName}}"
-      groups = [
-        "system:bootstrappers",
-        "system:nodes",
-      ]
-    }
-  ]
+  authentication_mode = "API_AND_CONFIG_MAP"
+  enable_cluster_creator_admin_permissions = true
 
   eks_managed_node_groups = {
     mg_5 = {
@@ -132,7 +122,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.12.0"
+  version = "1.16.1"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
@@ -161,6 +151,7 @@ module "eks_blueprints_addons" {
   }
 
   enable_karpenter = true
+
   karpenter = {
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
@@ -176,7 +167,7 @@ module "eks_blueprints_addons" {
 
 module "ebs_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.20"
+  version = "5.37.1"
 
   role_name_prefix = "${module.eks.cluster_name}-ebs-csi-driver-"
 
@@ -192,13 +183,28 @@ module "ebs_csi_driver_irsa" {
   tags = local.tags
 }
 
+module "aws-auth" {
+  source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
+  version = "~> 20.0"
+
+  manage_aws_auth_configmap = true
+
+  aws_auth_roles = [
+    {
+      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+      username = "system:node:{{EC2PrivateDNSName}}"
+      groups   = ["system:bootstrappers","system:nodes"]
+    },
+  ]
+}
+
 #---------------------------------------------------------------
 # Supporting Resources
 #---------------------------------------------------------------
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.0.0"
+  version = "5.6.0"
 
   name = local.name
   cidr = local.vpc_cidr

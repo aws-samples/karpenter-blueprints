@@ -5,7 +5,7 @@ metadata:
 spec:
   amiFamily: AL2
   amiSelectorTerms:
-  - name: '*amazon-eks-node-1.27-*'
+  - name: '*amazon-eks-node-1.29-*'
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
