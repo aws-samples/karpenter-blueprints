@@ -150,9 +150,6 @@ The following table describes the list of resources along with the versions wher
 | [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | 20.8.3               |
 | [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | 1.16.10               |
 
-
-1.16.1"
-
 ## Feedback
 
 To post feedback, submit a new blueprint, or report bugs, please use the [Issues section](https://github.com/aws-samples/karpenter-blueprints/issues) of this GitHub repo. 
