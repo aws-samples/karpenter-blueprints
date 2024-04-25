@@ -2,7 +2,7 @@
 
 ## Purpose
 
-A Karpenter’s NodePool disruption budgets can be used to rate limit Karpenter’s voluntary disruptions, if no budget is set their is a default of 10% set. When calculating if a budget will block nodes from disruption, Karpenter checks if the number of nodes being deleted is greater than the number of allowed disruptions. Budgets take into consideration voluntary disruptions through expiration, drift, emptiness and consolidation. If there are multiple budgets defined in the NodePool, Karpenter will honour the most restrictive of the budgets.
+Karpenter's actions like consolidation, drift detection and `expireAfter`, allow users to optimize for cost in the case of consolidation, keep up with the latest security patches and desired configuration, or ensure governance best practices, like refreshing instances every N days. These actions cause, as a trade-off, some level of disruption in the cluster caused by expected causes. To control the trade-off between, for example, being on the latest AMI (drift detection) and nodes restarting when that happens we can use disruption controls and confgiure disruption budgets in the Karpenter NodePool configuration. If no disruption budget is configured their is a default of 10%. When calculating if a budget will block nodes from disruption, Karpenter checks if the number of nodes being deleted is greater than the number of allowed disruptions. Budgets take into consideration voluntary disruptions through expiration, drift, emptiness and consolidation. If there are multiple budgets defined in the NodePool, Karpenter will honour the most restrictive of the budgets.
 
 By applying a combination of disruptions budgets and Pod Disruptions Budgets (PDBs) you get both application and platform voluntary disruption controls, this can help you move towards continually operations to protect workload availability. You can learn more about Karpenter NodePool disruption budges and how the Kapenter disruption controllers works in the [Karpenter documentation](https://karpenter.sh/docs/concepts/disruption/#disruption-controller).
 
@@ -10,6 +10,8 @@ By applying a combination of disruptions budgets and Pod Disruptions Budgets (PD
 The following provides a set of example disruption budgets:
 
 ### Only interrupt a % of Karpenter managed nodes
+
+Applications or systems might be more affected by planned disruptions caused by consolidation. Some application may find consolidation is either too aggressive, while other might be more fault tolerant and would rather optimize for cost. This configuration to only interrupt a percentage of managed nodes allows you to control the level of churn. This also applies for cases like expireAfter, where there is an intent to refresh nodes.
 
 The following Disruption Budgets says, at any-point in time only disrupt 20% of the Nodes managed by the NodePool. For instance, if there were 19 nodes owned by the NodePool, 4 disruptions would be allowed, rounding up from 19 * .2 = 3.8.
 
