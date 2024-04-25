@@ -22,7 +22,7 @@ spec:
   ...
   disruption:
     consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h
+    expireAfter: 720h # 30 days
     budgets:
     - nodes: "20%"
 ```
@@ -40,7 +40,7 @@ spec:
   ...
   disruption:
     consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h
+    expireAfter: 720h # 30 days
     budgets:
     - nodes: "0"
       schedule: "0 9 * * *"
@@ -60,7 +60,7 @@ spec:
   ...
   disruption:
     consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h
+    expireAfter: 720h # 30 days
     budgets:
     - nodes: "20%"
       schedule: "0 22 * * *"
@@ -87,7 +87,7 @@ spec:
   ...
   disruption:
     consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h # 30 * 24h = 720h
+    expireAfter: 720h # 30 days
     budgets:
     - nodes: "20%"
     - nodes: "5"
