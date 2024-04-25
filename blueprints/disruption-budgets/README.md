@@ -33,7 +33,7 @@ spec:
 
 You might apply this configuration if you would like Karpenter to not disrupt workloads during times when the workload might be receiving peak traffic.
 
-The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 don’t disrupt any nodes voluntary.
+The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 don’t disrupt any nodes voluntary, otherwise disrupt only 20%.
 
 ```
 apiVersion: karpenter.sh/v1beta1
@@ -49,6 +49,7 @@ spec:
     - nodes: "0"
       schedule: "0 9 * * *"
       duration: 8h
+    - notes: "20%"
 ```
 
 ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
