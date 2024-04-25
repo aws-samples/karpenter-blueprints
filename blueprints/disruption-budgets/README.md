@@ -49,7 +49,7 @@ spec:
     - nodes: "0"
       schedule: "0 9 * * *"
       duration: 8h
-    - notes: "20%"
+    - nodes: "20%"
 ```
 
 ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
