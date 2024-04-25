@@ -55,7 +55,7 @@ spec:
 
 You might apply this configuration if outside of core business hours you prefer a higher set of disruptions to speed up the roll out of AMI updates for example.
 
-The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations only disrupt 10% of nodes.
+The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations (UTC 2:00 - 22:00) only disrupt 10% of nodes.
 
 ```
 apiVersion: karpenter.sh/v1beta1
@@ -72,6 +72,8 @@ spec:
       schedule: "0 22 * * *"
       duration: 4h
     - nodes: "10%"
+      schedule: "0 2 * * *"
+      duration: 20h
 ```
 
 ### Multiple budgets defined
