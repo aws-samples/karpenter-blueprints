@@ -53,7 +53,7 @@ spec:
 
 ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
 
-You might apply this configuration if outside of core business hours you prefer a higher set of disruptions to speed up the role out of AMI updates for example.
+You might apply this configuration if outside of core business hours you prefer a higher set of disruptions to speed up the roll out of AMI updates for example.
 
 The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations only disrupt 10% of nodes.
 
