@@ -53,6 +53,8 @@ spec:
 
 ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
 
+You might apply this configuration if outside of core business hours you prefer a higher set of disruptions to speed up the role out of AMI updates for example.
+
 The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations only disrupt 10% of nodes.
 
 ```
@@ -79,6 +81,8 @@ The following Disruption Budgets is an example of a NodePool with three budgets 
 * The first budget will only allow 20% of nodes owned by that NodePool to be disrupted.
 * The second budget acts as a ceiling to the previous budget, only allowing 5 disruptions
 * The last budget only blocks disruptions during the first 10 minutes of the day, where 0 disruptions are allowed.
+
+As the first and second budget are active all the time, though 20% of nodes can be disrupted only a maximum of 5 can be disrupted at anyone time.
 
 If multiple Budgets are active at the same time Karpenter will consider the most restrictive. You might consider multiple disruption budgets if you want to have a default disruption policy and would like an alternative policy at a specific time e.g. during maintenance windows allow more disruptions to roll-out new Amazon Machine Images faster.
 
