@@ -31,7 +31,7 @@ spec:
 
 ### Do not disrupt between UTC 09:00 and 18:00 every day
 
-You might apply this configuration if you would not like Karpenter to disrupt workloads during times when the workload might be receiving peak traffic.
+You might apply this configuration if you would like Karpenter to not disrupt workloads during times when the workload might be receiving peak traffic.
 
 The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 don’t disrupt any nodes voluntary.
 
