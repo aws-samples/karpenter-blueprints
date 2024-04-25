@@ -196,7 +196,7 @@ You will also see the following message in Kubernetes events stating a node has 
 ```
 0s          Normal    DisruptionTerminating           node/ip-10-0-10-83.eu-west-1.compute.internal   Disrupting Node: Drift/Delete
 0s          Normal    DisruptionTerminating           nodeclaim/default-lxx5r                          Disrupting NodeClaim: Drift/Delete
-0s          Normal    RemovingNode                    node/iip-10-0-10-83.eu-west-1.compute.internal   Node ip-10-0-10-83.eu-west-1.compute.internal event: Removing Node ip-10-0-10-83.eu-west-1.compute.internal from Controller
+0s          Normal    RemovingNode                    node/ip-10-0-10-83.eu-west-1.compute.internal   Node ip-10-0-10-83.eu-west-1.compute.internal event: Removing Node ip-10-0-10-83.eu-west-1.compute.internal from Controller
 ```
 
 ## Clean-up
