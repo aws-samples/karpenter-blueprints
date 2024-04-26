@@ -39,7 +39,7 @@ The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 donâ
 apiVersion: karpenter.sh/v1beta1
 kind: NodePool
 metadata:
-  name: default-block-disruptions-during-standard-hours
+  name: default
 spec:
   ...
   disruption:
@@ -62,7 +62,7 @@ The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 onl
 apiVersion: karpenter.sh/v1beta1
 kind: NodePool
 metadata:
-  name: default-block-disruptions-during-maintenance-window
+  name: default
 spec:
   ...
   disruption:
