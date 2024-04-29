@@ -48,7 +48,7 @@ spec:
     budgets:
     - nodes: "0"
       schedule: "0 9 * * *"
-      duration: 8h
+      duration: 9h
     - nodes: "20%"
 ```
 
