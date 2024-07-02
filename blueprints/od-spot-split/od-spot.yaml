@@ -82,7 +82,6 @@ spec:
         operator: In
         values:
         - spot
-        - on-demand
       - key: kubernetes.io/os
         operator: In
         values:
