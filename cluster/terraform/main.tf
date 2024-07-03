@@ -68,7 +68,7 @@ locals {
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.8.3"
- 
+
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
   cluster_endpoint_public_access = true
@@ -92,10 +92,10 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  create_cloudwatch_log_group   = false
-  create_cluster_security_group = false
-  create_node_security_group    = false
-  authentication_mode = "API_AND_CONFIG_MAP"
+  create_cloudwatch_log_group              = false
+  create_cluster_security_group            = false
+  create_node_security_group               = false
+  authentication_mode                      = "API_AND_CONFIG_MAP"
   enable_cluster_creator_admin_permissions = true
 
   eks_managed_node_groups = {
@@ -158,7 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
-    chart_version = "0.36.2"
+    chart_version       = "0.36.2"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
@@ -199,7 +199,7 @@ module "aws-auth" {
     {
       rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
       username = "system:node:{{EC2PrivateDNSName}}"
-      groups   = ["system:bootstrappers","system:nodes"]
+      groups   = ["system:bootstrappers", "system:nodes"]
     },
   ]
 }
