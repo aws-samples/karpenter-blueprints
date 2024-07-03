@@ -127,7 +127,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.16.1"
+  version = "1.16.3"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
@@ -158,6 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
+    chart_version = "0.36.2"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
