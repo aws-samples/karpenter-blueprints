@@ -47,7 +47,7 @@ data "aws_availability_zones" "available" {
 
 locals {
   name            = "karpenter-blueprints"
-  cluster_version = "1.29"
+  cluster_version = "1.30"
   region          = var.region
   node_group_name = "managed-ondemand"
 
@@ -158,7 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
-    chart_version       = "0.36.2"
+    chart_version       = "0.37.0"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
