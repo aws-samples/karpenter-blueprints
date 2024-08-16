@@ -13,23 +13,26 @@ You might want to consume your Saving Plans and/or Reserved Instances before any
 Let's suppose you purchased a Saving Plans of 20 vCPUs for `c4` family. Your NodePool should look like this:
 
 ```
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: savings-plans
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
-    cpu: "20"
+    cpu: "20" # For example: Limit to launch up to 5 c4.xlarge instances
   template:
     metadata:
       labels:
         intent: apps
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: default
+        kind: EC2NodeClass
       requirements:
       - key: karpenter.k8s.aws/instance-family
         operator: In
@@ -69,10 +72,10 @@ kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type
 You should get a similar output like this:
 
 ```
-NAME                                        STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
-ip-10-0-118-17.eu-west-1.compute.internal   Ready    <none>   5m46s   v1.28.3-eks-8ccc7ba   on-demand       c4.4xlarge      savings-plans      eu-west-1c
-ip-10-0-121-24.eu-west-1.compute.internal   Ready    <none>   5m47s   v1.28.3-eks-8ccc7ba   on-demand       c4.xlarge       savings-plans      eu-west-1c
-ip-10-0-49-93.eu-west-1.compute.internal    Ready    <none>   5m48s   v1.28.3-eks-8ccc7ba   spot            c5.large        default            eu-west-1a
+NAME                                         STATUS   ROLES    AGE   VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL        ZONE
+ip-10-0-119-235.eu-west-2.compute.internal   Ready    <none>   23s   v1.30.2-eks-1552ad0   on-demand       c4.4xlarge      savings-plans   eu-west-2c
+ip-10-0-127-154.eu-west-2.compute.internal   Ready    <none>   35m   v1.30.2-eks-1552ad0   on-demand       c6g.xlarge      default         eu-west-2c
+ip-10-0-78-33.eu-west-2.compute.internal     Ready    <none>   24s   v1.30.2-eks-1552ad0   on-demand       c4.xlarge       savings-plans   eu-west-2b
 ```
 
 Notice how the `savings-plans` NodePool launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this NodePool. Additionally, you see Karpenter launched a `c5.large` Spot instance for the rest of the pods using the `default` NodePool. Remember, each node always launch the `kubelet` and `kube-proxy` pods, that's why by Karpenter launched an extra node because 20 vCPUs of reserved capacity wasn't enough if system pods need to be included.

@@ -55,8 +55,8 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 Karpenter will use the latest EKS-optimized AMIs, so when there's a new AMI available or after you update the Kubernetes control plane and you have `Drift` enabled, the nodes with older AMIs are recycled automatically. To test this feature, you need to configure static AMIs within the `EC2NodeClass`. Run the following commands to create an environment variable with the AMI IDs to use:
 
 ```
-export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.27/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
-export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.27/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.29/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.29/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 ```
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
@@ -81,22 +81,22 @@ latest-current-ami-5bbfbc98f7-n7mgs   1/1     Running   0            3m
 latest-current-ami-5bbfbc98f7-rxjjx   1/1     Running   0            3m
 ```
 
-You should see a new node registered with the latest AMI for EKS `v1.27`, like this:
+You should see a new node registered with the latest AMI for EKS `v1.29`, like this:
 
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                         STATUS   ROLES    AGE   VERSION
-ip-10-0-103-171.eu-west-1.compute.internal   Ready    <none>   29s   v1.27.7-eks-4f4795d
+ip-10-0-119-175.eu-west-2.compute.internal   Ready    <none>   35s     v1.29.6-eks-1552ad0
 ```
 
 Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
-export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.28/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
-export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.28/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 sed -i '' "s/$amd64PrevAMI/$amd64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/$arm64PrevAMI/$arm64LatestAMI/g" latest-current-ami.yaml
-sed -i '' "s/1.27/1.28/g" latest-current-ami.yaml
+sed -i '' "s/1.27/1.29/g" latest-current-ami.yaml
 kubectl apply -f latest-current-ami.yaml
 ```
 
@@ -109,9 +109,8 @@ kubectl get ec2nodeclass latest-current-ami-template -o yaml
 Wait around five minutes, in the mean time, you can monitor Karpenter logs until you see something like this:
 
 ```
-{"level":"DEBUG","time":"2023-11-15T10:12:26.401Z","logger":"controller.nodeclaim.disruption","message":"marking drifted","commit":"1072d3b","nodeclaim":"latest-current-ami-rkjwx"}
-{"level":"INFO","time":"2023-11-15T10:12:35.179Z","logger":"controller.disruption","message":"disrupting via drift replace, terminating 1 candidates ip-10-0-103-171.eu-west-1.compute.internal/c5a.xlarge/spot and replacing with node from types d3en.2xlarge, r6id.16xlarge, c6a.16xlarge, m5d.8xlarge, m6a.2xlarge and 280 other(s)","commit":"1072d3b"}
-{"level":"INFO","time":"2023-11-15T10:12:35.225Z","logger":"controller.disruption","message":"created nodeclaim","commit":"1072d3b","nodepool":"latest-current-ami","nodeclaim":"latest-current-ami-6vqjt","requests":{"cpu":"1766m","memory":"1706Mi","pods":"7"},"instance-types":"c1.xlarge, c3.2xlarge, c3.xlarge, c4.2xlarge, c4.xlarge and 95 other(s)"}
+{"level":"INFO","time":"2024-08-16T13:32:10.187Z","logger":"controller","message":"disrupting nodeclaim(s) via replace, terminating 1 nodes (3 pods) ip-10-0-119-175.eu-west-2.compute.internal/c7i-flex.xlarge/spot and replacing with node from types c6a.xlarge, m5.xlarge, c7i-flex.xlarge, m6a.xlarge, c5a.xlarge and 55 other(s)","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"be617b33-df37-44fc-897d-737fd3198cee","command-id":"26f7f912-a8f5-4e94-aaaf-386f8da44988","reason":"drifted"}
+{"level":"INFO","time":"2024-08-16T13:32:10.222Z","logger":"controller","message":"created nodeclaim","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"be617b33-df37-44fc-897d-737fd3198cee","NodePool":{"name":"latest-current-ami"},"NodeClaim":{"name":"latest-current-ami-smlh7"},"requests":{"cpu":"1766m","memory":"1706Mi","pods":"7"},"instance-types":"c4.2xlarge, c4.xlarge, c5.2xlarge, c5.xlarge, c5a.2xlarge and 55 other(s)"}
 ```
 
 Wait around two minutes. You should now see a new node with the latest AMI version that matches the control plane's version.
@@ -119,7 +118,7 @@ Wait around two minutes. You should now see a new node with the latest AMI versi
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                        STATUS   ROLES    AGE   VERSION
-ip-10-0-126-92.eu-west-1.compute.internal   Ready    <none>   59s   v1.28.3-eks-4f4795d
+ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.30.2-eks-1552ad0
 ```
 
 You can repeat this process every time you need to run a controlled upgrade of the nodes.

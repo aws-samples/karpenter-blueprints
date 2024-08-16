@@ -24,9 +24,11 @@ spec:
   ...
   disruption:
     consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h # 30 days
     budgets:
     - nodes: "20%"
+  template:
+    spec:
+      expireAfter: 720h # 30 days
 ```
 
 ### Do not disrupt between UTC 09:00 and 18:00 every day
@@ -58,7 +60,7 @@ You might apply this configuration if outside of core business hours you prefer 
 The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations (UTC 2:00 - 22:00) only disrupt 10% of nodes.
 
 ```
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
@@ -89,7 +91,7 @@ As the first and second budget are active all the time, though 20% of nodes can 
 If multiple Budgets are active at the same time Karpenter will consider the most restrictive. You might consider multiple disruption budgets if you want to have a default disruption policy and would like an alternative policy at a specific time e.g. during maintenance windows allow more disruptions to roll-out new Amazon Machine Images faster.
 
 ```
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
@@ -225,10 +227,10 @@ After modifying that budget for the NodePool you should observe the nodes drifti
 ```
 > kubectl get nodes -o wide -w
 
-ip-10-0-10-115.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
-ip-10-0-10-176.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
-ip-10-0-10-209.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
-ip-10-0-10-84.eu-west-1.compute.internal            Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
+ip-10-0-10-115.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
+ip-10-0-10-176.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
+ip-10-0-10-209.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
+ip-10-0-10-84.eu-west-1.compute.internal            Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
 ip-10-0-11-194.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
 ...
 ```

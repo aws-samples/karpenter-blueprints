@@ -1,16 +1,19 @@
-apiVersion: karpenter.k8s.aws/v1beta1
+apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: userdata-template
 spec:
   amiFamily: AL2 ## Currently, Karpenter supports amiFamily values AL2, Bottlerocket, Ubuntu, Windows2019, Windows2022 and Custom.
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  amiSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: "karpenter-blueprints"
+  role: "karpenter-karpenter-blueprints"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+      karpenter.sh/discovery: "karpenter-blueprints"
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+      karpenter.sh/discovery: "karpenter-blueprints"
   userData:  |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="BOUNDARY"
@@ -35,19 +38,22 @@ spec:
 
     --BOUNDARY--
 ---
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: userdata
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized   
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   template:     
     metadata:
       labels:
         intent: userdata
     spec:
       nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
         name: userdata-template
       requirements:
       - key: karpenter.k8s.aws/instance-hypervisor

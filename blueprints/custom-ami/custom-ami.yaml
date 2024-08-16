@@ -6,13 +6,13 @@ spec:
   amiFamily: AL2
   amiSelectorTerms:
   - name: '*amazon-eks-node-1.30-*'
-  role: "karpenter-karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool

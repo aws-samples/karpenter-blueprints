@@ -31,7 +31,11 @@ kubectl apply -f .
 
 Here's the important configuration block within the spec of an [`EC2NodeClass`](https://karpenter.sh/preview/concepts/nodeclasses/#specamiselectorterms): **spec.amiSelectorTerms**
 
-`spec.amiSelectorTerms` are used to configure custom AMIs for Karpenter to use, where the AMIs are discovered through ids, owners, name, and tags. This field is optional, and Karpenter will use the latest **EKS-optimized AMIs** for the `AMIFamily` if no `amiSelectorTerms` are specified. To select an AMI by name, use the `name` field in the selector term. To select an AMI by id, use the `id` field in the selector term. To ensure that AMIs are owned by the expected owner, use the `owner` field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to `self,amazon`.
+`spec.amiSelectorTerms` are used to configure custom AMIs for Karpenter to use, where the AMIs are discovered through ids, owners, name, and tags. AMI Selector Terms are **required**. If you were previously not specifying the AMIFamily field, having Karpenter default the AMIFamily to AL2, you will now have to specify AL2 explicitly.
+
+If amiSelectorTerms match more than one AMI, Karpenter will automatically determine which AMI best fits the workloads on the launched worker node under the following constraints:
+
+To select an AMI by name, use the `name` field in the selector term. To select an AMI by id, use the `id` field in the selector term. To ensure that AMIs are owned by the expected owner, use the `owner` field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to `self,amazon`.
 
 > **Tip**
 > AMIs may be specified by any AWS tag, including Name. Selecting by tag

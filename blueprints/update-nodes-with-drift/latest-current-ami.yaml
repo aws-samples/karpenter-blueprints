@@ -1,4 +1,4 @@
-apiVersion: karpenter.k8s.aws/v1beta1
+apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: latest-current-ami-template
@@ -15,16 +15,16 @@ spec:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   tags:
-    KubernetesVersion: "1.27"
+    KubernetesVersion: "1.30"
 ---
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: latest-current-ami
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: 100k
     memory: 5000Gi
@@ -33,8 +33,11 @@ spec:
       labels:
         intent: latest-current-ami
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
-        name: latest-current-ami-template
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: latest-current-ami
       requirements:
       - key: karpenter.k8s.aws/instance-category
         operator: In
