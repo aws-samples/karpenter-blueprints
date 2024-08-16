@@ -4,9 +4,8 @@ metadata:
   name: userdata-template
 spec:
   amiFamily: AL2 ## Currently, Karpenter supports amiFamily values AL2, Bottlerocket, Ubuntu, Windows2019, Windows2022 and Custom.
-  amiSelectorTerms:
-    - tags:
-        karpenter.sh/discovery: "karpenter-blueprints"
+  amiSelectorTerms: 
+  - alias: al2@latest
   role: "karpenter-karpenter-blueprints"
   securityGroupSelectorTerms:
   - tags:
