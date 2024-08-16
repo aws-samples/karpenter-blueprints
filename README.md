@@ -3,6 +3,11 @@
 ## Motivation
 [Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many companies to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes an application-first approach to provision compute capacity for the Kubernetes data plane, there are common workload scenarios that you might be wondering how to configure them properly. This repository includes a list of common workload scenarios, some of them go in depth with the explanation of why configuring Karpenter and Kubernetes objects in such a way is important.
 
+#### V1 Release
+
+> In the [v1 release](https://aws.amazon.com/blogs/containers/announcing-karpenter-1-0/), the custom resource definition (CRD) API groups and kind names remain unchanged. Conversion webhooks are now available to facilitate a seamless migration from beta to stable. Support for `v1beta1` APIs will be deprecated in the next minor release (v1.1.0).
+
+
 ## Blueprint Structure
 Each blueprint follows the same structure to help you better understand what's the motivation and the expected results:
 
@@ -90,7 +95,7 @@ You can see that the NodePool has been deployed by running this:
 kubectl get nodepool
 ```
 
-You can see that the EC2NodeClass has been deployed by running this:
+You can see that the `EC2NodeClass` has been deployed by running this:
 
 ```
 kubectl get ec2nodeclass
@@ -120,7 +125,7 @@ terraform destroy --auto-approve
 
 ## Deploying a Blueprint
 
-After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a NodePool, EC2NodeClass and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
+After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a `NodePool`, `EC2NodeClass` and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
 
 Here's the list of blueprints we have so far:
 
@@ -146,10 +151,10 @@ The following table describes the list of resources along with the versions wher
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |
 | [Kubernetes](https://kubernetes.io/releases/)      | 1.30                |
-| [Karpenter](https://github.com/aws/karpenter/releases)       | 0.37             |
-| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.6.3             |
-| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | 20.8.3               |
-| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | 1.16.10               |
+| [Karpenter](https://github.com/aws/karpenter/releases)       | v1.9.4             |
+| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.9.3            |
+| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.23.0             |
+| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.16.3              |
 
 ## Feedback
 

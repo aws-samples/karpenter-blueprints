@@ -67,7 +67,7 @@ locals {
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.8.3"
+  version = "20.23.0"
 
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
@@ -158,7 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
-    chart_version       = "0.37.0"
+    chart_version       = "1.0.0"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
@@ -173,7 +173,7 @@ module "eks_blueprints_addons" {
 
 module "ebs_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.37.1"
+  version = "5.44.0"
 
   role_name_prefix = "${module.eks.cluster_name}-ebs-csi-driver-"
 
@@ -210,7 +210,7 @@ module "aws-auth" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.6.0"
+  version = "5.12.1"
 
   name = local.name
   cidr = local.vpc_cidr

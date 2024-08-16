@@ -1,27 +1,27 @@
-apiVersion: karpenter.k8s.aws/v1beta1
+apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: custom-ami-template
 spec:
   amiFamily: AL2
   amiSelectorTerms:
-  - name: '*amazon-eks-node-1.29-*'
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  - name: '*amazon-eks-node-1.30-*'
+  role: "karpenter-karpenter-blueprints"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
+      karpenter.sh/discovery: karpenter-blueprints
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
+      karpenter.sh/discovery: karpenter-blueprints
 ---
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: custom-ami
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: Never
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: 1k
     memory: 500Gi
@@ -31,7 +31,9 @@ spec:
         intent: custom-ami
     spec:
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: custom-ami-template
+        kind: EC2NodeClass
       requirements:
       - key: karpenter.k8s.aws/instance-hypervisor
         operator: NotIn

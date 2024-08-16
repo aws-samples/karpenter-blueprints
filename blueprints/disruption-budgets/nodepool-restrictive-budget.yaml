@@ -1,4 +1,4 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
@@ -12,7 +12,9 @@ spec:
         intent: apps
     spec:
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: default
+        kind: EC2NodeClass
       requirements:
         - key: karpenter.sh/capacity-type
           operator: In
@@ -26,9 +28,10 @@ spec:
         - key: karpenter.k8s.aws/instance-hypervisor
           operator: In
           values: ["nitro"]
+      expireAfter: 720h
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     budgets:
     - nodes: "0"
       schedule: "0 0 * * *"

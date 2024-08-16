@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Karpenter's actions like consolidation, drift detection and `expireAfter`, allow users to optimize for cost in the case of consolidation, keep up with the latest security patches and desired configuration, or ensure governance best practices, like refreshing instances every N days. These actions cause, as a trade-off, some level of disruption in the cluster caused by expected causes. To control the trade-off between, for example, being on the latest AMI (drift detection) and nodes restarting when that happens we can use disruption controls and configure disruption budgets in the Karpenter NodePool configuration. If no disruption budget is configured their is a default of 10%. When calculating if a budget will block nodes from disruption, Karpenter checks if the number of nodes being deleted is greater than the number of allowed disruptions. Budgets take into consideration voluntary disruptions through expiration, drift, emptiness and consolidation. If there are multiple budgets defined in the NodePool, Karpenter will honour the most restrictive of the budgets.
+Karpenter's actions like consolidation, drift detection and `expireAfter`, allow users to optimize for cost in the case of consolidation, keep up with the latest security patches and desired configuration, or ensure governance best practices, like refreshing instances every N days. These actions cause, as a trade-off, some level of disruption in the cluster caused by expected causes. To control the trade-off between, for example, being on the latest AMI (drift detection) and nodes restarting when that happens we can use disruption controls and configure `disruption budgets` in the Karpenter `NodePool` configuration. If no disruption budget is configured their is a default budget with `nodes: 10%`. When calculating if a budget will block nodes from disruption, Karpenter checks if the number of nodes being deleted is greater than the number of allowed disruptions. Budgets take into consideration voluntary disruptions through expiration, drift, emptiness and consolidation. If there are multiple budgets defined in the `NodePool`, Karpenter will honour the most restrictive of the budgets.
 
 By applying a combination of disruptions budgets and Pod Disruptions Budgets (PDBs) you get both application and platform voluntary disruption controls, this can help you move towards continually operations to protect workload availability. You can learn more about Karpenter NodePool disruption budgets and how the Kapenter disruption controller works in the [Karpenter documentation](https://karpenter.sh/docs/concepts/disruption/#disruption-controller).
 
@@ -16,7 +16,7 @@ Applications or systems might be more affected by planned disruptions caused by 
 The following Disruption Budgets says, at any-point in time only disrupt 20% of the Nodes managed by the NodePool. For instance, if there were 19 nodes owned by the NodePool, 4 disruptions would be allowed, rounding up from 19 * .2 = 3.8.
 
 ```
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
@@ -36,20 +36,19 @@ You might apply this configuration if you would like Karpenter to not disrupt wo
 The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 don’t disrupt any nodes voluntary, otherwise disrupt only 20%.
 
 ```
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default
 spec:
-  ...
+...
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h # 30 days
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     budgets:
     - nodes: "0"
-      schedule: "0 9 * * *"
-      duration: 9h
-    - nodes: "20%"
+      schedule: "0 0 * * *"
+      duration: 24h
 ```
 
 ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
@@ -66,8 +65,8 @@ metadata:
 spec:
   ...
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h # 30 days
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     budgets:
     - nodes: "20%"
       schedule: "0 22 * * *"
@@ -97,14 +96,29 @@ metadata:
 spec:
   ...
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h # 30 days
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     budgets:
     - nodes: "20%"
     - nodes: "5"
     - nodes: "0"
       schedule: "@daily"
       duration: 10m
+```
+
+### Reasons
+
+Karpenter allows specifying if a budget applies to any of `Drifted`, `Underutilized`, or `Empty`. When a budget has no reasons, it’s assumed that it applies to all reasons. When calculating allowed disruptions for a given reason, Karpenter will take the minimum of the budgets that have listed the reason or have left reasons undefined.
+
+
+```
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    budgets:
+    - nodes: "20%"
+      reasons: 
+      - "Empty"
+      - "Drifted"
 ```
 
 ## Requirements
@@ -133,14 +147,26 @@ You should now see new nodes provisioned in your Amazon EKS cluster:
 ```
 > kubectl get nodes
 
-ip-10-0-10-118.eu-west-1.compute.internal           Ready    <none>   9m28s   v1.29.1-eks-61c0bbb
-ip-10-0-10-175.eu-west-1.compute.internal           Ready    <none>   8m42s   v1.29.0-eks-5e0fdde
-ip-10-0-10-208.eu-west-1.compute.internal           Ready    <none>   2m31s   v1.29.0-eks-5e0fdde
-ip-10-0-10-83.eu-west-1.compute.internal            Ready    <none>   2m36s   v1.29.0-eks-5e0fdde
-ip-10-0-11-194.eu-west-1.compute.internal           Ready    <none>   7m39s   v1.29.0-eks-5e0fdde
-ip-10-0-11-201.eu-west-1.compute.internal           Ready    <none>   7m39s   v1.29.0-eks-5e0fdde
-ip-10-0-11-54.eu-west-1.compute.internal            Ready    <none>   7m54s   v1.29.0-eks-5e0fdd
-ip-10-0-12-40.eu-west-1.compute.internal            Ready    <none>   11m     v1.29.1-eks-61c0bbb
+ip-10-0-101-25.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0
+ip-10-0-36-30.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-36-76.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-37-189.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-39-6.eu-west-2.compute.internal      Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-59-135.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-62-80.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-64-185.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0
+ip-10-0-67-159.eu-west-2.compute.internal    Ready    <none>   26m    v1.30.2-eks-1552ad0
+ip-10-0-69-0.eu-west-2.compute.internal      Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-80-111.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-85-60.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-93-130.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-93-72.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+ip-10-0-96-223.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
 ```
 
 Now, use `kubectl edit ec2nodeclass/default` and change the `.spec.amiFamily` from `AL2` to `Bottlerocket`. 
@@ -154,14 +180,21 @@ Karpenter will try to replace nodes via the Drift mechanism on an AMI change. Ho
 ```
 > kubectl get nodes -o wide -w
 
-ip-10-0-10-118.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-10-175.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-10-208.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-10-83.eu-west-1.compute.internal            Ready    ....  Amazon Linux 2
-ip-10-0-11-194.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-11-201.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-11-54.eu-west-1.compute.internal            Ready    ....  Amazon Linux 2
-ip-10-0-12-40.eu-west-1.compute.internal            Ready    ....  Amazon Linux 2
+NAME                                         STATUS   ROLES    AGE    VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-10-0-101-25.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.101.25    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.104.11    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.117   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.255   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.35.96     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0   10.0.36.126    <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+ip-10-0-36-30.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.36.30     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-36-76.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.36.76     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-37-189.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.37.189    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-39-6.eu-west-2.compute.internal      Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.39.6      <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-59-135.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.59.135    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-62-80.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.62.80     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+ip-10-0-64-185.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0   10.0.64.185    <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+...
 ```
 
 You will also see the following message in Kubernetes events stating disruptions are blocked:
@@ -197,9 +230,7 @@ ip-10-0-10-176.eu-west-1.compute.internal           Ready    ....  Bottlerocket 
 ip-10-0-10-209.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
 ip-10-0-10-84.eu-west-1.compute.internal            Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
 ip-10-0-11-194.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
-ip-10-0-11-202.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
-ip-10-0-11-55.eu-west-1.compute.internal            Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.29)
-ip-10-0-12-40.eu-west-1.compute.internal            Ready    ....  Amazon Linux 2
+...
 ```
 
 You will also see the following message in Kubernetes events stating a node has been drifted:
