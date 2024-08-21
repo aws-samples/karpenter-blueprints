@@ -56,7 +56,7 @@ NAME                                         STATUS   ROLES    AGE     VERSION  
 ip-10-0-120-103.eu-west-2.compute.internal   Ready    <none>   5m51s   v1.30.2-eks-1552ad0   on-demand       c6g.2xlarge     default    eu-west-2c
 ```
 
-Notice that now Karpenter decided to launch a `m6g.xlarge` Spot instance because the workload and the NodePool support both pricing models, and the one that has a better price at this moment was a Graviton Spot instance.
+Notice that now Karpenter decided to launch a `c6g.2xlarge` Spot instance because the workload and the NodePool support both pricing models, and the one that has a better price at this moment was a Graviton Spot instance.
 
 ## Cleanup
 

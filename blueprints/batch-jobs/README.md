@@ -172,7 +172,9 @@ Now, the total number of vCPU required by the running pods are **4 vCPU**:
 ```
 $> kubectl describe node <node_name>
 ...
-  Normal    DisruptionBlocked   36s karpenter   Cannot disrupt Node: pod "default/2-min-job-czp5x" has "karpenter.sh/do-not-disrupt" annotation
+  Normal   NodeReady                6m7s                   kubelet                Node ip-10-0-97-15.eu-west-1.compute.internal status is now: NodeReady
+  Normal   DisruptionBlocked        4m12s                  karpenter              Cannot disrupt Node: pod "default/2-min-job-2fssd" has "karpenter.sh/do-not-disrupt" annotation
+  Normal   DisruptionBlocked        2m12s                  karpenter              Cannot disrupt Node: pod "default/5-min-job-7pqdt" has "karpenter.sh/do-not-disrupt" annotation
 ```
 
 ### Consolidation Replace allowed after last job finishes

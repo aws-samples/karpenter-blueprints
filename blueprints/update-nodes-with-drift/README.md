@@ -96,7 +96,7 @@ export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-
 export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 sed -i '' "s/$amd64PrevAMI/$amd64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/$arm64PrevAMI/$arm64LatestAMI/g" latest-current-ami.yaml
-sed -i '' "s/1.27/1.29/g" latest-current-ami.yaml
+sed -i '' "s/1.29/1.30/g" latest-current-ami.yaml
 kubectl apply -f latest-current-ami.yaml
 ```
 

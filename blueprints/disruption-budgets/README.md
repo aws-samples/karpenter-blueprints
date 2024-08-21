@@ -134,13 +134,16 @@ Let's say you want to control how nodes are upgraded when switching to Bottleroc
 To deploy the Karpenter NodePool and the sample workload, simply run this command:
 
 ```
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" nodepool-restrictive-budget.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" nodepool-restrictive-budget.yaml
 kubectl apply -f .
 ```
 
 You should see the following output:
 
 ```
-nodepool.karpenter.sh/default created
+nodepool.karpenter.sh/restrictive-budget created
+ec2nodeclass.karpenter.k8s.aws/restrictive-budget created
 deployment.apps/workload-multi-az-nodes created
 ```
 
@@ -154,24 +157,17 @@ ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-ek
 ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
 ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
 ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0
-ip-10-0-36-30.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-36-76.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-37-189.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-39-6.eu-west-2.compute.internal      Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-59-135.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-62-80.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-64-185.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0
-ip-10-0-67-159.eu-west-2.compute.internal    Ready    <none>   26m    v1.30.2-eks-1552ad0
-ip-10-0-69-0.eu-west-2.compute.internal      Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-80-111.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-85-60.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-93-130.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-93-72.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-96-223.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
 ```
 
-Now, use `kubectl edit ec2nodeclass/default` and change the `.spec.amiFamily` from `AL2` to `Bottlerocket`. 
+Now, use `kubectl edit ec2nodeclass/restrictive-budget` and change the `.spec.amiSelectorTerms` alias from `al2@latest` to `bottlerocket@latest`. 
+
+or use the `kubectl patch` command.
+
+```
+kubectl patch ec2nodeclass restrictive-budget --type='json' -p='[
+  {"op": "replace", "path": "/spec/amiSelectorTerms/0/alias", "value": "bottlerocket@latest"}
+]'
+```
 
 ## Results
 
@@ -188,15 +184,6 @@ ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-ek
 ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.117   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
 ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.255   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
 ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.35.96     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0   10.0.36.126    <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
-ip-10-0-36-30.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.36.30     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-36-76.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.36.76     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-37-189.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.37.189    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-39-6.eu-west-2.compute.internal      Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.39.6      <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-59-135.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.59.135    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-62-80.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.62.80     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-64-185.eu-west-2.compute.internal    Ready    <none>   157m   v1.30.2-eks-1552ad0   10.0.64.185    <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
-...
 ```
 
 You will also see the following message in Kubernetes events stating disruptions are blocked:
@@ -218,20 +205,31 @@ budgets:
 
 If you edit the NodePool and replace the budget with the following, Karpenter will be able to Drift 20% of the Nodes.
 
+edit with kubectl `kubectl edit nodepool restrictive-budget`.
+
 ```
 - nodes: "20%"
 ```
+
+or use the `kubectl patch` command.
+```
+kubectl patch nodepool restrictive-budget --type='json' -p='[
+  {"op": "replace", "path": "/spec/disruption/budgets/0/nodes", "value": "20"}
+]'
+```
+
 
 After modifying that budget for the NodePool you should observe the nodes drifting and new nodes being provisioned with the latest Amazon EKS optimized Bottlerocket AMI.
 
 ```
 > kubectl get nodes -o wide -w
 
-ip-10-0-10-115.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
-ip-10-0-10-176.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
-ip-10-0-10-209.eu-west-1.compute.internal           Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
-ip-10-0-10-84.eu-west-1.compute.internal            Ready    ....  Bottlerocket OS 1.19.4 (aws-k8s-1.30)
-ip-10-0-11-194.eu-west-1.compute.internal           Ready    ....  Amazon Linux 2
+NAME                                         STATUS   ROLES    AGE    VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                                KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-10-0-102-16.eu-west-2.compute.internal    Ready    <none>   40s    v1.30.1-eks-e564799   10.0.102.16    <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
+ip-10-0-103-186.eu-west-2.compute.internal   Ready    <none>   82s    v1.30.1-eks-e564799   10.0.103.186   <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
+ip-10-0-40-150.eu-west-2.compute.internal    Ready    <none>   28s    v1.30.1-eks-e564799   10.0.40.150    <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97  
+ip-10-0-104-138.eu-west-2.compute.internal   Ready    <none>   31s    v1.30.1-eks-e564799   10.0.104.138   <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
+ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   5d7h   v1.30.2-eks-1552ad0   10.0.36.126    <none>        Amazon Linux 2023.5.20240805            6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
 ...
 ```
 

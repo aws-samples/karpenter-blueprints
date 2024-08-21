@@ -70,10 +70,10 @@ spec:
       deleteOnTermination: true
       volumeSize: 100Gi
       volumeType: gp3
-  role: "karpenter-karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>

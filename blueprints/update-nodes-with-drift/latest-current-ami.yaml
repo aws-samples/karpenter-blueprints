@@ -15,7 +15,7 @@ spec:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   tags:
-    KubernetesVersion: "1.30"
+    KubernetesVersion: "1.29"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool

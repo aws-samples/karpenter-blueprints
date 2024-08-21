@@ -6,13 +6,13 @@ spec:
   amiFamily: AL2 ## Currently, Karpenter supports amiFamily values AL2, Bottlerocket, Ubuntu, Windows2019, Windows2022 and Custom.
   amiSelectorTerms: 
   - alias: al2@latest
-  role: "karpenter-karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   userData:  |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="BOUNDARY"
