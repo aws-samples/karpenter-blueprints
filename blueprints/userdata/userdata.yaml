@@ -3,9 +3,8 @@ kind: EC2NodeClass
 metadata:
   name: userdata-template
 spec:
-  amiFamily: AL2 ## Currently, Karpenter supports amiFamily values AL2, Bottlerocket, Ubuntu, Windows2019, Windows2022 and Custom.
-  amiSelectorTerms: 
-  - alias: al2@latest
+  amiSelectorTerms:
+    - alias: al2023@latest # Amazon Linux 2023
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
@@ -13,7 +12,7 @@ spec:
   subnetSelectorTerms:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"
-  userData:  |
+  userData: |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="BOUNDARY"
 
@@ -21,19 +20,7 @@ spec:
     Content-Type: text/x-shellscript; charset="us-ascii"
 
     #!/bin/bash
-
-    set -e
-
-    # Add additional KUBELET_EXTRA_ARGS to the service
-    # Requires Kubernetes 1.27 (alpha feature)
-    cat << EOF > /etc/systemd/system/kubelet.service.d/90-kubelet-extra-args.conf
-    [Service]
-    Environment="KUBELET_EXTRA_ARGS=--feature-gates=NodeLogQuery=true $KUBELET_EXTRA_ARGS"
-    EOF
-
-    # Enable log handler and log query to the kubelet configuration
-    echo "$(jq '.enableSystemLogHandler=true' /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
-    echo "$(jq '.enableSystemLogQuery=true' /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
+    echo "Running a custom user data script"
 
     --BOUNDARY--
 ---
