@@ -9,9 +9,9 @@ By applying a combination of disruptions budgets and Pod Disruptions Budgets (PD
 ## Examples
 The following provides a set of example disruption budgets:
 
-### Only interrupt a % of Karpenter managed nodes
+### Limit Disruptions to a Percentage of Nodes
 
-Applications or systems might be more affected by planned disruptions caused by consolidation. Some applications may find consolidation is either too aggressive, while other might be more fault tolerant and would rather optimize for cost. This configuration to only interrupt a percentage of managed nodes allows you to control the level of churn. This also applies for cases like expireAfter, where there is an intent to refresh nodes.
+To prevent disruptions from affecting more than a certain percentage of nodes in a NodePool
 
 The following Disruption Budgets says, at any-point in time only disrupt 20% of the Nodes managed by the NodePool. For instance, if there were 19 nodes owned by the NodePool, 4 disruptions would be allowed, rounding up from 19 * .2 = 3.8.
 
@@ -31,11 +31,9 @@ spec:
       expireAfter: 720h # 30 days
 ```
 
-### Do not disrupt between UTC 09:00 and 18:00 every day
+### No Disruptions During Peak Hours
 
-You might apply this configuration if you would like Karpenter to not disrupt workloads during times when the workload might be receiving peak traffic.
-
-The following Disruption Budgets says, for a 8 hour timeframe from UTC 9:00 don’t disrupt any nodes voluntary, otherwise disrupt only 20%.
+This configuration ensures that Karpenter avoids disrupting workloads during peak traffic periods. Specifically, it prevents disruptions from UTC 9:00 for an 8-hour window and limits disruptions to 20% outside of this window.
 
 ```
 apiVersion: karpenter.sh/v1
@@ -43,21 +41,24 @@ kind: NodePool
 metadata:
   name: default
 spec:
-...
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
     budgets:
     - nodes: "0"
-      schedule: "0 0 * * *"
-      duration: 24h
+      schedule: "0 9 * * *"
+      duration: 8h
+    - nodes: "20%"
+      schedule: "0 17 * * *"
+      duration: 16h
 ```
 
-### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
+ ### Multiple Budgets for Granular Control
 
-You might apply this configuration if outside of core business hours you prefer a higher set of disruptions to speed up the roll out of AMI updates for example.
+By setting multiple disruption budgets, you can gain precise control over node disruptions. Karpenter will use the most restrictive budget applicable at any given time.
 
-The following Disruption Budgets says, for a 4 hour timeframe from UTC 22:00 only disrupt 20% of nodes, but during normal operations (UTC 2:00 - 22:00) only disrupt 10% of nodes.
+In the following example, disruptions are limited to 20% of nodes during a 4-hour period starting from UTC 22:00. During the remaining hours (UTC 2:00 - 22:00), disruptions are limited to 10% of nodes.
+
 
 ```
 apiVersion: karpenter.sh/v1
@@ -65,7 +66,6 @@ kind: NodePool
 metadata:
   name: default
 spec:
-  ...
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
@@ -80,15 +80,15 @@ spec:
 
 ### Multiple budgets defined
 
-The following Disruption Budgets is an example of a NodePool with three budgets defined.
+The following configuration illustrates a NodePool with three disruption budgets:
 
-* The first budget will only allow 20% of nodes owned by that NodePool to be disrupted.
-* The second budget acts as a ceiling to the previous budget, only allowing 5 disruptions
-* The last budget only blocks disruptions during the first 10 minutes of the day, where 0 disruptions are allowed.
+The first budget allows up to 20% of nodes to be disrupted at any time.
+The second budget imposes a maximum of 5 disruptions.
+The third budget blocks all disruptions during the first 10 minutes of each day.
 
-As the first and second budget are active all the time, though 20% of nodes can be disrupted only a maximum of 5 can be disrupted at anyone time.
+While the first and second budgets are always in effect, they work together to limit disruptions to a maximum of 5 nodes at any given time. Karpenter will apply the most restrictive budget when multiple budgets overlap, enabling flexible disruption policies for different scenarios, such as during maintenance windows.
 
-If multiple Budgets are active at the same time Karpenter will consider the most restrictive. You might consider multiple disruption budgets if you want to have a default disruption policy and would like an alternative policy at a specific time e.g. during maintenance windows allow more disruptions to roll-out new Amazon Machine Images faster.
+> **Note:** If multiple budgets are active at the same time, Karpenter will consider the most restrictive budget. You might consider using multiple disruption budgets to establish a default policy while providing an alternative policy for specific times, such as allowing more disruptions during maintenance windows to roll out new Amazon Machine Images faster.
 
 ```
 apiVersion: karpenter.sh/v1
@@ -96,7 +96,6 @@ kind: NodePool
 metadata:
   name: default
 spec:
-  ...
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
@@ -112,15 +111,56 @@ spec:
 
 Karpenter allows specifying if a budget applies to any of `Drifted`, `Underutilized`, or `Empty`. When a budget has no reasons, it’s assumed that it applies to all reasons. When calculating allowed disruptions for a given reason, Karpenter will take the minimum of the budgets that have listed the reason or have left reasons undefined.
 
+### Drifted Nodes
+This example sets a budget that applies only to nodes classified as Drifted. During times when nodes are identified as Drifted, Karpenter will only disrupt up to 20% of those nodes.
+
 
 ```
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: example-drifted
+spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     budgets:
     - nodes: "20%"
-      reasons: 
-      - "Empty"
+      reasons:
       - "Drifted"
+```
+
+### Underutilized Nodes
+This example sets a budget that applies only to nodes classified as Underutilized. During times when nodes are identified as Underutilized, Karpenter will only disrupt up to 30% of those nodes.
+
+```
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: example-underutilized
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    budgets:
+    - nodes: "30%"
+      reasons:
+      - "Underutilized"
+```
+
+### Empty Nodes
+This example sets a budget that applies only to nodes classified as Empty. During times when nodes are identified as Empty, Karpenter will only disrupt up to 10% of those nodes.
+
+```
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: example-empty
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    budgets:
+    - nodes: "10%"
+      reasons:
+      - "Empty"
 ```
 
 ## Requirements
@@ -130,6 +170,15 @@ Karpenter allows specifying if a budget applies to any of `Drifted`, `Underutili
 ## Deploy
 
 Let's say you want to control how nodes are upgraded when switching to Bottlerocket via Karpenter Drift, in this example we deploy a disruption budget, that prevents disruptions 24 hours a day 7 days a week. You can use the schedule and duration of the budget to control when disruptions via Drift can take place.
+
+If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
+
+```
+export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
+export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
+```
+
+> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
 
 To deploy the Karpenter NodePool and the sample workload, simply run this command:
 
@@ -142,29 +191,34 @@ kubectl apply -f .
 You should see the following output:
 
 ```
-nodepool.karpenter.sh/restrictive-budget created
-ec2nodeclass.karpenter.k8s.aws/restrictive-budget created
-deployment.apps/workload-multi-az-nodes created
+nodepool.karpenter.sh/disruption-budget created
+ec2nodeclass.karpenter.k8s.aws/disruption-budget created
+deployment.apps/disruption-budget created
 ```
 
 You should now see new nodes provisioned in your Amazon EKS cluster:
 
 ```
 > kubectl get nodes
-
-ip-10-0-101-25.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   13m    v1.30.2-eks-1552ad0
-ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   13m    v1.30.2-eks-1552ad0
+NAME                                         STATUS   ROLES    AGE     VERSION
+ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   2m8s    v1.30.2-eks-1552ad0
+ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   2m44s   v1.30.2-eks-1552ad0
+ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   2m8s    v1.30.2-eks-1552ad0
+ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   2m18s   v1.30.2-eks-1552ad0
+ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   17m     v1.30.2-eks-1552ad0
+ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   2m47s   v1.30.2-eks-1552ad0
+ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   2m40s   v1.30.2-eks-1552ad0
+ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   17m     v1.30.2-eks-1552ad0
+ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   2m50s   v1.30.2-eks-1552ad0
+ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   2m29s   v1.30.2-eks-1552ad0
+ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   2m19s   v1.30.2-eks-1552ad0
+ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   2m26s   v1.30.2-eks-1552ad0
 ```
 
-Now, use `kubectl edit ec2nodeclass/restrictive-budget` and change the `.spec.amiSelectorTerms` alias from `al2@latest` to `bottlerocket@latest`. 
-
-or use the `kubectl patch` command.
+Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al2@latest` to `bottlerocket@latest`.
 
 ```
-kubectl patch ec2nodeclass restrictive-budget --type='json' -p='[
+kubectl patch ec2nodeclass disruption-budget --type='json' -p='[
   {"op": "replace", "path": "/spec/amiSelectorTerms/0/alias", "value": "bottlerocket@latest"}
 ]'
 ```
@@ -178,12 +232,19 @@ Karpenter will try to replace nodes via the Drift mechanism on an AMI change. Ho
 ```
 > kubectl get nodes -o wide -w
 
-NAME                                         STATUS   ROLES    AGE    VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                    CONTAINER-RUNTIME
-ip-10-0-101-25.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.101.25    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-104-11.eu-west-2.compute.internal    Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.104.11    <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-116-117.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.117   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-116-255.eu-west-2.compute.internal   Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.116.255   <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
-ip-10-0-35-96.eu-west-2.compute.internal     Ready    <none>   14m    v1.30.2-eks-1552ad0   10.0.35.96     <none>        Amazon Linux 2                 5.10.220-209.869.amzn2.aarch64    containerd://1.7.11
+NAME                                         STATUS   ROLES    AGE     VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                    CONTAINER-RUNTIME
+ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   3m22s   v1.30.2-eks-1552ad0   10.0.103.232   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   3m58s   v1.30.2-eks-1552ad0   10.0.120.141   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   3m22s   v1.30.2-eks-1552ad0   10.0.38.179    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   3m32s   v1.30.2-eks-1552ad0   10.0.39.106    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   18m     v1.30.2-eks-1552ad0   10.0.50.60     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   4m1s    v1.30.2-eks-1552ad0   10.0.55.94     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   3m54s   v1.30.2-eks-1552ad0   10.0.63.247    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   18m     v1.30.2-eks-1552ad0   10.0.66.70     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   4m4s    v1.30.2-eks-1552ad0   10.0.72.85     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.x86_64     containerd://1.7.20
+ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   3m43s   v1.30.2-eks-1552ad0   10.0.82.100    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   3m33s   v1.30.2-eks-1552ad0   10.0.95.228    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   3m40s   v1.30.2-eks-1552ad0   10.0.96.121    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
 ```
 
 You will also see the following message in Kubernetes events stating disruptions are blocked:
@@ -191,7 +252,7 @@ You will also see the following message in Kubernetes events stating disruptions
 ```
 > kubectl get events -w
 
-0s Normal DisruptionBlocked nodepool/default No allowed disruptions due to blocking budget
+0s          Normal    DisruptionBlocked         nodepool/disruption-budget                        No allowed disruptions due to blocking budget
 ```
 
 This is because the NodePool defines the following budget which states, starting at UTC 00:00 everyday, for a time period of 24 hours no nodes can be voluntary drifted. This is a great fit when you want consolidation but might not want to apply it all the time.
@@ -205,40 +266,52 @@ budgets:
 
 If you edit the NodePool and replace the budget with the following, Karpenter will be able to Drift 20% of the Nodes.
 
-edit with kubectl `kubectl edit nodepool restrictive-budget`.
-
+Edit with the `kubectl patch` command.
 ```
-- nodes: "20%"
-```
-
-or use the `kubectl patch` command.
-```
-kubectl patch nodepool restrictive-budget --type='json' -p='[
+kubectl patch nodepool disruption-budget --type='json' -p='[
   {"op": "replace", "path": "/spec/disruption/budgets/0/nodes", "value": "20"}
 ]'
 ```
 
-
 After modifying that budget for the NodePool you should observe the nodes drifting and new nodes being provisioned with the latest Amazon EKS optimized Bottlerocket AMI.
 
 ```
-> kubectl get nodes -o wide -w
+> kubectl get nodes -o custom-columns=NAME:.metadata.name,OS-IMAGE:.status.nodeInfo.osImage
 
-NAME                                         STATUS   ROLES    AGE    VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                                KERNEL-VERSION                    CONTAINER-RUNTIME
-ip-10-0-102-16.eu-west-2.compute.internal    Ready    <none>   40s    v1.30.1-eks-e564799   10.0.102.16    <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
-ip-10-0-103-186.eu-west-2.compute.internal   Ready    <none>   82s    v1.30.1-eks-e564799   10.0.103.186   <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
-ip-10-0-40-150.eu-west-2.compute.internal    Ready    <none>   28s    v1.30.1-eks-e564799   10.0.40.150    <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97  
-ip-10-0-104-138.eu-west-2.compute.internal   Ready    <none>   31s    v1.30.1-eks-e564799   10.0.104.138   <none>        Bottlerocket OS 1.20.5 (aws-k8s-1.30)   6.1.97                            containerd://1.6.34+bottlerocket
-ip-10-0-36-126.eu-west-2.compute.internal    Ready    <none>   5d7h   v1.30.2-eks-1552ad0   10.0.36.126    <none>        Amazon Linux 2023.5.20240805            6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
-...
+NAME                                         OS-IMAGE
+ip-10-0-103-176.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-106-25.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-108-51.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-115-104.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-116-220.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-121-123.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-43-37.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-50-60.eu-west-2.compute.internal     Amazon Linux 2023.5.20240805
+ip-10-0-57-199.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-59-82.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-62-198.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-62-228.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-66-249.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-66-70.eu-west-2.compute.internal     Amazon Linux 2023.5.20240805
+ip-10-0-67-142.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-67-203.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-67-255.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-68-97.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-70-55.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-73-112.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-75-130.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-77-110.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-78-43.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-91-17.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-97-201.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
 ```
 
 You will also see the following message in Kubernetes events stating a node has been drifted:
 
 ```
-0s          Normal    DisruptionTerminating           node/ip-10-0-10-83.eu-west-1.compute.internal   Disrupting Node: Drift/Delete
-0s          Normal    DisruptionTerminating           nodeclaim/default-lxx5r                          Disrupting NodeClaim: Drift/Delete
-0s          Normal    RemovingNode                    node/ip-10-0-10-83.eu-west-1.compute.internal   Node ip-10-0-10-83.eu-west-1.compute.internal event: Removing Node ip-10-0-10-83.eu-west-1.compute.internal from Controller
+0s       Normal    DisruptionTerminating        node/ip-10-0-96-121.eu-west-2.compute.internal    Disrupting Node: Drifted/Delete
+0s       Warning   InstanceTerminating          node/ip-10-0-96-121.eu-west-2.compute.internal    Instance is terminating
+0s       Normal    RemovingNode                 node/ip-10-0-96-121.eu-west-2.compute.internal    Node ip-10-0-96-121.eu-west-2.compute.internal event: Removing Node ip-10-0-96-121.eu-west-2.compute.internal from Controller
 ```
 
 ## Clean-up

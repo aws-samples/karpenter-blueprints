@@ -1,7 +1,7 @@
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: restrictive-budget
+  name: disruption-budget
 spec:
   limits:
     cpu: 100
@@ -9,11 +9,11 @@ spec:
   template:
     metadata:
       labels:
-        intent: apps
+        intent: disruption-budget
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
-        name: restrictive-budget
+        name: disruption-budget
         kind: EC2NodeClass
       requirements:
         - key: karpenter.sh/capacity-type
@@ -40,7 +40,7 @@ spec:
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: restrictive-budget
+  name: disruption-budget
 spec:
   amiSelectorTerms: 
   - alias: al2@latest

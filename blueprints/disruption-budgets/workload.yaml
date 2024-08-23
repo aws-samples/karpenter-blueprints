@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: workload-multi-az-nodes
+  name: disruption-budget
 spec:
   replicas: 30
   selector:
     matchLabels:
-      app: workload-multi-az-nodes
+      intent: disruption-budget
   template:
     metadata:
       labels:
-        app: workload-multi-az-nodes
+        intent: disruption-budget
     spec:
       nodeSelector:
-        intent: apps
+        intent: disruption-budget
       containers:
-      - name: workload-multi-az-nodes
+      - name: disruption-budget
         image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
         imagePullPolicy: Always
         resources:
@@ -25,13 +25,13 @@ spec:
       topologySpreadConstraints:
         - labelSelector:
             matchLabels:
-              app: workload-multi-az-nodes
+              intent: disruption-budget
           maxSkew: 1
           topologyKey: kubernetes.io/hostname
           whenUnsatisfiable: ScheduleAnyway
         - labelSelector:
             matchLabels:
-              app: workload-multi-az-nodes
+              intent: disruption-budget
           maxSkew: 1
           topologyKey: topology.kubernetes.io/zone
           whenUnsatisfiable: ScheduleAnyway
