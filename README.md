@@ -146,7 +146,7 @@ The following table describes the list of resources along with the versions wher
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |
 | [Kubernetes](https://kubernetes.io/releases/)      | 1.30                |
-| [Karpenter](https://github.com/aws/karpenter/releases)       | v1.0.0            |
+| [Karpenter](https://github.com/aws/karpenter/releases)       | v1.0.1            |
 | [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.9.3            |
 | [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.23.0             |
 | [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.16.3              |
