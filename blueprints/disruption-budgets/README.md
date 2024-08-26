@@ -53,7 +53,7 @@ spec:
       duration: 16h
 ```
 
- ### Multiple Budgets for Granular Control
+ ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
 
 By setting multiple disruption budgets, you can gain precise control over node disruptions. Karpenter will use the most restrictive budget applicable at any given time.
 
@@ -78,7 +78,7 @@ spec:
       duration: 20h
 ```
 
-### Multiple budgets defined
+### Multiple Budgets Defined
 
 The following configuration illustrates a NodePool with three disruption budgets:
 
