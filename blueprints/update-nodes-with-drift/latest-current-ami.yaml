@@ -1,7 +1,7 @@
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: latest-current-ami-template
+  name: latest-current-ami
 spec:
   amiFamily: AL2
   amiSelectorTerms:

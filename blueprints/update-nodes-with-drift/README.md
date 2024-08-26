@@ -10,32 +10,7 @@ Karpenter's drift will reconcile when a node's AMI drifts from `NodePool` requir
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 
 ## Deploy
-Let's start by enabling the [drift](https://karpenter.sh/docs/concepts/disruption/#drift) feature gate in Karpenter's deployment environment variable. To do so, run this command:
-
-```
-kubectl -n karpenter get deployment karpenter -o yaml | \
-  sed -e 's|Drift=false|Drift=true|' | \
-  kubectl apply -f -
-```
-
-**NOTE:** You might get this message: `Warning: resource deployments/karpenter is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by kubectl apply`. Your change will be applied, this warning appears the first time to inform you that the resource might be managed by something else. This annotation will get added and you won't see the warning going forward.
-
-You can confirm the configuration has been updated running the following command:
-
-```
-kubectl -n karpenter get deployment karpenter -o jsonpath='{.spec.template.spec.containers[0].env}' | grep Drift
-```
-
-Now, you can confirm that the Karpenter pods have been recreated:
-
-```
-❯ kubectl get pods -n karpenter
-NAME                         READY   STATUS    RESTARTS   AGE
-karpenter-7c6f4995bf-7dg5r   1/1     Running   0          2m34s
-karpenter-7c6f4995bf-82ttb   1/1     Running   0          2m34s
-```
-
-Once drift is enabled, let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. Within the `amiSelectorTerms` you'll configure the most recent AMIs (both for `amd64` and `arm64`) from a previous version of the control plane to test the drift feature.
+Let's create a new `EC2NodeClass` to be more precise about the AMIs you'd like to use. For now, you'll intentionally create new nodes using a previous EKS version to simulate where you'll be after upgrading the control plane. Within the `amiSelectorTerms` you'll configure the most recent AMIs (both for `amd64` and `arm64`) from a previous version of the control plane to test the drift feature.
 
 ```
   amiSelectorTerms:
@@ -121,7 +96,7 @@ NAME                                        STATUS   ROLES    AGE   VERSION
 ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.30.2-eks-1552ad0
 ```
 
-You can repeat this process every time you need to run a controlled upgrade of the nodes.
+You can repeat this process every time you need to run a controlled upgrade of the nodes. Also, if you'd like to control when to replace a node, you can learn more about [Disruption Budgets](//blueprints/disruption-budgets/).
 
 ## Cleanup
 To remove all objects created, simply run the following commands:
