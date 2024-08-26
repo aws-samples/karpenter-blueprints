@@ -107,11 +107,11 @@ spec:
       duration: 10m
 ```
 
-### Reasons
+### Disrupting by Reasons
 
 Karpenter allows specifying if a budget applies to any of `Drifted`, `Underutilized`, or `Empty`. When a budget has no reasons, it’s assumed that it applies to all reasons. When calculating allowed disruptions for a given reason, Karpenter will take the minimum of the budgets that have listed the reason or have left reasons undefined.
 
-### Drifted Nodes
+#### Only Drifted Nodes
 This example sets a budget that applies only to nodes classified as Drifted. During times when nodes are identified as Drifted, Karpenter will only disrupt up to 20% of those nodes.
 
 
@@ -129,7 +129,7 @@ spec:
       - "Drifted"
 ```
 
-### Underutilized Nodes
+#### Only Underutilized Nodes
 This example sets a budget that applies only to nodes classified as Underutilized. During times when nodes are identified as Underutilized, Karpenter will only disrupt up to 30% of those nodes.
 
 ```
@@ -146,7 +146,7 @@ spec:
       - "Underutilized"
 ```
 
-### Empty Nodes
+#### Only Empty Nodes
 This example sets a budget that applies only to nodes classified as Empty. During times when nodes are identified as Empty, Karpenter will only disrupt up to 10% of those nodes.
 
 ```
@@ -183,8 +183,8 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 To deploy the Karpenter NodePool and the sample workload, simply run this command:
 
 ```
-sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" nodepool-restrictive-budget.yaml
-sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" nodepool-restrictive-budget.yaml
+sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" disruption-budgets.yaml
+sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" disruption-budgets.yaml
 kubectl apply -f .
 ```
 
@@ -252,7 +252,10 @@ You will also see the following message in Kubernetes events stating disruptions
 ```
 > kubectl get events -w
 
-0s          Normal    DisruptionBlocked         nodepool/disruption-budget                        No allowed disruptions due to blocking budget
+0s          Normal    DisruptionBlocked               nodepool/restrictive-budget                       No allowed disruptions for disruption reason Drifted due to blocking budget
+0s          Normal    DisruptionBlocked               nodepool/restrictive-budget                       No allowed disruptions for disruption reason Underutilized due to blocking budget
+0s          Normal    DisruptionBlocked               nodepool/restrictive-budget                       No allowed disruptions for disruption reason Empty due to blocking budget
+0s          Normal    DisruptionBlocked               nodepool/restrictive-budget                       No allowed disruptions due to blocking budget
 ```
 
 This is because the NodePool defines the following budget which states, starting at UTC 00:00 everyday, for a time period of 24 hours no nodes can be voluntary drifted. This is a great fit when you want consolidation but might not want to apply it all the time.
