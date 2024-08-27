@@ -74,19 +74,19 @@ The output should be similar to this:
                 {
                     "DeviceName": "/dev/xvda",
                     "Ebs": {
-                        "AttachTime": "2023-09-08T12:32:46+00:00",
+                        "AttachTime": "2024-08-16T12:39:36+00:00",
                         "DeleteOnTermination": true,
                         "Status": "attached",
-                        "VolumeId": "vol-05d723169c01028d1"
+                        "VolumeId": "vol-0561b68b188d4e63a"
                     }
                 },
                 {
                     "DeviceName": "/dev/xvdb",
                     "Ebs": {
-                        "AttachTime": "2023-09-08T12:32:46+00:00",
+                        "AttachTime": "2024-08-16T12:39:36+00:00",
                         "DeleteOnTermination": true,
                         "Status": "attached",
-                        "VolumeId": "vol-0af5ebb6cc0ba5c11"
+                        "VolumeId": "vol-0ca5ca8b749f6bed0"
                     }
                 }
             ]

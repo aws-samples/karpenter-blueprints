@@ -1,11 +1,11 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: savings-plans
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: "20" # For example: Limit to launch up to 5 c4.xlarge instances
   template:
@@ -13,8 +13,11 @@ spec:
       labels:
         intent: apps
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: default
+        kind: EC2NodeClass
       requirements:
       - key: karpenter.k8s.aws/instance-family
         operator: In

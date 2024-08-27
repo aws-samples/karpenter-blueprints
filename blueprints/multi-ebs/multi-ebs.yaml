@@ -1,11 +1,11 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: multi-ebs
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: 1k
     memory: 500Gi
@@ -14,8 +14,11 @@ spec:
       labels:
         intent: multi-ebs
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: multi-ebs
+        kind: EC2NodeClass
       requirements:
       - key: karpenter.k8s.aws/instance-category
         operator: In
@@ -48,12 +51,14 @@ spec:
         values:
         - amd64
 ---
-apiVersion: karpenter.k8s.aws/v1beta1
+apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: multi-ebs
 spec:
   amiFamily: AL2
+  amiSelectorTerms: 
+  - alias: al2@latest
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:

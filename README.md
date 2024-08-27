@@ -90,7 +90,7 @@ You can see that the NodePool has been deployed by running this:
 kubectl get nodepool
 ```
 
-You can see that the EC2NodeClass has been deployed by running this:
+You can see that the `EC2NodeClass` has been deployed by running this:
 
 ```
 kubectl get ec2nodeclass
@@ -120,7 +120,7 @@ terraform destroy --auto-approve
 
 ## Deploying a Blueprint
 
-After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a NodePool, EC2NodeClass and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
+After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a `NodePool`, `EC2NodeClass` and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
 
 Here's the list of blueprints we have so far:
 
@@ -146,10 +146,10 @@ The following table describes the list of resources along with the versions wher
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |
 | [Kubernetes](https://kubernetes.io/releases/)      | 1.30                |
-| [Karpenter](https://github.com/aws/karpenter/releases)       | 0.37             |
-| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.6.3             |
-| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | 20.8.3               |
-| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | 1.16.10               |
+| [Karpenter](https://github.com/aws/karpenter/releases)       | v1.0.1            |
+| [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.9.3            |
+| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.23.0             |
+| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.16.3              |
 
 ## Feedback
 

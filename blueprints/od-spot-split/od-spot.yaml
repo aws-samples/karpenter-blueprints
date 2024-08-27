@@ -1,11 +1,11 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: node-od
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: 1k
     memory: 500Gi
@@ -14,8 +14,11 @@ spec:
       labels:
         intent: apps
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: default
+        kind: EC2NodeClass
       requirements:
       - key: capacity-spread
         operator: In
@@ -48,14 +51,14 @@ spec:
         key: intent
         value: workload-split
 ---
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: node-spot
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 168h0m0s
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
   limits:
     cpu: 1k
     memory: 500Gi
@@ -64,8 +67,11 @@ spec:
       labels:
         intent: apps
     spec:
+      expireAfter: 168h0m0s
       nodeClassRef:
+        group: karpenter.k8s.aws
         name: default
+        kind: EC2NodeClass
       requirements:
       - key: capacity-spread
         operator: In

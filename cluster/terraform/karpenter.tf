@@ -2,13 +2,14 @@
 
 resource "kubectl_manifest" "karpenter_default_ec2_node_class" {
   yaml_body = <<YAML
-apiVersion: karpenter.k8s.aws/v1beta1
+apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: default
 spec:
   role: "${local.node_iam_role_name}"
-  amiFamily: AL2 
+  amiSelectorTerms: 
+  - alias: al2@latest
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: ${local.name}
@@ -31,7 +32,7 @@ YAML
 
 resource "kubectl_manifest" "karpenter_default_node_pool" {
   yaml_body = <<YAML
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: default 
@@ -56,18 +57,21 @@ spec:
           values: ["c", "m", "r", "i", "d"]
       nodeClassRef:
         name: default
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
       kubelet:
         containerRuntime: containerd
         systemReserved:
           cpu: 100m
           memory: 100Mi
   disruption:
-    consolidationPolicy: WhenUnderutilized
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     
 YAML
   depends_on = [
     module.eks.cluster,
     module.eks_blueprints_addons.karpenter,
-    kubectl_manifest.karpenter_default_node_pool,
+    kubectl_manifest.karpenter_default_ec2_node_class,
   ]
 }

@@ -46,7 +46,11 @@ userdata-75d87b5b6c-krmxm        1/1     Running   0              45s
 You can confirm the Kubernetes settings have been added to the user data of the instance by running this command:
 
 ```
-aws ec2 describe-instance-attribute --instance-id $(aws ec2 describe-instances --filters 'Name=tag:karpenter.sh/nodepool,Values=userdata' --output text --query 'Reservations[*].Instances[*].InstanceId') --attribute userData --query 'UserData.Value' | sed 's/"//g' | base64 --decode
+aws ec2 describe-instance-attribute \
+  --instance-id $(aws ec2 describe-instances \
+  --filters "Name=tag:karpenter.sh/nodepool,Values=userdata" \
+  --output text --query 'Reservations[0].Instances[0].InstanceId') \
+  --attribute userData --query 'UserData.Value' --output text | base64 --decode
 ```
 
 You should get an output like this with the `[settings.kubernetes]` configured in the `EC2NodeClass`:
@@ -59,31 +63,10 @@ Content-Type: multipart/mixed; boundary="//"
 Content-Type: text/x-shellscript; charset="us-ascii"
 
 #!/bin/bash
-
-set -e
-
-# Add additional KUBELET_EXTRA_ARGS to the service
-# Requires Kubernetes 1.27 (alpha feature)
-cat << EOF > /etc/systemd/system/kubelet.service.d/90-kubelet-extra-args.conf
-[Service]
-Environment="KUBELET_EXTRA_ARGS=--feature-gates=NodeLogQuery=true $KUBELET_EXTRA_ARGS"
-EOF
-
-# Enable log handler and log query to the kubelet configuration
-echo "$(jq '.enableSystemLogHandler=true' /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
-echo "$(jq '.enableSystemLogQuery=true' /etc/kubernetes/kubelet/kubelet-config.json)" > /etc/kubernetes/kubelet/kubelet-config.json
+echo "Running a custom user data script"
 
 --//
-Content-Type: text/x-shellscript; charset="us-ascii"
-
-#!/bin/bash -xe
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-/etc/eks/bootstrap.sh 'karpenter-blueprints' --apiserver-endpoint 'KUBERNETES_API_ENDPOINT' \
---container-runtime containerd \
---dns-cluster-ip '172.20.0.10' \
---use-max-pods false \
---kubelet-extra-args '--node-labels="intent=userdata,karpenter.sh/capacity-type=spot,karpenter.sh/nodepool=userdata" --max-pods=29'
---//--
+Content-Type: application/node.eks.aws
 ```
 
 Look at how the `userdata` from the instance has the `userdata` you specified within the `EC2NodeClass` manifest.

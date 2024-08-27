@@ -81,8 +81,8 @@ After waiting for around two minutes, you'll see all pods running and a new mach
 ```
 > kubectl get nodeclaims                                                                                                        18s
 NAME            TYPE          ZONE         NODE                                        READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal    True    14m
-default-s6dbs   m5.xlarge     eu-west-1a   ip-10-0-35-186.eu-west-1.compute.internal   True    2m8s
+default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-10-0-127-154.eu-west-2.compute.internal   True      29m
+default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-10-0-100-21.eu-west-2.compute.internal    True      75s
 ```
 
 The new machine is simply there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can simply reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.

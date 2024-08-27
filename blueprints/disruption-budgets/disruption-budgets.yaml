@@ -1,7 +1,7 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: default
+  name: disruption-budget
 spec:
   limits:
     cpu: 100
@@ -9,10 +9,12 @@ spec:
   template:
     metadata:
       labels:
-        intent: apps
+        intent: disruption-budget
     spec:
       nodeClassRef:
-        name: default
+        group: karpenter.k8s.aws
+        name: disruption-budget
+        kind: EC2NodeClass
       requirements:
         - key: karpenter.sh/capacity-type
           operator: In
@@ -26,10 +28,26 @@ spec:
         - key: karpenter.k8s.aws/instance-hypervisor
           operator: In
           values: ["nitro"]
+      expireAfter: 720h
   disruption:
-    consolidationPolicy: WhenUnderutilized
-    expireAfter: 720h
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
     budgets:
     - nodes: "0"
       schedule: "0 0 * * *"
       duration: 24h
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: disruption-budget
+spec:
+  amiSelectorTerms: 
+  - alias: al2@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>

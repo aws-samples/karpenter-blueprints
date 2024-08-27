@@ -43,16 +43,13 @@ kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type
 You should see an output similar to this:
 
 ```
-NAME                                         STATUS   ROLES    AGE   VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
-ip-10-0-103-229.eu-west-1.compute.internal   Ready    <none>   42s   v1.28.3-eks-4f4795d   spot            c5.large        node-spot          eu-west-1c
-ip-10-0-33-163.eu-west-1.compute.internal    Ready    <none>   26s   v1.28.3-eks-4f4795d   spot            c7a.medium      node-spot          eu-west-1a
-ip-10-0-40-137.eu-west-1.compute.internal    Ready    <none>   49s   v1.28.3-eks-4f4795d   spot            c7a.medium      node-spot          eu-west-1a
-ip-10-0-45-167.eu-west-1.compute.internal    Ready    <none>   49s   v1.28.3-eks-4f4795d   spot            c7a.medium      node-spot          eu-west-1a
-ip-10-0-50-176.eu-west-1.compute.internal    Ready    <none>   40s   v1.28.3-eks-4f4795d   spot            c7a.medium      node-spot          eu-west-1a
-ip-10-0-53-132.eu-west-1.compute.internal    Ready    <none>   48s   v1.28.3-eks-4f4795d   on-demand       c7a.medium      node-od            eu-west-1a
-ip-10-0-54-108.eu-west-1.compute.internal    Ready    <none>   48s   v1.28.3-eks-4f4795d   spot            c7a.medium      node-spot          eu-west-1a
-ip-10-0-58-153.eu-west-1.compute.internal    Ready    <none>   39s   v1.28.3-eks-4f4795d   on-demand       c7a.medium      node-od            eu-west-1a
-ip-10-0-59-78.eu-west-1.compute.internal     Ready    <none>   31s   v1.28.3-eks-4f4795d   spot            m7a.medium      node-spot          eu-west-1a
+NAME                                         STATUS   ROLES    AGE   VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL    ZONE
+ip-10-0-100-193.eu-west-2.compute.internal   Ready    <none>   22s   v1.30.2-eks-1552ad0   on-demand       c6a.large       node-od     eu-west-2c
+ip-10-0-127-154.eu-west-2.compute.internal   Ready    <none>   23m   v1.30.2-eks-1552ad0   on-demand       c6g.xlarge      default     eu-west-2c
+ip-10-0-74-242.eu-west-2.compute.internal    Ready    <none>   12s   v1.30.2-eks-1552ad0   spot            c6a.large       node-spot   eu-west-2b
+ip-10-0-81-86.eu-west-2.compute.internal     Ready    <none>   21s   v1.30.2-eks-1552ad0   spot            c6a.large       node-spot   eu-west-2b
+ip-10-0-94-203.eu-west-2.compute.internal    Ready    <none>   19s   v1.30.2-eks-1552ad0   spot            c6a.large       node-spot   eu-west-2b
+ip-10-0-94-213.eu-west-2.compute.internal    Ready    <none>   23s   v1.30.2-eks-1552ad0   spot            c6a.large       node-spot   eu-west-2b
 ```
 
 As you can see, pods were spread within the `spot` and `od` nodepools because of the `capacity-spread` TSC:

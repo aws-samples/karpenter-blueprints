@@ -33,13 +33,24 @@ kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type
 You should see an output similar to this:
 
 ```
-NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   ZONE
-ip-10-0-104-252.eu-west-1.compute.internal   Ready    <none>   3m13s   v1.28.1-eks-43840fb   spot            m6g.xlarge      eu-west-1a
-ip-10-0-63-60.eu-west-1.compute.internal     Ready    <none>   3m7s    v1.28.1-eks-43840fb   spot            m6g.xlarge      eu-west-1a
-ip-10-0-99-253.eu-west-1.compute.internal    Ready    <none>   3m11s   v1.28.1-eks-43840fb   spot            m6g.xlarge      eu-west-1a
-ip-10-0-69-148.eu-west-1.compute.internal    Ready    <none>   3m8s    v1.28.1-eks-43840fb   spot            m6g.xlarge      eu-west-1b
-ip-10-0-91-218.eu-west-1.compute.internal    Ready    <none>   3m10s   v1.28.1-eks-43840fb   spot            m6g.xlarge      eu-west-1b
-ip-10-0-92-181.eu-west-1.compute.internal    Ready    <none>   3m12s   v1.28.1-eks-43840fb   spot            c6i.xlarge      eu-west-1b
+NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
+ip-10-0-120-103.eu-west-2.compute.internal   Ready    <none>   8m37s   v1.30.2-eks-1552ad0   on-demand       c6g.2xlarge     default    eu-west-2c
+ip-10-0-37-198.eu-west-2.compute.internal    Ready    <none>   17s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-37-31.eu-west-2.compute.internal     Ready    <none>   18s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-40-3.eu-west-2.compute.internal      Ready    <none>   15s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-42-68.eu-west-2.compute.internal     Ready    <none>   19s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-42-79.eu-west-2.compute.internal     Ready    <none>   13s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-44-133.eu-west-2.compute.internal    Ready    <none>   15s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-45-41.eu-west-2.compute.internal     Ready    <none>   19s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-47-216.eu-west-2.compute.internal    Ready    <none>   22s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-52-31.eu-west-2.compute.internal     Ready    <none>   18s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-56-207.eu-west-2.compute.internal    Ready    <none>   16s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-70-74.eu-west-2.compute.internal     Ready    <none>   20s     v1.30.2-eks-1552ad0   spot            c7g.xlarge      default    eu-west-2b
+ip-10-0-77-172.eu-west-2.compute.internal    Ready    <none>   18s     v1.30.2-eks-1552ad0   spot            c7g.xlarge      default    eu-west-2b
+ip-10-0-78-211.eu-west-2.compute.internal    Ready    <none>   14s     v1.30.2-eks-1552ad0   spot            r6g.xlarge      default    eu-west-2b
+ip-10-0-78-239.eu-west-2.compute.internal    Ready    <none>   21s     v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2b
+ip-10-0-83-77.eu-west-2.compute.internal     Ready    <none>   13s     v1.30.2-eks-1552ad0   spot            c5a.xlarge      default    eu-west-2b
+ip-10-0-91-96.eu-west-2.compute.internal     Ready    <none>   16s     v1.30.2-eks-1552ad0   spot            c6gd.xlarge     default    eu-west-2b
 ```
 
 As you can see, pods were spread within AZs (1a and 1b) because of the `topology.kubernetes.io/zone` TSC. But at the same time, pods were spread within multiple nodes in each AZ because of the `kubernetes.io/hostname` TSC.
