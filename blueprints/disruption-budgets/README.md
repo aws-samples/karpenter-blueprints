@@ -23,7 +23,7 @@ metadata:
 spec:
   ...
   disruption:
-    consolidationPolicy: WhenUnderutilized
+    consolidationPolicy: WhenEmptyOrUnderutilized
     budgets:
     - nodes: "20%"
   template:
