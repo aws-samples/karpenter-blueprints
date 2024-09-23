@@ -146,22 +146,44 @@ spec:
       - "Underutilized"
 ```
 
-#### Only Empty Nodes
-This example sets a budget that applies only to nodes classified as Empty. During times when nodes are identified as Empty, Karpenter will only disrupt up to 10% of those nodes.
+#### Different Budgets for Different Reasons
+This example sets a different budget for different disruption reasons. This is useful when you want to keep minimum disruption when handling drifts while allowing more relax budget for consolidating `Empty` or `Underutilized` nodes.
+
+By this example, in the drift situation such as AMI update, Karpenter will only disrupt up to 1 node in the last minute of every 15 minutes. keeping minimum budget for drifts.
+While in the `Empty` or `Underutilized` situation, Karpenter will disrupt up to 3 nodes every 10 minutes allowing multi-nodes consolidations to happen more frequently, making the cluster more efficient.
+
 
 ```
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: example-empty
+  name: example-different-budgets-reasons
 spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     budgets:
-    - nodes: "10%"
+    - nodes: "1"
+      reasons:
+      - "Drifted"
+    - nodes: "0"
+      schedule: "*/15 * * * *"
+      duration: 14m0s
+      reasons:
+      - "Drifted"
+    - nodes: "3"
       reasons:
       - "Empty"
+      - "Underutilized"
+    - nodes: "0"
+      schedule: "*/10 * * * *"
+      duration: 9m0s
+      reasons:
+      - "Empty"
+      - "Underutilized"
 ```
+
+#### Only Empty Nodes
+This example sets a budget that applies only to nodes classified as Empty. During times when nodes are identified as Empty, Karpenter will only disrupt up to 10% of those nodes.
 
 ## Requirements
 
