@@ -16,6 +16,15 @@ Each blueprint follows the same structure to help you better understand what's t
 ## How to use these Blueprints?
 Before you get started, you need to have a Kubernetes cluster with Karpenter installed. If you're planning to work with an existing cluster, just make sure you've configured Karpenter following the [official guide](https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/). This project also has a template to create a cluster with everything you'll need to test each blueprint.
 
+## Support & Feedback
+
+> [!IMPORTANT]
+> Karpenter Blueprints for Amazon EKS is maintained by AWS Solution Architects. It is not part of an AWS
+> service and support is provided as a best-effort by the Karpenter Blueprints community. To provide feedback,
+> please use the [issues templates](https://github.com/aws-samples/karpenter-blueprints/issues)
+> provided. If you are interested in contributing to EKS Blueprints, see the
+> [Contribution guide](https://github.com/aws-samples/karpenter-blueprints/blob/main/CONTRIBUTING.md).
+
 ### Requirements
 
 * You need access to an AWS account with IAM permissions to create an EKS cluster, and an AWS Cloud9 environment if you're running the commands listed in this tutorial.
@@ -150,10 +159,6 @@ The following table describes the list of resources along with the versions wher
 | [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.9.3            |
 | [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.23.0             |
 | [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.16.3              |
-
-## Feedback
-
-To post feedback, submit a new blueprint, or report bugs, please use the [Issues section](https://github.com/aws-samples/karpenter-blueprints/issues) of this GitHub repo. 
 
 ## License
 
