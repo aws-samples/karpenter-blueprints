@@ -16,7 +16,7 @@ If you want to first observe the default behaviour of pods being disrupted durin
 If you want to directly see how to avoid the disruption of jobs by the consolidation process, jump to [Preventing jobs of being evicted](#preventing-jobs-of-being-evicted).
 
 ### (optional) Simulating the default behaviour
-This section simulates the default behaviour of the pods explained before, in which the Karpenter consolidation process disrupts the pods running the jobs, and re-schedule them into the cheaper node. To simulate it, deploy the [workloads-evicted yaml](/karpenter-blueprints/blueprints/batch-jobs/workloads-evicted.yaml):
+This section simulates the default behaviour of the pods explained before, in which the Karpenter consolidation process disrupts the pods running the jobs, and re-schedule them into the cheaper node. To simulate it, deploy the [workloads-evicted yaml](/blueprints/batch-jobs/workloads-evicted.yaml):
 ```
 $> kubectl apply -f workloads-evicted.yaml
 deployment.apps/nginx created
@@ -76,7 +76,7 @@ If you executed the [optional](#optional-simulating-the-default-behaviour) part,
 kubectl delete -f workloads-evicted.yaml
 ```
 
-Let's start by deploying the workloads defined in the [workloads-not-evicted yaml](/karpenter-blueprints/blueprints/batch-jobs/workloads-not-evicted.yaml):
+Let's start by deploying the workloads defined in the [workloads-not-evicted yaml](/blueprints/batch-jobs/workloads-not-evicted.yaml):
 ```
 $> kubectl apply -f workloads-not-evicted.yaml
 deployment.apps/nginx created
@@ -88,7 +88,7 @@ This will create three pods that require **11 vCPU** in total:
 -  2-minutes job - 7 vCPU required
 - 5-minutes job - 2 vCPU required
 
-If you explore the [workloads-not-evicted yaml](/karpenter-blueprints/blueprints/batch-jobs/workloads-not-evicted.yaml), the `karpenter.sh/do-not-disrupt: "true"` annotations have been added to both jobs specifications.
+If you explore the [workloads-not-evicted yaml](/blueprints/batch-jobs/workloads-not-evicted.yaml), the `karpenter.sh/do-not-disrupt: "true"` annotations have been added to both jobs specifications.
 
 Go to [Results section](#results) to check the behaviour.
 
