@@ -3,6 +3,11 @@
 ## Motivation
 [Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many companies to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes an application-first approach to provision compute capacity for the Kubernetes data plane, there are common workload scenarios that you might be wondering how to configure them properly. This repository includes a list of common workload scenarios, some of them go in depth with the explanation of why configuring Karpenter and Kubernetes objects in such a way is important.
 
+## EKS Auto Mode
+Why? What? 
+
+How to enable for existing clusters.
+
 ## Blueprint Structure
 Each blueprint follows the same structure to help you better understand what's the motivation and the expected results:
 
@@ -74,41 +79,28 @@ Once complete (after waiting about 15 minutes), run the following command to upd
 aws eks --region $AWS_REGION update-kubeconfig --name karpenter-blueprints
 ```
 
-You need to make sure you can interact with the cluster and that the Karpenter pods are running:
+You need to make sure you can interact with the cluster by running:
 
 ```
-$> kubectl get pods -n karpenter
-NAME                       READY STATUS  RESTARTS AGE
-karpenter-5f97c944df-bm85s 1/1   Running 0        15m
-karpenter-5f97c944df-xr9jf 1/1   Running 0        15m
+$> kubectl get nodes
+NAME                  STATUS   ROLES    AGE   VERSION
+i-0ec48f5e6589400a2   Ready    <none>   23m   v1.32.0-eks-2e66e76
 ```
 
-You can now proceed to deploy the default Karpenter NodePool, and deploy any blueprint you want to test.
+#### Explore the Karpenter NodePools
 
-#### Deploy a Karpenter Default EC2NodeClass and NodePool
+If you create a new EKS cluster following the previous steps, you're using EKS Auto Mode which creates a set of initial [NodePools](https://karpenter.sh/docs/concepts/nodepools/), in this case we've enabled the `system` and `general-purpose` `NodePool`s. The `NodePool` sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each `NodePool` must reference a [NodeClass](https://karpenter.sh/preview/concepts/nodeclasses/) using `spec.nodeClassRef`. A `NodeClass` enables configuration of AWS specific settings for EC2 instances launched by Karpenter. 
 
-Before you start deploying a blueprint, you need to have a default [EC2NodeClass](https://karpenter.sh/preview/concepts/nodeclasses/) and a default [NodePool](https://karpenter.sh/docs/concepts/nodepools/) as some blueprints need them. `EC2NodeClass` enable configuration of AWS specific settings for EC2 instances launched by Karpenter. The `NodePool` sets constraints on the nodes that can be created by Karpenter and the pods that can run on those nodes. Each NodePool must reference an `EC2NodeClass` using `spec.nodeClassRef`.
-
-If you create a new EKS cluster following the previous steps, a Karpenter `EC2NodeClass` "default" and a Karpenter `NodePool` "default" are installed automatically.
-
-**NOTE:**  For existing EKS cluster you have to modify the provided `./cluster/terraform/karpenter.tf` according to your setup by properly modifying `securityGroupSelectorTerm` and `subnetSelectorTerms` removing the `depends_on` section. ***If you're not using Terraform***, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
-
-You can see that the NodePool has been deployed by running this:
+You can see that the `NodePool`s have been created by running this:
 
 ```
 kubectl get nodepool
 ```
 
-You can see that the `EC2NodeClass` has been deployed by running this:
+You can see that the `NodeClass` has been deployed by running this:
 
 ```
-kubectl get ec2nodeclass
-```
-
-Throughout all the blueprints, you might need to review Karpenter logs, so let's create an alias for that to read logs by simply running `kl`:
-
-```
-alias kl="kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20"
+kubectl get nodeclass
 ```
 
 You can now proceed to deploy any blueprint you want to test.
@@ -118,9 +110,6 @@ You can now proceed to deploy any blueprint you want to test.
 Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:
 
 ```
-kubectl delete --all nodeclaim
-kubectl delete --all nodepool
-kubectl delete --all ec2nodeclass
 export TF_VAR_region=$AWS_REGION
 terraform destroy -target="module.eks_blueprints_addons" --auto-approve
 terraform destroy -target="module.eks" --auto-approve
@@ -129,7 +118,7 @@ terraform destroy --auto-approve
 
 ## Deploying a Blueprint
 
-After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a `NodePool`, `EC2NodeClass` and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
+After you have a cluster up and running with Karpenter running, you can start testing each blueprint. A blueprint might have a `NodePool`, `NodeClass`, and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
 
 Here's the list of blueprints we have so far:
 
@@ -154,11 +143,11 @@ The following table describes the list of resources along with the versions wher
 
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |
-| [Kubernetes](https://kubernetes.io/releases/)      | 1.30                |
-| [Karpenter](https://github.com/aws/karpenter/releases)       | v1.0.1            |
+| [Kubernetes](https://kubernetes.io/releases/)      | 1.32                |
+| [Karpenter](https://github.com/aws/karpenter/releases)       | EKS Auto Mode            |
 | [Terraform](https://github.com/hashicorp/terraform/releases)       | 1.9.3            |
-| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.23.0             |
-| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.16.3              |
+| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.33.1             |
+| [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.19.0              |
 
 ## License
 
