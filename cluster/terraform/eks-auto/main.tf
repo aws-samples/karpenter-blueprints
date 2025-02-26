@@ -46,7 +46,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  name            = "karpenter-blueprints"
+  name            = "karpenter-blueprints-auto"
   cluster_version = "1.32"
   region          = var.region
   node_group_name = "managed-ondemand"
