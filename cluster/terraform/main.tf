@@ -158,7 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
-    chart_version       = "1.0.1"
+    chart_version       = "1.4.0"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
