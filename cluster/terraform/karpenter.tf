@@ -9,7 +9,7 @@ metadata:
 spec:
   role: "${local.node_iam_role_name}"
   amiSelectorTerms: 
-  - alias: al2@latest
+  - alias: al2023@latest
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: ${local.name}
