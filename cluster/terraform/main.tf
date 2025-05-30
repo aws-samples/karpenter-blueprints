@@ -47,7 +47,7 @@ data "aws_availability_zones" "available" {
 
 locals {
   name            = "karpenter-blueprints"
-  cluster_version = "1.30"
+  cluster_version = "1.32"
   region          = var.region
   node_group_name = "managed-ondemand"
 
@@ -67,7 +67,7 @@ locals {
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.23.0"
+  version = "20.36.0"
 
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
@@ -127,7 +127,7 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.16.3"
+  version = "1.21.0"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
@@ -158,7 +158,7 @@ module "eks_blueprints_addons" {
   enable_karpenter = true
 
   karpenter = {
-    chart_version       = "1.4.0"
+    chart_version       = "1.5.0"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
@@ -173,7 +173,7 @@ module "eks_blueprints_addons" {
 
 module "ebs_csi_driver_irsa" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.44.0"
+  version = "5.55.0"
 
   role_name_prefix = "${module.eks.cluster_name}-ebs-csi-driver-"
 
@@ -210,7 +210,7 @@ module "aws-auth" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.12.1"
+  version = "5.21.0"
 
   name = local.name
   cidr = local.vpc_cidr

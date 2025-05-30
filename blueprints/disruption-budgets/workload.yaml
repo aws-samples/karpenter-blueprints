@@ -16,7 +16,7 @@ spec:
         intent: disruption-budget
       containers:
       - name: disruption-budget
-        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
         imagePullPolicy: Always
         resources:
           requests:

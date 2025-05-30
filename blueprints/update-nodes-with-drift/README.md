@@ -30,8 +30,8 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 Karpenter will use the latest EKS-optimized AMIs, so when there's a new AMI available or after you update the Kubernetes control plane and you have `Drift` enabled, the nodes with older AMIs are recycled automatically. To test this feature, you need to configure static AMIs within the `EC2NodeClass`. Run the following commands to create an environment variable with the AMI IDs to use:
 
 ```
-export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.29/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
-export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.29/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
+export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
 ```
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
@@ -56,29 +56,29 @@ latest-current-ami-5bbfbc98f7-n7mgs   1/1     Running   0            3m
 latest-current-ami-5bbfbc98f7-rxjjx   1/1     Running   0            3m
 ```
 
-You should see a new node registered with the latest AMI for EKS `v1.29`, like this:
+You should see a new node registered with the latest AMI for EKS `v1.31`, like this:
 
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                         STATUS   ROLES    AGE   VERSION
-ip-10-0-119-175.eu-west-2.compute.internal   Ready    <none>   35s     v1.29.6-eks-1552ad0
+ip-10-0-103-18.eu-west-2.compute.internal    Ready    <none>   5m6s   v1.31.6-eks-aad632c
 ```
 
 Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
-export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
-export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2-arm64/recommended/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
+export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
 sed -i '' "s/$amd64PrevAMI/$amd64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/$arm64PrevAMI/$arm64LatestAMI/g" latest-current-ami.yaml
-sed -i '' "s/1.29/1.30/g" latest-current-ami.yaml
+sed -i '' "s/1.31/1.32/g" latest-current-ami.yaml
 kubectl apply -f latest-current-ami.yaml
 ```
 
 You can confirm the update has been applied by running this command:
 
 ```
-kubectl get ec2nodeclass latest-current-ami-template -o yaml
+kubectl get ec2nodeclass latest-current-ami -o yaml
 ```
 
 Wait around five minutes, in the mean time, you can monitor Karpenter logs until you see something like this:
@@ -93,7 +93,7 @@ Wait around two minutes. You should now see a new node with the latest AMI versi
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                        STATUS   ROLES    AGE   VERSION
-ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.30.2-eks-1552ad0
+ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.32.2-eks-677bac1
 ```
 
 You can repeat this process every time you need to run a controlled upgrade of the nodes. Also, if you'd like to control when to replace a node, you can learn more about [Disruption Budgets](//blueprints/disruption-budgets/).

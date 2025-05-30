@@ -201,21 +201,21 @@ You should now see new nodes provisioned in your Amazon EKS cluster:
 ```
 > kubectl get nodes
 NAME                                         STATUS   ROLES    AGE     VERSION
-ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   2m8s    v1.30.2-eks-1552ad0
-ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   2m44s   v1.30.2-eks-1552ad0
-ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   2m8s    v1.30.2-eks-1552ad0
-ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   2m18s   v1.30.2-eks-1552ad0
-ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   17m     v1.30.2-eks-1552ad0
-ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   2m47s   v1.30.2-eks-1552ad0
-ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   2m40s   v1.30.2-eks-1552ad0
-ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   17m     v1.30.2-eks-1552ad0
-ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   2m50s   v1.30.2-eks-1552ad0
-ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   2m29s   v1.30.2-eks-1552ad0
-ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   2m19s   v1.30.2-eks-1552ad0
-ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   2m26s   v1.30.2-eks-1552ad0
+ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   2m8s    v1.32.2-eks-677bac1
+ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   2m44s   v1.32.2-eks-677bac1
+ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   2m8s    v1.32.2-eks-677bac1
+ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   2m18s   v1.32.2-eks-677bac1
+ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   17m     v1.32.2-eks-677bac1
+ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   2m47s   v1.32.2-eks-677bac1
+ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   2m40s   v1.32.2-eks-677bac1
+ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   17m     v1.32.2-eks-677bac1
+ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   2m50s   v1.32.2-eks-677bac1
+ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   2m29s   v1.32.2-eks-677bac1
+ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   2m19s   v1.32.2-eks-677bac1
+ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   2m26s   v1.32.2-eks-677bac1
 ```
 
-Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al2@latest` to `bottlerocket@latest`.
+Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al2023@latest` to `bottlerocket@latest`.
 
 ```
 kubectl patch ec2nodeclass disruption-budget --type='json' -p='[
@@ -233,18 +233,18 @@ Karpenter will try to replace nodes via the Drift mechanism on an AMI change. Ho
 > kubectl get nodes -o wide -w
 
 NAME                                         STATUS   ROLES    AGE     VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                    CONTAINER-RUNTIME
-ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   3m22s   v1.30.2-eks-1552ad0   10.0.103.232   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   3m58s   v1.30.2-eks-1552ad0   10.0.120.141   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   3m22s   v1.30.2-eks-1552ad0   10.0.38.179    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   3m32s   v1.30.2-eks-1552ad0   10.0.39.106    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   18m     v1.30.2-eks-1552ad0   10.0.50.60     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
-ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   4m1s    v1.30.2-eks-1552ad0   10.0.55.94     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   3m54s   v1.30.2-eks-1552ad0   10.0.63.247    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   18m     v1.30.2-eks-1552ad0   10.0.66.70     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
-ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   4m4s    v1.30.2-eks-1552ad0   10.0.72.85     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.x86_64     containerd://1.7.20
-ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   3m43s   v1.30.2-eks-1552ad0   10.0.82.100    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   3m33s   v1.30.2-eks-1552ad0   10.0.95.228    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
-ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   3m40s   v1.30.2-eks-1552ad0   10.0.96.121    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   3m22s   v1.32.2-eks-677bac1   10.0.103.232   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-120-141.eu-west-2.compute.internal   Ready    <none>   3m58s   v1.32.2-eks-677bac1   10.0.120.141   <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-38-179.eu-west-2.compute.internal    Ready    <none>   3m22s   v1.32.2-eks-677bac1   10.0.38.179    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-39-106.eu-west-2.compute.internal    Ready    <none>   3m32s   v1.32.2-eks-677bac1   10.0.39.106    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-50-60.eu-west-2.compute.internal     Ready    <none>   18m     v1.32.2-eks-677bac1   10.0.50.60     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+ip-10-0-55-94.eu-west-2.compute.internal     Ready    <none>   4m1s    v1.32.2-eks-677bac1   10.0.55.94     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-63-247.eu-west-2.compute.internal    Ready    <none>   3m54s   v1.32.2-eks-677bac1   10.0.63.247    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-66-70.eu-west-2.compute.internal     Ready    <none>   18m     v1.32.2-eks-677bac1   10.0.66.70     <none>        Amazon Linux 2023.5.20240805   6.1.102-108.177.amzn2023.x86_64   containerd://1.7.20
+ip-10-0-72-85.eu-west-2.compute.internal     Ready    <none>   4m4s    v1.32.2-eks-677bac1   10.0.72.85     <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.x86_64     containerd://1.7.20
+ip-10-0-82-100.eu-west-2.compute.internal    Ready    <none>   3m43s   v1.32.2-eks-677bac1   10.0.82.100    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   3m33s   v1.32.2-eks-677bac1   10.0.95.228    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
+ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   3m40s   v1.32.2-eks-677bac1   10.0.96.121    <none>        Amazon Linux 2                 5.10.223-211.872.amzn2.aarch64    containerd://1.7.20
 ```
 
 You will also see the following message in Kubernetes events stating disruptions are blocked:
@@ -282,31 +282,31 @@ After modifying that budget for the NodePool you should observe the nodes drifti
 > kubectl get nodes -o custom-columns=NAME:.metadata.name,OS-IMAGE:.status.nodeInfo.osImage
 
 NAME                                         OS-IMAGE
-ip-10-0-103-176.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-106-25.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-108-51.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-115-104.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-116-220.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-121-123.eu-west-2.compute.internal   Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-43-37.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-103-176.eu-west-2.compute.internal   Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-106-25.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-108-51.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-115-104.eu-west-2.compute.internal   Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-116-220.eu-west-2.compute.internal   Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-121-123.eu-west-2.compute.internal   Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-43-37.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
 ip-10-0-50-60.eu-west-2.compute.internal     Amazon Linux 2023.5.20240805
-ip-10-0-57-199.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-59-82.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-62-198.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-62-228.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-66-249.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-57-199.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-59-82.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-62-198.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-62-228.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-66-249.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
 ip-10-0-66-70.eu-west-2.compute.internal     Amazon Linux 2023.5.20240805
-ip-10-0-67-142.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-67-203.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-67-255.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-68-97.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-70-55.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-73-112.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-75-130.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-77-110.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-78-43.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-91-17.eu-west-2.compute.internal     Bottlerocket OS 1.20.5 (aws-k8s-1.30)
-ip-10-0-97-201.eu-west-2.compute.internal    Bottlerocket OS 1.20.5 (aws-k8s-1.30)
+ip-10-0-67-142.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-67-203.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-67-255.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-68-97.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-70-55.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-73-112.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-75-130.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-77-110.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-78-43.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-91-17.eu-west-2.compute.internal     Bottlerocket OS 1.39.1 (aws-k8s-1.32)
+ip-10-0-97-201.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.32)
 ```
 
 You will also see the following message in Kubernetes events stating a node has been drifted:

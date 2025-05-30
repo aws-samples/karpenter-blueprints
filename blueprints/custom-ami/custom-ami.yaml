@@ -3,9 +3,9 @@ kind: EC2NodeClass
 metadata:
   name: custom-ami-template
 spec:
-  amiFamily: AL2
+  amiFamily: AL2023
   amiSelectorTerms:
-  - name: '*amazon-eks-node-1.30-*'
+  - name: '*amazon-eks-node-al2023*'
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:

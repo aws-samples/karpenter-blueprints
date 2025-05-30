@@ -17,7 +17,7 @@ spec:
         intent: apps
       containers:
       - name: stateful
-        image: centos
+        image: public.ecr.aws/docker/library/centos:latest
         command: ["/bin/sh"]
         args: ["-c", "while true; do echo Writing content every three minutes! Printing a random number: $(( $RANDOM % 1000 + 1 ))>> /data/out.txt; sleep 180; done"]
         volumeMounts:

@@ -56,9 +56,9 @@ kind: EC2NodeClass
 metadata:
   name: multi-ebs
 spec:
-  amiFamily: AL2
+  amiFamily: Bottlerocket
   amiSelectorTerms: 
-  - alias: al2@latest
+  - alias: bottlerocket@latest
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
