@@ -37,6 +37,10 @@ spec:
         volumeInitializationRate: 300  
 ```
 
+## Configure Snapshot
+Let's start by creating the `ebs volume` and `snapshot` of `10gb`. To do so, run this command to get create the resources automatically:
+
+```
 export FIRSTAZ=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[0].ZoneName' --output text)
 VOLUME_ID=$(aws ec2 create-volume \
     --volume-type gp3 \
@@ -52,12 +56,20 @@ SNAPSHOT_ID=$(aws ec2 create-snapshot \
     --output text)
 
 aws ec2 wait snapshot-completed --snapshot-ids $SNAPSHOT_ID
+```
 
+We can check the status of the snapshot with the following command:
+
+```
 aws ec2 describe-snapshots \
     --snapshot-ids $SNAPSHOT_ID \
     --query 'Snapshots[0].[SnapshotId,VolumeSize,Description]' \
     --output table
+```
 
+You shoud see an ouput similar to:
+
+```
 ------------------------------------------------
 |               DescribeSnapshots              |
 +----------------------------------------------+
@@ -65,6 +77,7 @@ aws ec2 describe-snapshots \
 |  10                                         |
 |  Test snapshot for initialization rate demo  |
 +----------------------------------------------+
+```
 
 1. Let's demonstrate this using EC2NodeClass with different initialization rates:
 
@@ -72,55 +85,82 @@ aws ec2 describe-snapshots \
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: fast-init
+  name: slow
 spec:
   amiFamily: Bottlerocket
   amiSelectorTerms: 
   - alias: bottlerocket@latest
   blockDeviceMappings:
-  - deviceName: /dev/xvda
+  - deviceName: /dev/xvdc 
     ebs:
       deleteOnTermination: true
-      volumeSize: 20Gi
+      volumeSize: 10Gi
       volumeType: gp3
-      volumeInitializationRate: 300  
-      snapshotID: <<SNAPSHOT_ID>>   
-    
-# slow-init.yaml
+      volumeInitializationRate: 100
+      snapshotID: "snap-XXXXXXXX"
+
+---
+
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: slow-init
+  name: fast
 spec:
   amiFamily: Bottlerocket
   amiSelectorTerms: 
   - alias: bottlerocket@latest
   blockDeviceMappings:
-  - deviceName: /dev/xvda
+  - deviceName: /dev/xvdc 
     ebs:
       deleteOnTermination: true
-      volumeSize: 20Gi
+      volumeSize: 10Gi
       volumeType: gp3
-      volumeInitializationRate: 300  
-      snapshotID: <<SNAPSHOT_ID>>   
+      volumeInitializationRate: 300
+      snapshotID: "snap-XXXXXXXX"
 ```
 
-run command
+## Configure Snapshot
+Let's start by creating the `ebs volume` and `snapshot` of `10gb`. To do so, run this command to get create the resources automatically:
+
+Now, make sure you're in this blueprint folder, then run the following command:
 
 ```
   sed -i '' "s/<<SNAPSHOT_ID>>/$SNAPSHOT_ID/g" volume-initialization-rate.yml
   sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" volume-initialization-rate.yml
   sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" volume-initialization-rate.yml
-
   k apply -f volume-initialization-rate.yml 
 ```
 
+## Results
+After waiting for about one minute, you should see a machine ready, and all pods in a `Running` state, like this:
 
-ec2nodeclass.karpenter.k8s.aws/fast-init created
-ec2nodeclass.karpenter.k8s.aws/slow-init created
+```
+nodepool.karpenter.sh/fast-initialization created
+nodepool.karpenter.sh/slow-initialization created
+ec2nodeclass.karpenter.k8s.aws/fast created
+ec2nodeclass.karpenter.k8s.aws/slow created
+deployment.apps/fast-nginx created
+deployment.apps/slow-nginx created
 
-had to add the following permissions to the role
+k get pods
+NAME                          READY   STATUS    RESTARTS   AGE
+fast-nginx-6476bf8547-b2jc8   1/1     Running   0          2m59s
+slow-nginx-5f5976b596-tfln9   1/1     Running   0          2m59s
+```
 
+    
+k get ec2nodeclass                                                                                 
+NAME        READY   AGE
+default     True    5h10m
+fast        True    58s
+slow        True    58s
+
+
+
+TODO:
+
+- Add permission guide for role 
+```
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -133,12 +173,6 @@ had to add the following permissions to the role
         }
     ]
 }
+``` 
 
-    
-k get ec2nodeclass                                                                                 
-NAME        READY   AGE
-default     True    5h10m
-fast        True    58s
-slow        True    58s
-
-
+- Add demo of how to see the calculated value with log or metric
