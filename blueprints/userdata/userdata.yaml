@@ -4,7 +4,7 @@ metadata:
   name: userdata-template
 spec:
   amiSelectorTerms:
-    - alias: al2023@latest # Amazon Linux 2023
+    - alias: al2023@2023.0.20230222 # Amazon Linux 2023
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:

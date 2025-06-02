@@ -43,7 +43,7 @@ metadata:
   name: disruption-budget
 spec:
   amiSelectorTerms: 
-  - alias: al2@latest
+  - alias: bottlerocket@latest
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:

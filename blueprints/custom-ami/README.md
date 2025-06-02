@@ -35,26 +35,26 @@ Here's the important configuration block within the spec of an [`EC2NodeClass`](
 
 If amiSelectorTerms match more than one AMI, Karpenter will automatically determine which AMI best fits the workloads on the launched worker node under the following constraints:
 
-- When launching nodes, Karpenter automatically determines which architecture a custom AMI is compatible with and will use images that match an instanceType’s requirements.
+- When launching nodes, Karpenter automatically determines which architecture a custom AMI is compatible with and will use images that match an instanceType's requirements.
   - Unless using an alias, Karpenter cannot detect requirements other than architecture. If you need to specify different AMIs for different kind of nodes (e.g. accelerated GPU AMIs), you should use a separate EC2NodeClass.
 - If multiple AMIs are found that can be used, Karpenter will choose the latest one.
 - If no AMIs are found that can be used, then no nodes will be provisioned.
 
-To select an AMI by name, use the `name` field in the selector term. To select an AMI by id, use the `id` field in the selector term. To ensure that AMIs are owned by the expected owner, use the `owner` field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to `self,amazon`.
+To select an AMI by name, use the `name` field in the selector term. To select an AMI by id, use the `id` field in the selector term. To select an AMI using an alias, use the `alias` field which supports version pinning (e.g. `al2023@v20240807`) or latest version (`al2023@latest`). To ensure that AMIs are owned by the expected owner, use the `owner` field - you can use a combination of account aliases (e.g. self amazon, your-aws-account-name) and account IDs. If this is not set, it defaults to `self,amazon`.
 
 > **Tip**
 > AMIs may be specified by any AWS tag, including Name. Selecting by tag
 > or by name using wildcards (*) is supported.
 
-```
+```yaml
   amiSelectorTerms:
-    - name: "*amazon-eks-node-1.30-*"
+    - name: "*amazon-eks-node-al2023*"
       owner: self
-    - name: "*amazon-eks-node-1.30-*"
+    - name: "*amazon-eks-node-al2023*"
       owner: amazon
 ```
 
-***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.30 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
+***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.32 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
 
 ## Results
 After waiting for about one minute, you should see a machine ready, and all pods in a `Running` state, like this:

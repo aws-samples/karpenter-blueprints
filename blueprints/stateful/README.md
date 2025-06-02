@@ -60,7 +60,7 @@ Notice that Karpenter launched a node in the AZ (using the value from `$FIRSTAZ`
 ```
 > kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 NAME                                       STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
-ip-10-0-52-243.eu-west-2.compute.internal    Ready    <none>   16s   v1.30.2-eks-1552ad0   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-52-243.eu-west-2.compute.internal    Ready    <none>   16s   v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
 ```
 
 Let's read the file that the pods are writing to, like this:

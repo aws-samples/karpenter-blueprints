@@ -3,7 +3,6 @@ kind: EC2NodeClass
 metadata:
   name: latest-current-ami
 spec:
-  amiFamily: AL2
   amiSelectorTerms:
     - id: <<AMD64PREVAMI>>
     - id: <<ARM64PREVAMI>>
@@ -15,7 +14,7 @@ spec:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   tags:
-    KubernetesVersion: "1.29"
+    KubernetesVersion: "1.31"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool

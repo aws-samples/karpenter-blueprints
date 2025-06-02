@@ -35,10 +35,11 @@ kubectl get nodes --label-columns node.kubernetes.io/instance-type
 ``` 
 After two minutes, the first job finishes and the pod is terminated:
 ```
-$> kubectl get jobs
-NAME        COMPLETIONS   DURATION   AGE
-2-min-job   1/1           2m39s      2m40s
-5-min-job   0/1           2m40s      2m40s
+>kubectl get events --field-selector involvedObject.kind=Job --sort-by='.lastTimestamp'    
+LAST SEEN   TYPE     REASON             OBJECT          MESSAGE
+5m         Normal   SuccessfulCreate   job/2-min-job   Created pod: 2-min-job-rst5w
+5m         Normal   SuccessfulCreate   job/5-min-job   Created pod: 5-min-job-l72p8
+3m         Normal   Completed          job/2-min-job   Job completed
 ```
 ```
 > $kubectl get pods
@@ -56,9 +57,10 @@ kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=t
 ```
 You should see these logs:
 ```
-{"level":"INFO","time":"2024-08-16T10:03:46.529Z","logger":"controller","message":"disrupting nodeclaim(s) via replace, terminating 1 nodes (2 pods) ip-10-0-122-231.eu-west-2.compute.internal/c6g.4xlarge/on-demand and replacing with on-demand node from types c6g.2xlarge, c7g.2xlarge, m6g.2xlarge, c6a.2xlarge, c5a.2xlarge and 32 other(s)","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"857f7bb5-a482-48e8-9c52-16a10823e2e4","command-id":"25beb85a-3020-4267-a525-5273e0afc7a7","reason":"underutilized"}
+{"level":"INFO","time":"2025-05-30T10:15:01.605Z","logger":"controller","message":"disrupting node(s)","commit":"9458bb5","controller":"disruption","namespace":"","name":"","reconcileID":"f44d738f-e895-428b-b0ec-f1b5e5a96996","command-id":"dae73246-b739-42d8-91b8-c80ee651b6ac","reason":"underutilized","decision":"replace","disrupted-node-count":1,"replacement-node-count":1,"pod-count":2,"disrupted-nodes":[{"Node":{"name":"ip-10-0-116-149.eu-west-2.compute.internal"},"NodeClaim":{"name":"default-8t7np"},"capacity-type":"on-demand","instance-type":"c6g.4xlarge"}],"replacement-nodes":[{"capacity-type":"on-demand","instance-types":"c6g.2xlarge, c7g.2xlarge, m6g.2xlarge, c6a.2xlarge, c5a.2xlarge and 36 other(s)"}]}
+
 ...
-{"level":"INFO","time":"2024-08-16T10:03:48.591Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-r9nzz"},"namespace":"","name":"default-r9nzz","reconcileID":"def551ff-c16e-4b1c-a137-f79df8724ded","provider-id":"aws:///eu-west-2a/i-0cefe0bfe63f80b39","instance-type":"c6g.2xlarge","zone":"eu-west-2a","capacity-type":"on-demand","allocatable":{"cpu":"7910m","ephemeral-storage":"17Gi","memory":"14103Mi","pods":"58","vpc.amazonaws.com/pod-eni":"38"}}
+{"level":"INFO","time":"2025-05-30T10:10:49.907Z","logger":"controller","message":"launched nodeclaim","commit":"9458bb5","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-8t7np"},"namespace":"","name":"default-8t7np","reconcileID":"08263c3f-5565-4916-8932-db4596bd1f40","provider-id":"aws:///eu-west-2c/i-0f4e940ab58541307","instance-type":"c6g.4xlarge","zone":"eu-west-2c","capacity-type":"on-demand","allocatable":{"cpu":"15890m","ephemeral-storage":"17Gi","memory":"27322Mi","pods":"234","vpc.amazonaws.com/pod-eni":"54"}}
 ```
 The NGINX server and the 5-min job pods are rescheduled into the new c6g.2xlarge node, so **the job is restarted**, which will cause a disruption the job might not be prepared to handle like doing a checkpoint.
 
@@ -106,9 +108,9 @@ You should see something similar to this, where a new node just appeared:
 
 ```
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   16d   v1.30.2-eks-1552ad0   m4.large
-ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   16d   v1.30.2-eks-1552ad0   m4.large
-ip-10-0-47-60.eu-west-1.compute.internal     Ready    <none>   44s   v1.30.2-eks-1552ad0   c6g.4xlarge
+ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
+ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
+ip-10-0-47-60.eu-west-1.compute.internal     Ready    <none>   44s   v1.32.3-eks-473151a   c6g.4xlarge
 ```
 
 Check the three new pods are running by executing:
@@ -198,9 +200,9 @@ Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** n
 ```
 $> kubectl get nodes --label-columns node.kubernetes.io/instance-type
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   17d   v1.30.2-eks-1552ad0   m4.large
-ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   17d   v1.30.2-eks-1552ad0   m4.large
-ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   26s   v1.30.2-eks-1552ad0   c6g.xlarge
+ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
+ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
+ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   c6g.xlarge
 ```
 Finally, you can check the NGINX server pod has been re-scheduled into the new pod:
 ```
