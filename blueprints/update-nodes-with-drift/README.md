@@ -30,8 +30,8 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 Karpenter will use the latest EKS-optimized AMIs, so when there's a new AMI available or after you update the Kubernetes control plane and you have `Drift` enabled, the nodes with older AMIs are recycled automatically. To test this feature, you need to configure static AMIs within the `EC2NodeClass`. Run the following commands to create an environment variable with the AMI IDs to use:
 
 ```
-export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
-export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
+export amd64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export arm64PrevAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 ```
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `NodePool` and `EC2NodeClass`:
@@ -67,8 +67,8 @@ ip-10-0-103-18.eu-west-2.compute.internal    Ready    <none>   5m6s   v1.31.6-ek
 Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
-export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
-export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region eu-west-2 --query "Parameter.Value" --output text)
+export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 sed -i '' "s/$amd64PrevAMI/$amd64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/$arm64PrevAMI/$arm64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/1.31/1.32/g" latest-current-ami.yaml

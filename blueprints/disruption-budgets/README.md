@@ -215,11 +215,11 @@ ip-10-0-95-228.eu-west-2.compute.internal    Ready    <none>   2m19s   v1.32.2-e
 ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   2m26s   v1.32.2-eks-677bac1
 ```
 
-Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al2023@latest` to `bottlerocket@latest`.
+Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al20232023.0.20230222` to `bottlerocket@v1.39.1`.
 
 ```
 kubectl patch ec2nodeclass disruption-budget --type='json' -p='[
-  {"op": "replace", "path": "/spec/amiSelectorTerms/0/alias", "value": "bottlerocket@latest"}
+  {"op": "replace", "path": "/spec/amiSelectorTerms/0/alias", "value": "bottlerocket@v1.39.1"}
 ]'
 ```
 
