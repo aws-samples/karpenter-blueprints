@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nvidia-smi
+spec:
+  nodeSelector:
+    intent: gpu
+    karpenter.k8s.aws/instance-gpu-name: "t4"
+  restartPolicy: OnFailure
+  containers:
+  - name: nvidia-smi
+    image: public.ecr.aws/amazonlinux/amazonlinux:2023-minimal
+    args:
+    - "nvidia-smi"
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "3500m"
+      limits:
+        memory: "8Gi"
+        nvidia.com/gpu: 1
+  tolerations:
+  - key: nvidia.com/gpu
+    effect: NoSchedule
+    operator: Exists

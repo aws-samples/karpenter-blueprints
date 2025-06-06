@@ -1,0 +1,26 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: gpu
+spec:
+  amiSelectorTerms:
+  - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      deleteOnTermination: true
+      iops: 10000
+      throughput: 125
+      volumeSize: 100Gi
+      volumeType: gp3
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  tags:
+    intent: gpu
+    karpenter.sh/discovery: <<CLUSTER_NAME>>
+    project: <<CLUSTER_NAME>>
