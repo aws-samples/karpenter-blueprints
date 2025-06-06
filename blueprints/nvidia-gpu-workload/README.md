@@ -13,7 +13,7 @@ Before you start seeing Karpenter in action, when using AL2023 you need to deplo
 
 ## Deploy NVIDIA device plugin for Kubernetes
 
-The [NVIDIA device plugin for Kubernetes](https://github.com/NVIDIA/k8s-device-plugin) is used to advertise the number of GPUs on the host to Kubernetes so that this information can be used for scheduling purposes. You can install the NVIDIA device plugin with helm. We recommend you to add a node selector so the device plugin is only schedule on nodes with NVIDIA GPUs, as these are what we are using in this tutorial.
+The [NVIDIA device plugin for Kubernetes](https://github.com/NVIDIA/k8s-device-plugin) is used to advertise the number of GPUs on the host to Kubernetes so that this information can be used for scheduling purposes. You can install the NVIDIA device plugin with helm.
 
 To install the device plugin run the following:
 
@@ -21,17 +21,17 @@ To install the device plugin run the following:
 helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
 helm repo update
 
-
 cat << EOF > values.yaml
-affinity:
-  nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: karpenter.k8s.aws/instance-gpu-manufacturer
-          operator: In
-          values:
-          - "nvidia"
+gfd:
+  enabled: true
+nfd:
+  enabled: true
+  worker:
+    tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      - operator: "Exists"
 EOF
 
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
