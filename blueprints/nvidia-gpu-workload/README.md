@@ -46,8 +46,18 @@ Now that you have the device set-up, let’s enable Karpenter to launch NVIDIA G
 
 The following NodeClass, specify the Security Group and Subnet selector, along with AMI. We are using AL2023 here, and when launching an accelerated instance Karpenter will pick the respective EKS optimized accelerated AMI. AL2023 comes packaged with the NVIDIA GPU drivers, and the container runtime is configured out of the box.
 
-The EC2NodeClass we’ll deploy looks like this:
+Before applying the `gpu-nodeclass.yaml` replace `KARPENTER_NODE_IAM_ROLE_NAME` and `CLUSTER_NAME` in the file with your specific cluster details. If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
+
 ```
+export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
+export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
+```
+
+> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
+
+The EC2NodeClass we’ll deploy looks like this, execute the following command to create the EC2NodeClass file:
+```
+cat << EOF > gpu-nodeclass.yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
@@ -55,7 +65,7 @@ metadata:
 spec:
   amiSelectorTerms:
   - alias: al2023@latest
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  role: "$KARPENTER_NODE_IAM_ROLE_NAME"
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -66,18 +76,21 @@ spec:
       volumeType: gp3
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
+      karpenter.sh/discovery: $CLUSTER_NAME
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: <<CLUSTER_NAME>>
+      karpenter.sh/discovery: $CLUSTER_NAME
   tags:
     intent: gpu
-    karpenter.sh/discovery: <<CLUSTER_NAME>>
+    karpenter.sh/discovery: $CLUSTER_NAME
+EOF
 ```
 A separate [EC2NodeClass](https://karpenter.sh/docs/concepts/nodeclasses/) was created as you may want to tune node properties such as ephemeral storage size, block device mappings, [capacity reservations selector](https://karpenter.sh/docs/concepts/nodeclasses/).
 
-The next step is to create a dedicated NodePool to provision instances from the `g` Amazon EC2 instance category and nvidia gpu manufacturer, and only allow workloads that tolerate the `nvidia.com/gpu` taint to be scheduled. Such NodePool will look like this:
+The next step is to create a dedicated NodePool to provision instances from the `g` Amazon EC2 instance category and nvidia gpu manufacturer, and only allow workloads that tolerate the `nvidia.com/gpu` taint to be scheduled. Such NodePool will look like this. Execute the following command to create the NodePool file:
+
 ```
+cat << EOF > gpu-nodepool.yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -113,17 +126,10 @@ spec:
   disruption:
     consolidationPolicy: WhenEmpty
     consolidateAfter: 5m
+EOF
 ```
+
 We’ve added the `nivida.com/gpu` taint in the NodePool to prevent workloads that do not tolerate this taint being scheduled on nodes managed by this NodePool (they might not take advantage of it). Also, notice that the `.spec.disruption` policy has been set to WhenEmpty and only consolidate after 5 minutes, this is to support spiky workloads like jobs with a high-churn - you’ll likely want to tweak this based on your workloads requirements.
-
-Before applying the `gpu-nodeclass.yaml` replace `KARPENTER_NODE_IAM_ROLE_NAME` and `CLUSTER_NAME` in the file with your specific cluster details. If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
-
-```
-terraform -chdir="../../cluster/terraform" output -raw cluster_name
-terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name
-```
-
-> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
 
 Once the placeholders are complete, to apply the EC2NodeClass and NodePool execute the following:
 ```
@@ -137,8 +143,9 @@ Now let’s deploy a test workload to see how Karpenter launches the GPU node.
 
 ### Deploy a test workload to test GPU drivers are loaded
 
-The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`.
+The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`. Execute the following command to create the `workload.yaml`: 
 ```
+cat << EOF > workload.yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -164,6 +171,7 @@ spec:
   - key: nvidia.com/gpu
     effect: NoSchedule
     operator: Exists
+EOF
 ```
 As GPU-based workloads are likely sensitive to different GPUs (e.g. GPU memory) we've specified a `karpenter.k8s.aws/instance-gpu-name` node selector to request an instance with a specific GPU for this workload. The following nodeSelector `karpenter.k8s.aws/instance-gpu-name: "t4"` influences Karpenter node provisioning and launch the workload on a node with a [NVIDIA T4 GPU](https://aws.amazon.com/ec2/instance-types/g4/). Review the [Karpenter documentation](https://karpenter.sh/docs/reference/instance-types/) for different Amazon EC2 instances and there labels. 
 
