@@ -73,10 +73,6 @@ module "eks" {
   cluster_addons = {
     aws-ebs-csi-driver = {
       most_recent = true
-      pod_identity_association = [{
-        role_arn        = module.aws_ebs_csi_pod_identity.iam_role_arn
-        service_account = "aws-ebs-csi-controller-sa"
-      }]
     }
     coredns = {
       most_recent = true
@@ -167,6 +163,18 @@ module "aws_ebs_csi_pod_identity" {
   version = "1.12.0"
 
   attach_aws_ebs_csi_policy = true
+
+  # Pod Identity Associations
+  association_defaults = {
+    namespace       = "kube-system"
+    service_account = "ebs-csi-controller-sa"
+  }
+
+  associations = {
+    default = {
+      cluster_name = module.eks.cluster_name
+    }
+  }
 
   tags = local.tags
 }
