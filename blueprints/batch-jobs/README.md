@@ -11,7 +11,7 @@ Karpenter can actively reduce the cluster cost by identifying when nodes can be 
 ## Deploy
 You are going to use the `default` NodePool.
 
-If you want to first observe the default behaviour of pods being disrupted during the consolidation process, jump to [(Optional) Simulating the default behaviour](#(optional)-simulating-the-default-behaviour). 
+If you want to first observe the default behaviour of pods being disrupted during the consolidation process, jump to [(Optional) Simulating the default behaviour](#(optional)-simulating-the-default-behaviour).
 
 If you want to directly see how to avoid the disruption of jobs by the consolidation process, jump to [Preventing jobs of being evicted](#preventing-jobs-of-being-evicted).
 
@@ -32,10 +32,10 @@ During this test, Karpenter decided to launch a **c6g.4xlarge** on-demand instan
 
 ```
 kubectl get nodes --label-columns node.kubernetes.io/instance-type
-``` 
+```
 After two minutes, the first job finishes and the pod is terminated:
 ```
->kubectl get events --field-selector involvedObject.kind=Job --sort-by='.lastTimestamp'    
+>kubectl get events --field-selector involvedObject.kind=Job --sort-by='.lastTimestamp'
 LAST SEEN   TYPE     REASON             OBJECT          MESSAGE
 5m         Normal   SuccessfulCreate   job/2-min-job   Created pod: 2-min-job-rst5w
 5m         Normal   SuccessfulCreate   job/5-min-job   Created pod: 5-min-job-l72p8
@@ -49,7 +49,7 @@ nginx-8467c776-r8j24   1/1     Running   0          2m50s
 ```
 Now, the total number of vCPU required by the running pods are **4 vCPU**:
 - NGINX server - 2 vCPU required
--  5-minutes job - 2 vCPU required 
+-  5-minutes job - 2 vCPU required
 
 The default behaviour is the one defined in the NodePool: `consolidationPolicy: WhenEmptyOrUnderutilized`. Karpenter identifies the **c6g.4xlarge** (12 vCPU) is underutilized, and performs a consolidation replacement of the node. It launches a cheaper and smaller node: a **c6g.2xlarge** (8 vCPU) instance. You can check these logs by executing the following command in another terminal:
 ```
@@ -196,7 +196,7 @@ Now, **it is possible to replace the node** by a cheaper and smaller instance be
 
 {"level":"INFO","time":"2024-08-16T10:18:50.331Z","logger":"controller","message":"deleted node","commit":"5bdf9c3","controller":"node.termination","controllerGroup":"","controllerKind":"Node","Node":{"name":"ip-10-0-42-175.eu-west-2.compute.internal"},"namespace":"","name":"ip-10-0-42-175.eu-west-2.compute.internal","reconcileID":"2a51acf8-702f-4c75-988d-92052d690b01"}
 ```
-Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** node (4 vCPU, 8 GiB), enough for the NGINX server: 
+Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** node (4 vCPU, 8 GiB), enough for the NGINX server:
 ```
 $> kubectl get nodes --label-columns node.kubernetes.io/instance-type
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE

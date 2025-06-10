@@ -5,7 +5,7 @@ provider "aws" {
 }
 
 provider "aws" {
-  region = local.region
+  region = var.region
 }
 
 provider "kubernetes" {
@@ -46,12 +46,7 @@ data "aws_availability_zones" "available" {
 }
 
 locals {
-  name            = "karpenter-blueprints"
-  cluster_version = "1.32"
-  region          = var.region
-  node_group_name = "managed-ondemand"
-
-  node_iam_role_name = module.eks_blueprints_addons.karpenter.node_iam_role_name
+  name = "karpenter-blueprints"
 
   vpc_cidr = "10.0.0.0/16"
   # NOTE: You might need to change this less number of AZs depending on the region you're deploying to
@@ -65,17 +60,42 @@ locals {
 ################################################################################
 # Cluster
 ################################################################################
+
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.36.0"
+  version = "20.37.0"
 
-  cluster_name                   = local.name
-  cluster_version                = local.cluster_version
-  cluster_endpoint_public_access = true
+  cluster_name                             = local.name
+  cluster_version                          = "1.33"
+  cluster_endpoint_public_access           = true
+  enable_cluster_creator_admin_permissions = true
 
   cluster_addons = {
-    kube-proxy = { most_recent = true }
-    coredns    = { most_recent = true }
+    aws-ebs-csi-driver = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = module.aws_ebs_csi_pod_identity.iam_role_arn
+        service_account = "aws-ebs-csi-controller-sa"
+      }]
+    }
+
+    coredns = {
+      configuration_values = jsonencode({
+        tolerations = [
+          # Allow CoreDNS to run on the same nodes as the Karpenter controller
+          # for use during cluster creation when Karpenter nodes do not yet exist
+          {
+            key    = "karpenter.sh/controller"
+            value  = "true"
+            effect = "NoSchedule"
+          }
+        ]
+      })
+    }
+
+    eks-pod-identity-agent = { most_recent = true }
+    kube-proxy             = { most_recent = true }
+    metrics-server         = { most_recent = true }
 
     vpc-cni = {
       most_recent    = true
@@ -92,37 +112,42 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  create_cloudwatch_log_group              = false
-  create_cluster_security_group            = false
-  create_node_security_group               = false
-  authentication_mode                      = "API_AND_CONFIG_MAP"
-  enable_cluster_creator_admin_permissions = true
+  create_cloudwatch_log_group = false
 
   eks_managed_node_groups = {
-    mg_5 = {
-      node_group_name = "managed-ondemand"
-      instance_types  = ["m4.large", "m5.large", "m5a.large", "m5ad.large", "m5d.large", "t2.large", "t3.large", "t3a.large"]
-
-      create_security_group = false
+    mng = {
+      instance_types = ["m4.large", "m5.large", "m5a.large", "m5ad.large", "m5d.large", "t2.large", "t3.large", "t3a.large"]
 
       subnet_ids   = module.vpc.private_subnets
       max_size     = 2
       desired_size = 2
       min_size     = 2
 
-      # Launch template configuration
-      create_launch_template = true              # false will use the default launch template
-      launch_template_os     = "amazonlinux2eks" # amazonlinux2eks or bottlerocket
-
       labels = {
-        intent = "control-apps"
+        # Used to ensure Karpenter runs on nodes that it does not manage
+        "karpenter.sh/controller" = "true"
+      }
+
+      taints = {
+        # The pods that do not tolerate this taint should run on nodes
+        # created by Karpenter
+        karpenter = {
+          key    = "karpenter.sh/controller"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
       }
     }
   }
 
-  tags = merge(local.tags, {
+  node_security_group_tags = merge(local.tags, {
+    # NOTE - if creating multiple security groups with this module, only tag the
+    # security group that Karpenter should utilize with the following tag
+    # (i.e. - at most, only one security group should have this tag in your account)
     "karpenter.sh/discovery" = local.name
   })
+
+  tags = local.tags
 }
 
 module "eks_blueprints_addons" {
@@ -134,16 +159,9 @@ module "eks_blueprints_addons" {
   cluster_version   = module.eks.cluster_version
   oidc_provider_arn = module.eks.oidc_provider_arn
 
-  create_delay_dependencies = [for prof in module.eks.eks_managed_node_groups : prof.node_group_arn]
+  create_delay_dependencies = [for grp in module.eks.eks_managed_node_groups : grp.node_group_arn]
 
   enable_aws_load_balancer_controller = true
-  enable_metrics_server               = true
-
-  eks_addons = {
-    aws-ebs-csi-driver = {
-      service_account_role_arn = module.ebs_csi_driver_irsa.iam_role_arn
-    }
-  }
 
   enable_aws_for_fluentbit = true
   aws_for_fluentbit = {
@@ -155,53 +173,18 @@ module "eks_blueprints_addons" {
     ]
   }
 
-  enable_karpenter = true
-
-  karpenter = {
-    chart_version       = "1.5.0"
-    repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-    repository_password = data.aws_ecrpublic_authorization_token.token.password
-  }
-  karpenter_enable_spot_termination          = true
-  karpenter_enable_instance_profile_creation = true
-  karpenter_node = {
-    iam_role_use_name_prefix = false
-  }
-
   tags = local.tags
 }
 
-module "ebs_csi_driver_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "5.55.0"
+module "aws_ebs_csi_pod_identity" {
+  source = "terraform-aws-modules/eks-pod-identity/aws"
 
-  role_name_prefix = "${module.eks.cluster_name}-ebs-csi-driver-"
+  name    = "aws-ebs-csi"
+  version = "1.12.0"
 
-  attach_ebs_csi_policy = true
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
-    }
-  }
+  attach_aws_ebs_csi_policy = true
 
   tags = local.tags
-}
-
-module "aws-auth" {
-  source  = "terraform-aws-modules/eks/aws//modules/aws-auth"
-  version = "~> 20.0"
-
-  manage_aws_auth_configmap = true
-
-  aws_auth_roles = [
-    {
-      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
-      username = "system:node:{{EC2PrivateDNSName}}"
-      groups   = ["system:bootstrappers", "system:nodes"]
-    },
-  ]
 }
 
 #---------------------------------------------------------------
@@ -216,8 +199,8 @@ module "vpc" {
   cidr = local.vpc_cidr
 
   azs             = local.azs
-  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k)]
-  private_subnets = ["10.0.32.0/19", "10.0.64.0/19", "10.0.96.0/19"]
+  private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
+  public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
 
   enable_nat_gateway   = true
   single_nat_gateway   = true

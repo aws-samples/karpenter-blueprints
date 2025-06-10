@@ -32,7 +32,7 @@ spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
-  template:     
+  template:
     metadata:
       labels:
         intent: userdata
@@ -69,4 +69,3 @@ spec:
         operator: Gt
         values:
         - "2"
-      

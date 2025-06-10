@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Karpenter streamlines node lifecycle management, and it can help provide the right compute just-in-time based on your workloads scheduling constraints. This is particularly helpful for your machine learning workflows with variable and heterogeneous compute demands (e.g., NVIDIA GPU-based inference followed by CPU-based plotting). When your Kubernetes workload requires accelerated instance, Karpenter automatically selects the appropriate [Amazon EKS optimized accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html). 
+Karpenter streamlines node lifecycle management, and it can help provide the right compute just-in-time based on your workloads scheduling constraints. This is particularly helpful for your machine learning workflows with variable and heterogeneous compute demands (e.g., NVIDIA GPU-based inference followed by CPU-based plotting). When your Kubernetes workload requires accelerated instance, Karpenter automatically selects the appropriate [Amazon EKS optimized accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html).
 
 Therefore, the purpose of this Karpenter blueprint is to demonstrate how to launch a GPU-based workload on Amazon EKS with Karpenter and AL2023 EKS optimized accelerated AMI. This example assumes a simple one-to-one mapping between a Kubernetes Pod and a GPU. This blueprint does not go into the details about GPU sharing techniques such as MiG, time slicing or other software based GPU fractional scheduling.
 
@@ -143,7 +143,7 @@ Now let’s deploy a test workload to see how Karpenter launches the GPU node.
 
 ### Deploy a test workload to test GPU drivers are loaded
 
-The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`. Execute the following command to create the `workload.yaml`: 
+The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`. Execute the following command to create the `workload.yaml`:
 ```
 cat << EOF > workload.yaml
 apiVersion: v1
@@ -173,7 +173,7 @@ spec:
     operator: Exists
 EOF
 ```
-As GPU-based workloads are likely sensitive to different GPUs (e.g. GPU memory) we've specified a `karpenter.k8s.aws/instance-gpu-name` node selector to request an instance with a specific GPU for this workload. The following nodeSelector `karpenter.k8s.aws/instance-gpu-name: "t4"` influences Karpenter node provisioning and launch the workload on a node with a [NVIDIA T4 GPU](https://aws.amazon.com/ec2/instance-types/g4/). Review the [Karpenter documentation](https://karpenter.sh/docs/reference/instance-types/) for different Amazon EC2 instances and there labels. 
+As GPU-based workloads are likely sensitive to different GPUs (e.g. GPU memory) we've specified a `karpenter.k8s.aws/instance-gpu-name` node selector to request an instance with a specific GPU for this workload. The following nodeSelector `karpenter.k8s.aws/instance-gpu-name: "t4"` influences Karpenter node provisioning and launch the workload on a node with a [NVIDIA T4 GPU](https://aws.amazon.com/ec2/instance-types/g4/). Review the [Karpenter documentation](https://karpenter.sh/docs/reference/instance-types/) for different Amazon EC2 instances and there labels.
 
 To deploy the workload execute the following:
 ```

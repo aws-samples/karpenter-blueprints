@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Overprovision capacity in advanced to increase responsiveness
 
 ## Purpose
-Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there. 
+Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
 
 To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity (to make Karpenter launch nodes). Then, when you deploy the workload with the pods you actually need, "dummy" pods are evicted to make rapidly start the pods you need for your workload.
 

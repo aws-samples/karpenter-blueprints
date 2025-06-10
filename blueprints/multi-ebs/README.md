@@ -1,7 +1,7 @@
 # Karpenter Blueprint: Using multiple EBS volumes
 
 ## Purpose
-This blueprint shows how to attach more than one EBS volume to a data plane node. Maybe you need to use a volume for logs, cache, or any container resources such as images. You do this configuration in the `EC2NodeClass`, then you configure a `NodePool` to use such template when launching a machine. 
+This blueprint shows how to attach more than one EBS volume to a data plane node. Maybe you need to use a volume for logs, cache, or any container resources such as images. You do this configuration in the `EC2NodeClass`, then you configure a `NodePool` to use such template when launching a machine.
 
 ## Requirements
 
@@ -28,7 +28,7 @@ sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" m
 kubectl apply -f .
 ```
 
-Here's the important configuration block within the spec of an `EC2NodeClass`: 
+Here's the important configuration block within the spec of an `EC2NodeClass`:
 
 ```
   blockDeviceMappings:
