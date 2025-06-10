@@ -21,19 +21,6 @@ To install the device plugin run the following:
 ```sh
 helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
 helm repo update
-
-cat << EOF > values.yaml
-gfd:
-  enabled: true
-nfd:
-  enabled: true
-  worker:
-    tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-EOF
-
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
   --namespace nvidia-device-plugin \
   --create-namespace \

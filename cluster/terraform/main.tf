@@ -78,21 +78,9 @@ module "eks" {
         service_account = "aws-ebs-csi-controller-sa"
       }]
     }
-
     coredns = {
-      configuration_values = jsonencode({
-        tolerations = [
-          # Allow CoreDNS to run on the same nodes as the Karpenter controller
-          # for use during cluster creation when Karpenter nodes do not yet exist
-          {
-            key    = "karpenter.sh/controller"
-            value  = "true"
-            effect = "NoSchedule"
-          }
-        ]
-      })
+      most_recent = true
     }
-
     eks-pod-identity-agent = {
       before_compute = true
       most_recent    = true
@@ -103,7 +91,6 @@ module "eks" {
     metrics-server = {
       most_recent = true
     }
-
     vpc-cni = {
       most_recent    = true
       before_compute = true
@@ -133,16 +120,6 @@ module "eks" {
       labels = {
         # Used to ensure Karpenter runs on nodes that it does not manage
         "karpenter.sh/controller" = "true"
-      }
-
-      taints = {
-        # The pods that do not tolerate this taint should run on nodes
-        # created by Karpenter
-        karpenter = {
-          key    = "karpenter.sh/controller"
-          value  = "true"
-          effect = "NO_SCHEDULE"
-        }
       }
     }
   }
