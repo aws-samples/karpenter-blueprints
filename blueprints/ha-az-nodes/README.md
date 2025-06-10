@@ -77,7 +77,7 @@ If you're using a region with more than two AZs available, you might have notice
 **NOTE**: If you strictly need to spread within all available AZs, you can set he `minDomains` to the number of AZs as this lets you tell the `kube-scheduler` that you expect there to be a particular number of AZs. Therefore, if `kube-scheduler` is not aware of all available AZs, pods are marked as unschedulable and Karpenter will launch a node in each AZ. However, it's important that you know that setting `whenUnsatisfiable` to `DoNotSchedule` will cause pods to be unschedulable if the topology spread constraint can't be fulfilled. It should only be set if its preferable for pods to not run instead of violating the topology spread constraint.
 
 In case you want to enforce this spread within `Deployments`, you can use projects like [Kyverno](https://kyverno.io) to mutate a `Deployment` object and set the TSC you've seen in this blueprint. Here's a [Kyverno policy example](https://kyverno.io/policies/other/s-z/spread-pods-across-topology/spread-pods-across-topology/) that mutates a `Deployment` to include a TSC, just make sure it replicates the same rule from this blueprint (`whenUnsatisfiable` to `ScheduleAnyway`).
- 
+
 ## Cleanup
 
 ```

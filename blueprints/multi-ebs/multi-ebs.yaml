@@ -57,7 +57,7 @@ metadata:
   name: multi-ebs
 spec:
   amiFamily: Bottlerocket
-  amiSelectorTerms: 
+  amiSelectorTerms:
   - alias: bottlerocket@v1.39.1
   blockDeviceMappings:
   - deviceName: /dev/xvda

@@ -9,11 +9,11 @@ spec:
     replicas: 1
     template:
       metadata:
-        labels:  
+        labels:
           app: nginx
       spec:
         nodeSelector:
-          intent: apps   
+          intent: apps
           karpenter.sh/capacity-type: on-demand
         containers:
         - name: nginx
@@ -30,9 +30,9 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 10
   template:
-    spec:  
+    spec:
       nodeSelector:
-        intent: apps   
+        intent: apps
         karpenter.sh/capacity-type: on-demand
       containers:
       - name: 2-min-job
@@ -53,10 +53,10 @@ metadata:
 spec:
   ttlSecondsAfterFinished: 10
   template:
-    spec:   
+    spec:
       nodeSelector:
-        intent: apps   
-        karpenter.sh/capacity-type: on-demand   
+        intent: apps
+        karpenter.sh/capacity-type: on-demand
       containers:
       - name: 5-min-job
         image: alpine

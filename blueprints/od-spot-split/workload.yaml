@@ -14,11 +14,11 @@ spec:
     spec:
       nodeSelector:
         intent: apps
-      tolerations: 
-      - key: "intent" 
-        operator: "Equal" 
-        value: "workload-split" 
-        effect: "NoSchedule" 
+      tolerations:
+      - key: "intent"
+        operator: "Equal"
+        value: "workload-split"
+        effect: "NoSchedule"
       containers:
       - name: workload-split
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
@@ -26,7 +26,7 @@ spec:
         resources:
           requests:
             cpu: 512m
-            memory: 512Mi 
+            memory: 512Mi
       topologySpreadConstraints:
         - labelSelector:
             matchLabels:

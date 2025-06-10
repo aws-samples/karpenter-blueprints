@@ -3,7 +3,7 @@
 ## Purpose
 You might be wondering how to use Graviton instances with Karpenter. Well, first you need to make sure that your application can run on different CPUs such as `arm64` or `x86-64`. The programming language you’re using and its ecosystem needs to be multi-arch aware, as you'll need to container images for both `arm64` and `x86-64` architectures. [AWS Graviton](https://aws.amazon.com/ec2/graviton/) processors are custom built by AWS using 64-bit Arm Neoverse. They power Amazon EC2 instances such as: M6g, M6gd, T4g, C6g, C6gd, C6gn, R6g, R6gd, X2gd, and more. Graviton instances provide up to 40% better price performance over comparable current generation x86-based instances for a wide variety of workloads.
 
-Karpenter set the default architecture constraint on your NodePool that supports most common user workloads, which today will be `amd64` (or `x86-64` architecture). However, if you're flexible to support either `arm64` or `x86-64`, when working with AWS, you defer the decision of which architecture to use depending on purchase model: `On-Demand` or `Spot`. 
+Karpenter set the default architecture constraint on your NodePool that supports most common user workloads, which today will be `amd64` (or `x86-64` architecture). However, if you're flexible to support either `arm64` or `x86-64`, when working with AWS, you defer the decision of which architecture to use depending on purchase model: `On-Demand` or `Spot`.
 
 If it’s an On-Demand Instance, Karpenter uses the `lowest-price` (LP) allocation strategy to launch the cheapest instance type that has available capacity. If it’s a Spot Instance, Karpenter uses the `price-capacity-optimized` (PCO) allocation strategy. PCO looks at both price and capacity availability to launch from the [Spot Instance pools](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html#spot-features) that are the least likely to be interrupted and have the lowest possible price.
 
@@ -11,9 +11,9 @@ If it’s an On-Demand Instance, Karpenter uses the `lowest-price` (LP) allocati
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 * A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
-* A container image built for `arm64` architecture hosted in a container image registry such as ECR. 
+* A container image built for `arm64` architecture hosted in a container image registry such as ECR.
 
-**NOTE:** To build a multi-arch container image, you can use Docker‘s [buildx](https://www.docker.com/blog/multi-arch-build-and-images-the-simple-way/) or, equally possible, a [remote](https://community.arm.com/developer/tools-software/tools/b/tools-software-ides-blog/posts/unifying-arm-software-development-with-docker) build. In this context, you want to check the [multi-arch readiness](https://github.com/aws-samples/aws-multiarch-container-build-pipeline) of your automated build and test pipeline, for example, [[support in Travis](https://docs.travis-ci.com/user/multi-cpu-architectures/#example-multi-architecture-build-matrix). Next, you need to [push your container images to a registry such as ECR](https://aws.amazon.com/blogs/containers/introducing-multi-architecture-container-images-for-amazon-ecr/). 
+**NOTE:** To build a multi-arch container image, you can use Docker‘s [buildx](https://www.docker.com/blog/multi-arch-build-and-images-the-simple-way/) or, equally possible, a [remote](https://community.arm.com/developer/tools-software/tools/b/tools-software-ides-blog/posts/unifying-arm-software-development-with-docker) build. In this context, you want to check the [multi-arch readiness](https://github.com/aws-samples/aws-multiarch-container-build-pipeline) of your automated build and test pipeline, for example, [[support in Travis](https://docs.travis-ci.com/user/multi-cpu-architectures/#example-multi-architecture-build-matrix). Next, you need to [push your container images to a registry such as ECR](https://aws.amazon.com/blogs/containers/introducing-multi-architecture-container-images-for-amazon-ecr/).
 
 **NOTE:** The sample `workload` in this repository already supports `arm64`.
 
@@ -52,7 +52,7 @@ kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type
 You should see something similar to this:
 
 ```
-NAME                                        STATUS   ROLES    AGE    VERSION               CAPACITY-TYPE   
+NAME                                        STATUS   ROLES    AGE    VERSION               CAPACITY-TYPE
 ip-10-0-87-181.eu-west-2.compute.internal   Ready    <none>   114s   v1.32.3-eks-473151a   on-demand       c6g.xlarge      default    eu-west-2b
 ```
 

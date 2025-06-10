@@ -33,7 +33,7 @@ kubectl apply -f .
 ## Results
 
 The pods from the sample workload should be running:
- 
+
 
 ```
 > kubectl get pods

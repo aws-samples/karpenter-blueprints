@@ -42,7 +42,7 @@ kind: EC2NodeClass
 metadata:
   name: disruption-budget
 spec:
-  amiSelectorTerms: 
+  amiSelectorTerms:
   - alias: bottlerocket@latest
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
