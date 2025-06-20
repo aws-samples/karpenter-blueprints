@@ -57,10 +57,10 @@ kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=t
 ```
 You should see these logs:
 ```
-{"level":"INFO","time":"2025-05-30T10:15:01.605Z","logger":"controller","message":"disrupting node(s)","commit":"9458bb5","controller":"disruption","namespace":"","name":"","reconcileID":"f44d738f-e895-428b-b0ec-f1b5e5a96996","command-id":"dae73246-b739-42d8-91b8-c80ee651b6ac","reason":"underutilized","decision":"replace","disrupted-node-count":1,"replacement-node-count":1,"pod-count":2,"disrupted-nodes":[{"Node":{"name":"ip-10-0-116-149.eu-west-2.compute.internal"},"NodeClaim":{"name":"default-8t7np"},"capacity-type":"on-demand","instance-type":"c6g.4xlarge"}],"replacement-nodes":[{"capacity-type":"on-demand","instance-types":"c6g.2xlarge, c7g.2xlarge, m6g.2xlarge, c6a.2xlarge, c5a.2xlarge and 36 other(s)"}]}
+{"level":"INFO","time":"2025-05-30T10:15:01.605Z","logger":"controller","message":"disrupting node(s)","commit":"9458bb5","controller":"disruption","namespace":"","name":"","reconcileID":"f44d738f-e895-428b-b0ec-f1b5e5a96996","command-id":"dae73246-b739-42d8-91b8-c80ee651b6ac","reason":"underutilized","decision":"replace","disrupted-node-count":1,"replacement-node-count":1,"pod-count":2,"disrupted-nodes":[{"Node":{"name":"ip-10-0-116-149.eu-west-1.compute.internal"},"NodeClaim":{"name":"default-8t7np"},"capacity-type":"on-demand","instance-type":"c6g.4xlarge"}],"replacement-nodes":[{"capacity-type":"on-demand","instance-types":"c6g.2xlarge, c7g.2xlarge, m6g.2xlarge, c6a.2xlarge, c5a.2xlarge and 36 other(s)"}]}
 
 ...
-{"level":"INFO","time":"2025-05-30T10:10:49.907Z","logger":"controller","message":"launched nodeclaim","commit":"9458bb5","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-8t7np"},"namespace":"","name":"default-8t7np","reconcileID":"08263c3f-5565-4916-8932-db4596bd1f40","provider-id":"aws:///eu-west-2c/i-0f4e940ab58541307","instance-type":"c6g.4xlarge","zone":"eu-west-2c","capacity-type":"on-demand","allocatable":{"cpu":"15890m","ephemeral-storage":"17Gi","memory":"27322Mi","pods":"234","vpc.amazonaws.com/pod-eni":"54"}}
+{"level":"INFO","time":"2025-05-30T10:10:49.907Z","logger":"controller","message":"launched nodeclaim","commit":"9458bb5","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-8t7np"},"namespace":"","name":"default-8t7np","reconcileID":"08263c3f-5565-4916-8932-db4596bd1f40","provider-id":"aws:///eu-west-1c/i-0f4e940ab58541307","instance-type":"c6g.4xlarge","zone":"eu-west-1c","capacity-type":"on-demand","allocatable":{"cpu":"15890m","ephemeral-storage":"17Gi","memory":"27322Mi","pods":"234","vpc.amazonaws.com/pod-eni":"54"}}
 ```
 The NGINX server and the 5-min job pods are rescheduled into the new c6g.2xlarge node, so **the job is restarted**, which will cause a disruption the job might not be prepared to handle like doing a checkpoint.
 
@@ -143,7 +143,7 @@ You should see the following events indicating that Karpenter identified the nee
 
 {"level":"INFO","time":"2024-08-16T10:10:47.699Z","logger":"controller","message":"created nodeclaim","commit":"5bdf9c3","controller":"provisioner","namespace":"","name":"","reconcileID":"d8e8907d-5b93-46bb-893a-63520f3ec12f","NodePool":{"name":"default"},"NodeClaim":{"name":"default-g4kgp"},"requests":{"cpu":"7260m","memory":"290Mi","pods":"6"},"instance-types":"c4.2xlarge, c5.2xlarge, c5.4xlarge, c5a.2xlarge, c5a.4xlarge and 55 other(s)"}
 ...
-{"level":"INFO","time":"2024-08-16T10:10:49.959Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-g4kgp"},"namespace":"","name":"default-g4kgp","reconcileID":"ff5b7f6e-c52e-495e-94b1-3a30385c3439","provider-id":"aws:///eu-west-2a/i-022a05d79bceda579","instance-type":"c6g.2xlarge","zone":"eu-west-2a","capacity-type":"on-demand","allocatable":{"cpu":"7910m","ephemeral-storage":"17Gi","memory":"14103Mi","pods":"58","vpc.amazonaws.com/pod-eni":"38"}}
+{"level":"INFO","time":"2024-08-16T10:10:49.959Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-g4kgp"},"namespace":"","name":"default-g4kgp","reconcileID":"ff5b7f6e-c52e-495e-94b1-3a30385c3439","provider-id":"aws:///eu-west-1a/i-022a05d79bceda579","instance-type":"c6g.2xlarge","zone":"eu-west-1a","capacity-type":"on-demand","allocatable":{"cpu":"7910m","ephemeral-storage":"17Gi","memory":"14103Mi","pods":"58","vpc.amazonaws.com/pod-eni":"38"}}
 
 ```
 
@@ -174,7 +174,7 @@ Now, the total number of vCPU required by the running pods are **4 vCPU**:
 ```
 $> kubectl describe node <node_name>
 ...
-  Normal   NodeReady                6m7s                   kubelet                Node ip-10-0-97-15.eu-west-1.compute.internal status is now: NodeReady
+  Normal   NodeReady                6m7s                   kubelet                Node ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal status is now: NodeReady
   Normal   DisruptionBlocked        4m12s                  karpenter              Cannot disrupt Node: pod "default/2-min-job-2fssd" has "karpenter.sh/do-not-disrupt" annotation
   Normal   DisruptionBlocked        2m12s                  karpenter              Cannot disrupt Node: pod "default/5-min-job-7pqdt" has "karpenter.sh/do-not-disrupt" annotation
 ```
@@ -190,19 +190,19 @@ Now, **it is possible to replace the node** by a cheaper and smaller instance be
 ```
 {"level":"INFO","time":"2024-08-16T10:17:21.322Z","logger":"controller","message":"created nodeclaim","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"1135db0e-45ef-4529-9492-63789a9837c6","NodePool":{"name":"default"},"NodeClaim":{"name":"default-9m4bv"},"requests":{"cpu":"2260m","memory":"290Mi","pods":"6"},"instance-types":"c4.xlarge, c5.xlarge, c5a.xlarge, c5d.xlarge, c5n.xlarge and 32 other(s)"}
 ...
-{"level":"INFO","time":"2024-08-16T10:17:23.452Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-9m4bv"},"namespace":"","name":"default-9m4bv","reconcileID":"f0e0cc47-45a9-479c-a1c7-b5f0f0341026","provider-id":"aws:///eu-west-2a/i-0a4fa068af5550afa","instance-type":"c6g.xlarge","zone":"eu-west-2a","capacity-type":"on-demand","allocatable":{"cpu":"3920m","ephemeral-storage":"17Gi","memory":"6525Mi","pods":"58","vpc.amazonaws.com/pod-eni":"18"}}
+{"level":"INFO","time":"2024-08-16T10:17:23.452Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-9m4bv"},"namespace":"","name":"default-9m4bv","reconcileID":"f0e0cc47-45a9-479c-a1c7-b5f0f0341026","provider-id":"aws:///eu-west-1a/i-0a4fa068af5550afa","instance-type":"c6g.xlarge","zone":"eu-west-1a","capacity-type":"on-demand","allocatable":{"cpu":"3920m","ephemeral-storage":"17Gi","memory":"6525Mi","pods":"58","vpc.amazonaws.com/pod-eni":"18"}}
 ...
-{"level":"INFO","time":"2024-08-16T10:18:07.430Z","logger":"controller","message":"tainted node","commit":"5bdf9c3","controller":"node.termination","controllerGroup":"","controllerKind":"Node","Node":{"name":"ip-10-0-42-175.eu-west-2.compute.internal"},"namespace":"","name":"ip-10-0-42-175.eu-west-2.compute.internal","reconcileID":"a57044a6-f00f-41e5-a1ab-31e4b19dd838","taint.Key":"karpenter.sh/disrupted","taint.Value":"","taint.Effect":"NoSchedule"}
+{"level":"INFO","time":"2024-08-16T10:18:07.430Z","logger":"controller","message":"tainted node","commit":"5bdf9c3","controller":"node.termination","controllerGroup":"","controllerKind":"Node","Node":{"name":"ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal"},"namespace":"","name":"ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal","reconcileID":"a57044a6-f00f-41e5-a1ab-31e4b19dd838","taint.Key":"karpenter.sh/disrupted","taint.Value":"","taint.Effect":"NoSchedule"}
 
-{"level":"INFO","time":"2024-08-16T10:18:50.331Z","logger":"controller","message":"deleted node","commit":"5bdf9c3","controller":"node.termination","controllerGroup":"","controllerKind":"Node","Node":{"name":"ip-10-0-42-175.eu-west-2.compute.internal"},"namespace":"","name":"ip-10-0-42-175.eu-west-2.compute.internal","reconcileID":"2a51acf8-702f-4c75-988d-92052d690b01"}
+{"level":"INFO","time":"2024-08-16T10:18:50.331Z","logger":"controller","message":"deleted node","commit":"5bdf9c3","controller":"node.termination","controllerGroup":"","controllerKind":"Node","Node":{"name":"ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal"},"namespace":"","name":"ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal","reconcileID":"2a51acf8-702f-4c75-988d-92052d690b01"}
 ```
 Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** node (4 vCPU, 8 GiB), enough for the NGINX server:
 ```
 $> kubectl get nodes --label-columns node.kubernetes.io/instance-type
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
-ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
-ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   c6g.xlarge
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal   Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   c6g.xlarge
 ```
 Finally, you can check the NGINX server pod has been re-scheduled into the new pod:
 ```
