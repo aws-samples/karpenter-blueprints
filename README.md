@@ -155,10 +155,10 @@ The following table describes the list of resources along with the versions wher
 
 | Resources/Tool  | Version             |
 | --------------- | ------------------- |
-| [Kubernetes](https://kubernetes.io/releases/)      | 1.32                |
+| [Kubernetes](https://kubernetes.io/releases/)      | 1.33                |
 | [Karpenter](https://github.com/aws/karpenter/releases)       | v1.5.0            |
 | [Terraform](https://github.com/hashicorp/terraform/releases)       | v1.12.1            |
-| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.36.0             |
+| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.37.0             |
 | [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.21.0              |
 
 ## License
