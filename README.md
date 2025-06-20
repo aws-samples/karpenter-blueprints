@@ -113,6 +113,25 @@ alias kl="kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-co
 
 You can now proceed to deploy any blueprint you want to test.
 
+#### EC2NodeClass Tagging Guidance
+
+The default EC2NodeClass includes minimal tags focused on Karpenter functionality. Additional tags should be customized based on your organization's requirements.
+
+**Essential Tags (Included):**
+- `karpenter.sh/discovery`: Required for Karpenter to discover and manage nodes
+
+**Additional Tags (Optional):**
+Consider adding tags based on your requirements:
+
+```yaml
+tags:
+  karpenter.sh/discovery: ${cluster_name}
+  # Add your organization-specific tags below
+  Environment: production
+  Team: platform
+  CostCenter: engineering
+```
+
 #### Terraform Cleanup  (Optional)
 
 Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:

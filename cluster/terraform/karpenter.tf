@@ -82,12 +82,7 @@ resource "kubectl_manifest" "karpenter_default_ec2_node_class" {
       - tags:
           karpenter.sh/discovery: ${module.eks.cluster_name}
       tags:
-        IntentLabel: apps
-        KarpenterNodePoolName: default
-        NodeType: default
-        intent: apps
         karpenter.sh/discovery: ${module.eks.cluster_name}
-        project: karpenter-blueprints
   YAML
 
   depends_on = [
