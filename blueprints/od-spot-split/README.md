@@ -44,12 +44,12 @@ You should see an output similar to this:
 
 ```
 NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE    NODEPOOL    ZONE
-ip-10-0-104-249.eu-west-2.compute.internal   Ready    <none>   17s     v1.33.0-eks-802817d   spot            c7i-flex.large   node-spot   eu-west-2c
-ip-10-0-40-176.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
-ip-10-0-47-113.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
-ip-10-0-53-185.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
-ip-10-0-54-129.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
-ip-10-0-83-213.eu-west-2.compute.internal    Ready    <none>   20s     v1.33.0-eks-802817d   on-demand       c6a.large        node-od     eu-west-2b
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   17s     v1.33.0-eks-802817d   spot            c7i-flex.large   node-spot   eu-west-2c
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.33.0-eks-802817d   spot            m7g.xlarge       default     eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   20s     v1.33.0-eks-802817d   on-demand       c6a.large        node-od     eu-west-2b
 ```
 
 As you can see, pods were spread within the `spot` and `od` nodepools because of the `capacity-spread` TSC:

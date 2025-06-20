@@ -20,8 +20,6 @@ spec:
       labels:
         app: workload
     spec:
-      nodeSelector:
-        intent: apps
       containers:
       - name: workload
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4

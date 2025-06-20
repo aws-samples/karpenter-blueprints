@@ -22,7 +22,7 @@ After waiting for around two minutes, notice how Karpenter will provision the ma
 ```
 > kubectl get nodeclaims
 NAME            TYPE          ZONE         NODE                                       READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    57s
+default-kpj7k   c6i.2xlarge   eu-west-1b   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal   True    57s
 ```
 
 And the "dummy" pods are now running simply to reserve this capacity:
@@ -81,8 +81,8 @@ After waiting for around two minutes, you'll see all pods running and a new mach
 ```
 > kubectl get nodeclaims                                                                                                        18s
 NAME            TYPE          ZONE         NODE                                        READY   AGE
-default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-10-0-127-154.eu-west-2.compute.internal   True      29m
-default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-10-0-100-21.eu-west-2.compute.internal    True      75s
+default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   True      29m
+default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   True      75s
 ```
 
 The new machine is simply there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can simply reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.
@@ -91,8 +91,8 @@ The new machine is simply there because some "dummy" pods were pending and they 
 > kubectl scale deployment dummy-workload --replicas 0
 deployment.apps/dummy-workload scaled
 > kubectl get nodeclaims
-NAME            TYPE          ZONE         NODE                                       READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    16m
+NAME            TYPE          ZONE         NODE                                            READY   AGE
+default-kpj7k   c6i.2xlarge   eu-west-1b   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal   True    16m
 ```
 
 ## Cleanup
