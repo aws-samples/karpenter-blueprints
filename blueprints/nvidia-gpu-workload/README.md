@@ -24,7 +24,7 @@ helm repo update
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
   --namespace nvidia-device-plugin \
   --create-namespace \
-  --version 0.17.2 -f values.yaml
+  --version 0.17.2
 ```
 
 Now that you have the device set-up, let’s enable Karpenter to launch NVIDIA GPU instances.
@@ -89,7 +89,7 @@ spec:
   template:
     metadata:
       labels:
-        nvidia.com/gpu.present: true
+        nvidia.com/gpu.present: "true"
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
@@ -141,7 +141,7 @@ metadata:
   name: nvidia-smi
 spec:
   nodeSelector:
-    nvidia.com/gpu.present: true
+    nvidia.com/gpu.present: "true"
     karpenter.k8s.aws/instance-gpu-name: "t4"
   restartPolicy: OnFailure
   containers:
@@ -176,8 +176,8 @@ You can check the pods status by executing:
 
 ```sh
 $> kubectl get pods
-NAME         READY   STATUS    RESTARTS   AGE
-nvidia-smi   1/1     Running   0          3s
+NAME         READY   STATUS      RESTARTS   AGE
+nvidia-smi   0/1     Completed   0          97s
 ```
 
 You can view the pods nvidia-smi logs by executing:
