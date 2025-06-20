@@ -1,7 +1,9 @@
 # Karpenter Blueprint: Prioritize Savings Plans and/or Reserved Instances
 
 ## Purpose
-You might want to consume your Saving Plans and/or Reserved Instances before any other purchase model when using Karpenter. Currently, to cover this scenario you need to have a prioritized NodePool for the reserved instances. This NodePool needs to have a high weight configuration to tell Karpenter to user this NodePool first, along with a `limits` configuration to limit the number of EC2 instances to launch. When this NodePool meet the limits, Karpenter will continue launching instances from other NodePools, typically from the `default` one.
+You might want to consume your Saving Plans and/or Reserved Instances before any other purchase model when using Karpenter. With the ReservedCapacity feature flag, Karpenter introduces a new `karpenter.sh/capacity-type` value (`reserved`). This means any applications that explicitly select on-demand with a nodeSelector and want to utilize ODCR capacity may need to update their requirements to use nodeAffinity to opt-in to using both reserved and on-demand capacity.
+
+To cover this scenario you need to have a prioritized NodePool for the reserved instances. This NodePool needs to have a high weight configuration to tell Karpenter to use this NodePool first, along with a `limits` configuration to limit the number of EC2 instances to launch. When this NodePool meets the limits, Karpenter will continue launching instances from other NodePools, typically from the `default` one.
 
 ## Requirements
 
@@ -62,6 +64,19 @@ kubectl apply -f savings-plans.yaml
 kubectl apply -f workload.yaml
 ```
 
+**Note:** If your workload explicitly uses `nodeSelector` with `karpenter.sh/capacity-type: on-demand` and you want it to also utilize reserved capacity, update your workload to use `nodeAffinity` instead:
+
+```yaml
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["reserved", "on-demand"]
+```
+
 ## Results
 Wait around three minutes to get all the pods running. Run the following command to see the nodes launched by Karpenter including the `NodePool-name` column to see which `NodePool` was used:
 
@@ -73,12 +88,12 @@ You should get a similar output like this:
 
 ```
 NAME                                         STATUS   ROLES    AGE   VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL        ZONE
-ip-10-0-119-235.eu-west-2.compute.internal   Ready    <none>   23s   v1.33.0-eks-802817d   on-demand       c4.4xlarge      savings-plans   eu-west-2c
-ip-10-0-127-154.eu-west-2.compute.internal   Ready    <none>   35m   v1.33.0-eks-802817d   on-demand       c6g.xlarge      default         eu-west-2c
-ip-10-0-78-33.eu-west-2.compute.internal     Ready    <none>   24s   v1.33.0-eks-802817d   on-demand       c4.xlarge       savings-plans   eu-west-2b
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   23s   v1.33.0-eks-802817d   on-demand       c4.4xlarge      savings-plans   eu-west-2c
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   35m   v1.33.0-eks-802817d   on-demand       c6g.xlarge      default         eu-west-2c
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   24s   v1.33.0-eks-802817d   on-demand       c4.xlarge       savings-plans   eu-west-2b
 ```
 
-Notice how the `savings-plans` NodePool launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this NodePool. Additionally, you see Karpenter launched a `c5.large` Spot instance for the rest of the pods using the `default` NodePool. Remember, each node always launch the `kubelet` and `kube-proxy` pods, that's why by Karpenter launched an extra node because 20 vCPUs of reserved capacity wasn't enough if system pods need to be included.
+Notice how the `savings-plans` NodePool launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this NodePool. Additionally, you see Karpenter launched a `c6g.xlarge` instance for the rest of the pods using the `default` NodePool.
 
 ## Cleanup
 To remove all objects created, simply run the following commands:
