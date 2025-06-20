@@ -13,7 +13,6 @@ spec:
         app: workload-flexible
     spec:
       nodeSelector:
-        intent: apps
         karpenter.sh/capacity-type: on-demand
       containers:
       - name: workload-flexible

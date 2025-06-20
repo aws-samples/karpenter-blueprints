@@ -13,7 +13,6 @@ spec:
         app: workload-graviton
     spec:
       nodeSelector:
-        intent: apps
         kubernetes.io/arch: arm64
       containers:
       - name: workload-flexible

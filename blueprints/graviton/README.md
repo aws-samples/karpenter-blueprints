@@ -31,8 +31,8 @@ Wait for about one minute, and you'll see a new Graviton instance coming up:
 
 ```
 $> kubectl get nodeclaims
-NAME            TYPE         ZONE         NODE                                        READY   AGE
-default-sgmkw   c6g.xlarge   eu-west-1b   ip-10-0-66-182.eu-west-1.compute.internal   True    42s
+NAME            TYPE         ZONE         NODE                                            READY   AGE
+default-sgmkw   c6g.xlarge   eu-west-1b   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal   True    42s
 ```
 
 **NOTE:** All pods should be running now, and you didn't have to say anything special to Karpenter about which container image to use. Why? In Kubernetes, and by extension in Amazon EKS, the worker node-local supervisor called `kubelet` instructs the container runtime via a [standardized interface](https://kubernetes.io/blog/2016/12/container-runtime-interface-cri-in-kubernetes/) to pull container images from a registry such as Amazon ECR and launch them, accordingly. All of which is multi-arch enabled and automated.
@@ -52,11 +52,12 @@ kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type
 You should see something similar to this:
 
 ```
-NAME                                        STATUS   ROLES    AGE    VERSION               CAPACITY-TYPE
-ip-10-0-87-181.eu-west-2.compute.internal   Ready    <none>   114s   v1.33.0-eks-802817d   on-demand       c6g.xlarge      default    eu-west-2b
+NAME                                              STATUS   ROLES    AGE    VERSION               CAPACITY-TYPE
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal     Ready    <none>   3m23s   v1.33.0-eks-802817d   on-demand       c6g.xlarge      default    eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   77s     v1.33.0-eks-802817d     spot            c7gd.xlarge     default    eu-west-2c
 ```
 
-Notice that now Karpenter decided to launch a `c6g.2xlarge` Spot instance because the workload and the NodePool support both pricing models, and the one that has a better price at this moment was a Graviton Spot instance.
+Notice that now Karpenter decided to launch a `c7g.xlarge` Spot instance because the workload and the NodePool support both pricing models, and the one that has a better price at this moment was a Graviton Spot instance.
 
 ## Cleanup
 
