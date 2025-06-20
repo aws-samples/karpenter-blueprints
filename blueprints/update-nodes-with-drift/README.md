@@ -50,28 +50,28 @@ Wait for around two minutes. The pods from the sample workload should be running
 
 ```
 > kubectl get pods
-NAME                                  READY   STATUS    RESTARTS     AGE
-latest-current-ami-5bbfbc98f7-6hxkw   1/1     Running   0            3m
-latest-current-ami-5bbfbc98f7-n7mgs   1/1     Running   0            3m
-latest-current-ami-5bbfbc98f7-rxjjx   1/1     Running   0            3m
+NAME                                  READY   STATUS    RESTARTS   AGE
+latest-current-ami-55c9d866f4-2c8nf   1/1     Running   0          3m11s
+latest-current-ami-55c9d866f4-grhcm   1/1     Running   0          3m11s
+latest-current-ami-55c9d866f4-hv7jg   1/1     Running   0          3m11s
 ```
 
-You should see a new node registered with the latest AMI for EKS `v1.31`, like this:
+You should see a new node registered with the latest AMI for EKS `v1.32`, like this:
 
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
-NAME                                         STATUS   ROLES    AGE   VERSION
-ip-10-0-103-18.eu-west-2.compute.internal    Ready    <none>   5m6s   v1.31.6-eks-aad632c
+NAME                                            STATUS   ROLES    AGE   VERSION
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   Ready    <none>   45s   v1.32.3-eks-ab7e3f3
 ```
 
 Let's simulate a node upgrade by changing the EKS version in the `EC2NodeClass`, run this command:
 
 ```
-export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/x86_64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
-export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.32/arm64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export amd64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.33/x86_64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
+export arm64LatestAMI=$(aws ssm get-parameter --name /aws/service/bottlerocket/aws-k8s-1.33/arm64/latest/image_id --region $AWS_REGION --query "Parameter.Value" --output text)
 sed -i '' "s/$amd64PrevAMI/$amd64LatestAMI/g" latest-current-ami.yaml
 sed -i '' "s/$arm64PrevAMI/$arm64LatestAMI/g" latest-current-ami.yaml
-sed -i '' "s/1.31/1.32/g" latest-current-ami.yaml
+sed -i '' "s/1.32/1.33/g" latest-current-ami.yaml
 kubectl apply -f latest-current-ami.yaml
 ```
 
@@ -93,7 +93,7 @@ Wait around two minutes. You should now see a new node with the latest AMI versi
 ```
 > kubectl get nodes -l karpenter.sh/initialized=true
 NAME                                        STATUS   ROLES    AGE   VERSION
-ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.32.2-eks-677bac1
+ip-10-0-102-231.eu-west-2.compute.internal   Ready    <none>   51s     v1.33.0-eks-987fa8d
 ```
 
 You can repeat this process every time you need to run a controlled upgrade of the nodes. Also, if you'd like to control when to replace a node, you can learn more about [Disruption Budgets](//blueprints/disruption-budgets/).

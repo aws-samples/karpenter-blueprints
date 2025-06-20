@@ -3,6 +3,7 @@ kind: EC2NodeClass
 metadata:
   name: latest-current-ami
 spec:
+  amiFamily: Bottlerocket
   amiSelectorTerms:
     - id: <<AMD64PREVAMI>>
     - id: <<ARM64PREVAMI>>
