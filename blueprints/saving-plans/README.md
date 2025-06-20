@@ -73,9 +73,9 @@ You should get a similar output like this:
 
 ```
 NAME                                         STATUS   ROLES    AGE   VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL        ZONE
-ip-10-0-119-235.eu-west-2.compute.internal   Ready    <none>   23s   v1.32.3-eks-473151a   on-demand       c4.4xlarge      savings-plans   eu-west-2c
-ip-10-0-127-154.eu-west-2.compute.internal   Ready    <none>   35m   v1.32.3-eks-473151a   on-demand       c6g.xlarge      default         eu-west-2c
-ip-10-0-78-33.eu-west-2.compute.internal     Ready    <none>   24s   v1.32.3-eks-473151a   on-demand       c4.xlarge       savings-plans   eu-west-2b
+ip-10-0-119-235.eu-west-2.compute.internal   Ready    <none>   23s   v1.33.0-eks-802817d   on-demand       c4.4xlarge      savings-plans   eu-west-2c
+ip-10-0-127-154.eu-west-2.compute.internal   Ready    <none>   35m   v1.33.0-eks-802817d   on-demand       c6g.xlarge      default         eu-west-2c
+ip-10-0-78-33.eu-west-2.compute.internal     Ready    <none>   24s   v1.33.0-eks-802817d   on-demand       c4.xlarge       savings-plans   eu-west-2b
 ```
 
 Notice how the `savings-plans` NodePool launched all the capacity it could. Two instances: `c4.xlarge` (4 vCPUs) and `c4.4xlarge` (16 vCPUs), which together reach the limit of 20 vCPUs you configured for this NodePool. Additionally, you see Karpenter launched a `c5.large` Spot instance for the rest of the pods using the `default` NodePool. Remember, each node always launch the `kubelet` and `kube-proxy` pods, that's why by Karpenter launched an extra node because 20 vCPUs of reserved capacity wasn't enough if system pods need to be included.

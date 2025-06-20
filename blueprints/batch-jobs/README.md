@@ -26,7 +26,7 @@ job.batch/5-min-job created
 This will create three pods that require **11 vCPU** in total:
 -  NGINX server - 2 vCPU required
 -  2-minutes job - 7 vCPU required
-- 5-minutes job - 2 vCPU required
+-  5-minutes job - 2 vCPU required
 
 During this test, Karpenter decided to launch a **c6g.4xlarge** on-demand instance (16 vCPU, 32 GiB). You can check this by executing:
 
@@ -108,9 +108,9 @@ You should see something similar to this, where a new node just appeared:
 
 ```
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
-ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
-ip-10-0-47-60.eu-west-1.compute.internal     Ready    <none>   44s   v1.32.3-eks-473151a   c6g.4xlarge
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal   Ready    <none>   16d   v1.33.0-eks-802817d   m4.large
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal    Ready    <none>   16d   v1.33.0-eks-802817d   m4.large
+ip-XXX-XXX-XXX-XXX.eu-west-1.compute.internal     Ready    <none>   44s   v1.33.0-eks-802817d   c6g.4xlarge
 ```
 
 Check the three new pods are running by executing:
@@ -200,9 +200,9 @@ Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** n
 ```
 $> kubectl get nodes --label-columns node.kubernetes.io/instance-type
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
-ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
-ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   c6g.xlarge
+ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
+ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   m4.large
+ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.33.0-eks-802817d   c6g.xlarge
 ```
 Finally, you can check the NGINX server pod has been re-scheduled into the new pod:
 ```
