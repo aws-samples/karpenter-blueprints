@@ -30,9 +30,11 @@ sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" u
 kubectl apply -f .
 ```
 
+This will create the NodePool and deploy a sample workload. Karpenter will provision new nodes to run the workload.
+
 ## Results
 
-The pods from the sample workload should be running:
+After a few minutes, the pods from the sample workload should be running:
 
 
 ```
@@ -43,7 +45,7 @@ userdata-75d87b5b6c-gnglz        1/1     Running   0              45s
 userdata-75d87b5b6c-krmxm        1/1     Running   0              45s
 ```
 
-You can confirm the Kubernetes settings have been added to the user data of the instance by running this command:
+Once the workload is deployed and nodes are provisioned, you can confirm the Kubernetes settings have been added to the user data of the instance by running this command:
 
 ```
 aws ec2 describe-instance-attribute \
