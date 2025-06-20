@@ -54,7 +54,7 @@ To select an AMI by name, use the `name` field in the selector term. To select a
       owner: amazon
 ```
 
-***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.32 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
+***IMPORTANT NOTE:*** With this configuration, you're saying that you need to use the latest AMI available for an EKS cluster v1.33 which is either owned by you (customized) or Amazon (official image). We're  using a regular expression to have the flexibility to use AMIs for either `x86` or `Arm`, workloads that need GPUs, or a nodes with different OS like `Windows`. You're basically letting the workload (pod) to decide which type of node(s) it needs. If you don't have a custom AMI created by you in your account, Karpenter will use the official EKS AMI owned by Amazon.
 
 ## Results
 After waiting for about one minute, you should see a machine ready, and all pods in a `Running` state, like this:
@@ -67,7 +67,7 @@ custom-ami-bdf66b777-dbkls   1/1     Running   0          2m2s
 custom-ami-bdf66b777-rzlsz   1/1     Running   0          2m2s
 ❯ kubectl get nodeclaims
 NAME               TYPE          CAPACITY    ZONE         NODE                                         READY   AGE
-custom-ami-jhdbh   c5a.large     spot        eu-west-2c   ip-10-0-117-230.eu-west-2.compute.internal   True    114s
+custom-ami-jhdbh   c5a.large     spot        eu-west-2c   ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal   True    114s
 ```
 
 ## Cleanup
