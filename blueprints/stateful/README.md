@@ -42,25 +42,28 @@ kubectl apply -f workload.yaml
 ```
 
 ## Results
-After waiting for around two minutes, you should see the pods running, and the PVC claimed:
+After waiting for around two minutes, you should see the stateful set running, and the PVC claimed:
 
 ```
 > kubectl get pods
-NAME                        READY   STATUS    RESTARTS   AGE
-stateful-7b68c8d7bc-6mkvn   1/1     Running   0          2m
-stateful-7b68c8d7bc-6mrj5   1/1     Running   0          2m
-stateful-7b68c8d7bc-858nd   1/1     Running   0          2m
+NAME         READY   STATUS    RESTARTS   AGE
+stateful-0   1/1     Running   0          95s
+stateful-1   1/1     Running   0          84s
+stateful-2   1/1     Running   0          27s
+
 > kubectl get pvc
 NAME        STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-ebs-claim   Bound    pvc-d4c11e32-9da0-41d6-a477-d454a4aade94   4Gi        RWO            storage-gp3    116s
+persistent-storage-stateful-0   Bound     pvc-888c8df5-53b1-45db-9031-04ff1123374d   4Gi        RWO            storage-gp3    <unset>                 6m35s
+persistent-storage-stateful-1   Bound     pvc-5913f231-11ae-42fe-bc41-a0185fc16eb9   4Gi        RWO            storage-gp3    <unset>                 6m24s
+persistent-storage-stateful-2   Bound     pvc-cd9a4029-3951-43ea-a210-afc9a3ab08c9   4Gi        RWO            storage-gp3    <unset>                 5m27s
 ```
 
-Notice that Karpenter launched a node in the AZ (using the value from `$FIRSTAZ` env var), following the constraint defined in the `StorageClass` (no need to constraint it within the `Deployment` or `Pod`):
+Notice that Karpenter launched a node in the AZ (using the value from `$FIRSTAZ` env var), following the constraint defined in the `StorageClass` (no need to constraint it within the `StatefulSet` or `Pod`):
 
 ```
 > kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 NAME                                       STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
-ip-10-0-52-243.eu-west-2.compute.internal    Ready    <none>   16s   v1.33.0-eks-802817d   spot            m7g.xlarge      default    eu-west-2a
+ip-xxx-xxx-xxx-xxx.eu-west-2.compute.internal    Ready    <none>   16s   v1.33.0-eks-802817d   spot            m7g.xlarge      default    eu-west-2a
 ```
 
 Let's read the file that the pods are writing to, like this:
@@ -105,13 +108,13 @@ Writing content every three minutes! Printing a random number: 325
 Lastly, you can simulate a scale-down event for the workload and scale the replicas to 0, like this:
 
 ```
-kubectl scale deployment stateful --replicas 0
+kubectl scale statefulset stateful --replicas=0
 ```
 
 Wait around two minutes, and consolidation will make sure to remove the node. You can then scale-out the workload again, like this:
 
 ```
-kubectl scale deployment stateful --replicas 3
+kubectl scale statefulset stateful --replicas=3
 ```
 
 And you should see that Karpenter launches a replacement node in the AZ you choose, and the pods are soon going to be in a `Running` state.
@@ -119,13 +122,15 @@ And you should see that Karpenter launches a replacement node in the AZ you choo
 **NOTE:** You might have a experience/simulate a node loss which can result in data corruption or loss. If this happens, when the new node launched by Karpenter is ready, pods might have a warning event like `Multi-Attach error for volume "pvc-19af27b8-fc0a-428d-bda5-552cb52b9806" Volume is already exclusively attached to one node and can't be attached to another`. You can wait around five minutes and the volume will try to get unattached, and attached again, making your pods successfully run again. Look at this series of events for reference:
 
 ```
+> kubectl get events -w
+
 Events:
   Type     Reason                  Age                  From                     Message
   ----     ------                  ----                 ----                     -------
   Warning  FailedScheduling        14m                  default-scheduler        0/3 nodes are available: 1 node(s) were unschedulable, 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling..
   Normal   Nominated               14m                  karpenter                Pod should schedule on: machine/default-75hvl
   Warning  FailedScheduling        14m (x2 over 14m)    default-scheduler        0/3 nodes are available: 1 node(s) had volume node affinity conflict, 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/3 nodes are available: 3 Preemption is not helpful for scheduling..
-  Normal   Scheduled               14m                  default-scheduler        Successfully assigned default/stateful-7b68c8d7bc-6mkvn to ip-10-0-63-154.eu-west-1.compute.internal
+  Normal   Scheduled               14m                  default-scheduler        Successfully assigned default/stateful-7b68c8d7bc-6mkvn to ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal
   Warning  FailedAttachVolume      14m                  attachdetach-controller  Multi-Attach error for volume "pvc-19af27b8-fc0a-428d-bda5-552cb52b9806" Volume is already exclusively attached to one node and can't be attached to another
   Warning  FailedMount             9m52s (x2 over 12m)  kubelet                  Unable to attach or mount volumes: unmounted volumes=[persistent-storage], unattached volumes=[persistent-storage], failed to process volumes=[]: timed out waiting for the condition
   Normal   SuccessfulAttachVolume  8m53s                attachdetach-controller  AttachVolume.Attach succeeded for volume "pvc-19af27b8-fc0a-428d-bda5-552cb52b9806"

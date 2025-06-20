@@ -9,16 +9,4 @@ volumeBindingMode: WaitForFirstConsumer
 allowedTopologies:
 - matchLabelExpressions:
   - key: topology.ebs.csi.aws.com/zone
-    values: ["<<AVAILABILITY_ZONE>>"]
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: ebs-claim
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: storage-gp3
-  resources:
-    requests:
-      storage: 4Gi
+    values: ["<<AVAILABILITY_ZONE>>>"]

@@ -1,8 +1,9 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: stateful
 spec:
+  serviceName: stateful
   replicas: 3
   selector:
     matchLabels:
@@ -13,8 +14,6 @@ spec:
         app: stateful
     spec:
       terminationGracePeriodSeconds: 0
-      nodeSelector:
-        intent: apps
       containers:
       - name: stateful
         image: public.ecr.aws/docker/library/centos:centos7.9.2009
@@ -26,7 +25,12 @@ spec:
         resources:
           requests:
             cpu: 1
-      volumes:
-      - name: persistent-storage
-        persistentVolumeClaim:
-          claimName: ebs-claim
+  volumeClaimTemplates:
+  - metadata:
+      name: persistent-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: storage-gp3
+      resources:
+        requests:
+          storage: 4Gi
