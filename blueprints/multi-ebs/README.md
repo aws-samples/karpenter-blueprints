@@ -55,7 +55,7 @@ multi-ebs-f4fb69fdd-t9xnl   1/1     Running   0          2m34s
 multi-ebs-f4fb69fdd-x42ss   1/1     Running   0          2m34s
 ❯ kubectl get nodeclaims
 NAME              TYPE        ZONE         NODE                                       READY   AGE
-multi-ebs-chvzv   m5.xlarge   eu-west-1a   ip-10-0-43-92.eu-west-1.compute.internal   True    3m55s
+multi-ebs-chvzv   m5.xlarge   eu-west-1a   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal   True    3m55s
 ```
 
 To validate that two EBS volumes have been attached to the EC2 instance, you need to run this command:
