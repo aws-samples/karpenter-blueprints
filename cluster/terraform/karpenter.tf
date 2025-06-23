@@ -72,7 +72,7 @@ resource "kubectl_manifest" "karpenter_default_ec2_node_class" {
     metadata:
       name: default
     spec:
-      role: "${module.karpenter.iam_role_name}"
+      role: "${module.karpenter.node_iam_role_name}"
       amiSelectorTerms:
       - alias: al2023@latest
       securityGroupSelectorTerms:
