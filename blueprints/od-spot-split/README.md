@@ -12,15 +12,16 @@ To do this, you can create a NodePool each for Spot and On-Demand with disjoint 
 * A `default` Karpenter NodePool as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
 
 ## Deploy
+
 To deploy the Karpenter `NodePool` and the sample `workload`, simply run this command:
 
-```
+```sh
 kubectl apply -f .
 ```
 
 You should see the following output:
 
-```
+```console
 nodepool.karpenter.sh/node-od created
 nodepool.karpenter.sh/node-spot created
 deployment.apps/workload-split created
@@ -30,19 +31,19 @@ deployment.apps/workload-split created
 
 You can review the Karpenter logs and watch how it's deciding to launch multiple nodes following the workload constraints:
 
-```
+```sh
 kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20
 ```
 
 Wait one minute and you should see the pods running within multiple nodes, run this command:
 
-```
+```sh
 kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should see an output similar to this:
 
-```
+```console
 NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE    NODEPOOL    ZONE
 ip-10-0-104-249.eu-west-2.compute.internal   Ready    <none>   17s     v1.32.3-eks-473151a   spot            c7i-flex.large   node-spot   eu-west-2c
 ip-10-0-40-176.eu-west-2.compute.internal    Ready    <none>   6m29s   v1.32.3-eks-473151a   spot            m7g.xlarge       default     eu-west-2a
@@ -54,7 +55,7 @@ ip-10-0-83-213.eu-west-2.compute.internal    Ready    <none>   20s     v1.32.3-e
 
 As you can see, pods were spread within the `spot` and `od` nodepools because of the `capacity-spread` TSC:
 
-```
+```yaml
       topologySpreadConstraints:
         - labelSelector:
             matchLabels:
@@ -66,7 +67,7 @@ As you can see, pods were spread within the `spot` and `od` nodepools because of
 
 And each `NodePool` has a weight configured, the `od` NodePool has the following requirement:
 
-```
+```yaml
     - key: capacity-spread
       operator: In
       values: ["1"]
@@ -74,7 +75,7 @@ And each `NodePool` has a weight configured, the `od` NodePool has the following
 
 And the `spot` has the following requirement:
 
-```
+```yaml
     - key: capacity-spread
       operator: In
       values: ["2","3","4","5"]
@@ -82,7 +83,7 @@ And the `spot` has the following requirement:
 
 ## Cleanup
 
-```
+```sh
 kubectl delete -f workload.yaml
 kubectl delete -f od-spot.yaml
 ```

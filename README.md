@@ -1,9 +1,11 @@
 # Karpenter Blueprints for Amazon EKS
 
 ## Motivation
+
 [Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many companies to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes an application-first approach to provision compute capacity for the Kubernetes data plane, there are common workload scenarios that you might be wondering how to configure them properly. This repository includes a list of common workload scenarios, some of them go in depth with the explanation of why configuring Karpenter and Kubernetes objects in such a way is important.
 
 ## Blueprint Structure
+
 Each blueprint follows the same structure to help you better understand what's the motivation and the expected results:
 
 | Concept        | Description                                                                                     |
@@ -14,6 +16,7 @@ Each blueprint follows the same structure to help you better understand what's t
 | Results        | The expected results when using the blueprint.                                                  |
 
 ## How to use these Blueprints?
+
 Before you get started, you need to have a Kubernetes cluster with Karpenter installed. If you're planning to work with an existing cluster, just make sure you've configured Karpenter following the [official guide](https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/). This project also has a template to create a cluster with everything you'll need to test each blueprint.
 
 ## Support & Feedback
@@ -36,6 +39,7 @@ Before you get started, you need to have a Kubernetes cluster with Karpenter ins
 ***NOTE:** If you're planning to use an existing EKS cluster, you don't need the **optional** prerequisites.
 
 ### Preparing to Deploy Blueprints
+
 Before you start deploying and testing blueprints, make sure you follow next steps. For example, all blueprints assume that you have an EKS cluster with Karpenter deployed, and others even required that you have a `default` Karpenter `NodePool` deployed.
 
 #### Create an EKS Cluster using Terraform (Optional)
@@ -46,7 +50,7 @@ You'll create an Amazon EKS cluster using the [EKS Blueprints for Terraform proj
 
 To create the cluster, clone this repository and open the `cluster/terraform` folder. Then, run the following commands:
 
-```
+```sh
 cd cluster/terraform
 helm registry logout public.ecr.aws
 export TF_VAR_region=$AWS_REGION
@@ -58,25 +62,25 @@ terraform apply --auto-approve
 
 Before you continue, you need to enable your AWS account to launch Spot instances if you haven't launch any yet. To do so, create the [service-linked role for Spot](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-requests.html#service-linked-roles-spot-instance-requests) by running the following command:
 
-```
+```sh
 aws iam create-service-linked-role --aws-service-name spot.amazonaws.com || true
 ```
 
 You might see the following error if the role has already been successfully created. You don't need to worry about this error, you simply had to run the above command to make sure you have the service-linked role to launch Spot instances:
 
-```
+```console
 An error occurred (InvalidInput) when calling the CreateServiceLinkedRole operation: Service role name AWSServiceRoleForEC2Spot has been taken in this account, please try a different suffix.
 ```
 
 Once complete (after waiting about 15 minutes), run the following command to update the `kube.config` file to interact with the cluster through `kubectl`:
 
-```
+```sh
 aws eks --region $AWS_REGION update-kubeconfig --name karpenter-blueprints
 ```
 
 You need to make sure you can interact with the cluster and that the Karpenter pods are running:
 
-```
+```sh
 $> kubectl get pods -n karpenter
 NAME                       READY STATUS  RESTARTS AGE
 karpenter-5f97c944df-bm85s 1/1   Running 0        15m
@@ -95,19 +99,19 @@ If you create a new EKS cluster following the previous steps, a Karpenter `EC2No
 
 You can see that the NodePool has been deployed by running this:
 
-```
+```sh
 kubectl get nodepool
 ```
 
 You can see that the `EC2NodeClass` has been deployed by running this:
 
-```
+```sh
 kubectl get ec2nodeclass
 ```
 
 Throughout all the blueprints, you might need to review Karpenter logs, so let's create an alias for that to read logs by simply running `kl`:
 
-```
+```sh
 alias kl="kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20"
 ```
 
@@ -117,7 +121,7 @@ You can now proceed to deploy any blueprint you want to test.
 
 Once you're done with testing the blueprints, if you used the Terraform template from this repository, you can proceed to remove all the resources that Terraform created. To do so, run the following commands:
 
-```
+```sh
 kubectl delete --all nodeclaim
 kubectl delete --all nodepool
 kubectl delete --all ec2nodeclass
@@ -158,7 +162,7 @@ The following table describes the list of resources along with the versions wher
 | [Kubernetes](https://kubernetes.io/releases/)      | 1.32                |
 | [Karpenter](https://github.com/aws/karpenter/releases)       | v1.5.0            |
 | [Terraform](https://github.com/hashicorp/terraform/releases)       | v1.12.1            |
-| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.36.0             |
+| [AWS EKS](https://github.com/terraform-aws-modules/terraform-aws-eks/releases)  | v20.37.0             |
 | [EKS Blueprints Addons](https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/releases)  | v1.21.0              |
 
 ## License

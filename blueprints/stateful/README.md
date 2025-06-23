@@ -1,6 +1,7 @@
 # Karpenter Blueprint: Working with Stateful Workloads using EBS
 
 ## Purpose
+
 For stateful workloads that use persistent volumes, Karpenter detects storage scheduling requirements when deciding which instance type to launch and in which AZ. If you have a `StorageClass` configured for multiple AZs, Karpenter randomly selects one AZ when the pod is created for the first time. If the same pod is then removed, a new pod is created to request the same Persistent Volume Claim (PVC) and Karpenter takes this into consideration when choosing the AZ of an existing claim.
 
 ## Requirements
@@ -10,23 +11,24 @@ For stateful workloads that use persistent volumes, Karpenter detects storage sc
 * The [Amazon EBS CSI driver](https://docs.aws.amazon.com/eks/latest/userguide/managing-ebs-csi.html) installed in the cluster. If you're using the Terraform template in this repository, it's already configured.
 
 ## Deploy
+
 Let's start by creating the `PersistentVolumeClaim` and `StorageClass` to use only one AZ. To do so,first choose one of the AZs in the region where you deployed the EKS cluster. Run this command to get one automatically:
 
-```
+```sh
 export FIRSTAZ=$(aws ec2 describe-availability-zones --query 'AvailabilityZones[0].ZoneName' --output text)
 echo $FIRSTAZ
 ```
 
 Then, run these commands to replace the placeholder with the AZ, and deploy the storage resources:
 
-```
+```sh
 sed -i '' "s/<<AVAILABILITY_ZONE>>/$FIRSTAZ/g" storage.yaml
 kubectl apply -f storage.yaml
 ```
 
 Wait around one minute, as long as you get an event of `WaitForFirstConsumer` in the PVC, you're good to continue:
 
-```
+```sh
 > kubectl describe pvc ebs-claim
 ...
 Events:
@@ -37,14 +39,15 @@ Events:
 
 Deploy a sample workload:
 
-```
+```sh
 kubectl apply -f workload.yaml
 ```
 
 ## Results
+
 After waiting for around two minutes, you should see the pods running, and the PVC claimed:
 
-```
+```sh
 > kubectl get pods
 NAME                        READY   STATUS    RESTARTS   AGE
 stateful-7b68c8d7bc-6mkvn   1/1     Running   0          2m
@@ -57,7 +60,7 @@ ebs-claim   Bound    pvc-d4c11e32-9da0-41d6-a477-d454a4aade94   4Gi        RWO  
 
 Notice that Karpenter launched a node in the AZ (using the value from `$FIRSTAZ` env var), following the constraint defined in the `StorageClass` (no need to constraint it within the `Deployment` or `Pod`):
 
-```
+```sh
 > kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 NAME                                       STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
 ip-10-0-52-243.eu-west-2.compute.internal    Ready    <none>   16s   v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
@@ -65,14 +68,14 @@ ip-10-0-52-243.eu-west-2.compute.internal    Ready    <none>   16s   v1.32.3-eks
 
 Let's read the file that the pods are writing to, like this:
 
-```
+```sh
 export POD=$(kubectl get pods -l app=stateful -o name | cut -d/ -f2 | tail -n1)
 kubectl exec $POD -- cat /data/out.txt
 ```
 
 You should see that the three pods are writing something every three minutes, like this:
 
-```
+```console
 Writing content every three minutes! Printing a random number: 795
 Writing content every three minutes! Printing a random number: 600
 Writing content every three minutes! Printing a random number: 987
@@ -80,20 +83,20 @@ Writing content every three minutes! Printing a random number: 987
 
 If you delete one pod, the new pod will continue using the same PVC and will be in a `Running` state:
 
-```
+```sh
 kubectl delete pod $POD
 ```
 
 You can read the content of the file using the new pod:
 
-```
+```sh
 export POD=$(kubectl get pods -l app=stateful -o name | cut -d/ -f2 | tail -n1)
 kubectl exec $POD -- cat /data/out.txt
 ```
 
 You should still see the previous content plus any additional content if three minutes have passed, like this:
 
-```
+```console
 Writing content every three minutes! Printing a random number: 795
 Writing content every three minutes! Printing a random number: 600
 Writing content every three minutes! Printing a random number: 987
@@ -104,13 +107,13 @@ Writing content every three minutes! Printing a random number: 325
 
 Lastly, you can simulate a scale-down event for the workload and scale the replicas to 0, like this:
 
-```
+```sh
 kubectl scale deployment stateful --replicas 0
 ```
 
 Wait around two minutes, and consolidation will make sure to remove the node. You can then scale-out the workload again, like this:
 
-```
+```sh
 kubectl scale deployment stateful --replicas 3
 ```
 
@@ -118,7 +121,7 @@ And you should see that Karpenter launches a replacement node in the AZ you choo
 
 **NOTE:** You might have a experience/simulate a node loss which can result in data corruption or loss. If this happens, when the new node launched by Karpenter is ready, pods might have a warning event like `Multi-Attach error for volume "pvc-19af27b8-fc0a-428d-bda5-552cb52b9806" Volume is already exclusively attached to one node and can't be attached to another`. You can wait around five minutes and the volume will try to get unattached, and attached again, making your pods successfully run again. Look at this series of events for reference:
 
-```
+```console
 Events:
   Type     Reason                  Age                  From                     Message
   ----     ------                  ----                 ----                     -------
@@ -137,14 +140,15 @@ Events:
 
 Finally, you can read the content of the file again:
 
-```
+```sh
 export POD=$(kubectl get pods -l app=stateful -o name | cut -d/ -f2 | tail -n1)
 kubectl exec $POD -- cat /data/out.txt
 ```
 
 ## Cleanup
+
 To remove all objects created, simply run the following commands:
 
-```
+```sh
 kubectl delete -f .
 ```

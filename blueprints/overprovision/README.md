@@ -1,6 +1,7 @@
 # Karpenter Blueprint: Overprovision capacity in advanced to increase responsiveness
 
 ## Purpose
+
 Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
 
 To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity (to make Karpenter launch nodes). Then, when you deploy the workload with the pods you actually need, "dummy" pods are evicted to make rapidly start the pods you need for your workload.
@@ -11,15 +12,16 @@ To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https:
 * A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
 
 ## Deploy
+
 Let's start by deploying the "dummy" workload:
 
-```
+```sh
 kubectl apply -f dummy-workload.yaml
 ```
 
 After waiting for around two minutes, notice how Karpenter will provision the machine(s) needed to run the "dummy" workload:
 
-```
+```sh
 > kubectl get nodeclaims
 NAME            TYPE          ZONE         NODE                                       READY   AGE
 default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    57s
@@ -27,7 +29,7 @@ default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.inter
 
 And the "dummy" pods are now running simply to reserve this capacity:
 
-```
+```sh
 > kubectl get pods                                                                                                             7s
 NAME                             READY   STATUS    RESTARTS   AGE
 dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          53s
@@ -43,15 +45,16 @@ dummy-workload-6bf87d68f-zmhk8   1/1     Running   0          53s
 ```
 
 ## Results
+
 Now, when you deploy the actual workload you need  to do some work (such as a data pipeline process), the "dummy" pods are going to be evicted. So, let's deploy the following workload to test it:
 
-```
+```sh
 kubectl apply -f workload.yaml
 ```
 
 Notice how your new pods are almost immediately running, and some of the "dummy" pods are "Pending":
 
-```
+```sh
 > kubectl get pods
 NAME                             READY   STATUS    RESTARTS   AGE
 dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          11m
@@ -78,7 +81,7 @@ workload-679c759476-sxjpt        1/1     Running   0          15s
 
 After waiting for around two minutes, you'll see all pods running and a new machine registered:
 
-```
+```sh
 > kubectl get nodeclaims                                                                                                        18s
 NAME            TYPE          ZONE         NODE                                        READY   AGE
 default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-10-0-127-154.eu-west-2.compute.internal   True      29m
@@ -87,7 +90,7 @@ default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-10-0-100-21.eu-west-2.c
 
 The new machine is simply there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can simply reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.
 
-```
+```sh
 > kubectl scale deployment dummy-workload --replicas 0
 deployment.apps/dummy-workload scaled
 > kubectl get nodeclaims
@@ -96,8 +99,9 @@ default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.inter
 ```
 
 ## Cleanup
+
 To remove all objects created, simply run the following commands:
 
-```
+```sh
 kubectl delete -f .
 ```

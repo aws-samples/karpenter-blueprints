@@ -24,7 +24,7 @@ helm repo update
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
   --namespace nvidia-device-plugin \
   --create-namespace \
-  --version 0.17.2 -f values.yaml
+  --version 0.17.2
 ```
 
 Now that you have the device set-up, let’s enable Karpenter to launch NVIDIA GPU instances.
@@ -141,7 +141,7 @@ metadata:
   name: nvidia-smi
 spec:
   nodeSelector:
-    nvidia.com/gpu.present: true
+    nvidia.com/gpu.present: "true"
     karpenter.k8s.aws/instance-gpu-name: "t4"
   restartPolicy: OnFailure
   containers:

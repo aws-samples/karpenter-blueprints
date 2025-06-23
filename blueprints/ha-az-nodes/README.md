@@ -1,6 +1,7 @@
 # Karpenter Blueprint: High-Availability - Spread Pods across AZs & Nodes
 
 ## Purpose
+
 Karpenter can launch only one node for all pending pods. However, putting all application pods in the same node is not recommended if you want to have high-availability. To avoid this, and make the workload more highly-available, you can spread the pods within multiple availability zones (AZs). Additionally, you can configure a constraint to spread pods within multiple nodes in the same AZ. To do so, you configure [Topology Spread Constraints (TSC)](https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/) within a `Deployment` or `Pod`.
 
 ## Requirements
@@ -12,7 +13,7 @@ Karpenter can launch only one node for all pending pods. However, putting all ap
 
 To deploy the sample `workload`, simply run this command:
 
-```
+```sh
 kubectl apply -f workload.yaml
 ```
 
@@ -20,19 +21,19 @@ kubectl apply -f workload.yaml
 
 You can review the Karpenter logs and watch how it's deciding to launch multiple nodes following the workload constraints:
 
-```
+```sh
 kubectl -n karpenter logs -l app.kubernetes.io/name=karpenter --all-containers=true -f --tail=20
 ```
 
 Wait one minute and you should see the pods running within two nodes in each AZ, run this command:
 
-```
+```sh
 kubectl get nodes -L karpenter.sh/capacity-type,beta.kubernetes.io/instance-type,karpenter.sh/nodepool,topology.kubernetes.io/zone -l karpenter.sh/initialized=true
 ```
 
 You should see an output similar to this:
 
-```
+```console
 NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
 ip-10-0-101-160.eu-west-2.compute.internal   Ready    <none>   19s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
 ip-10-0-109-204.eu-west-2.compute.internal   Ready    <none>   20s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
@@ -56,7 +57,7 @@ ip-10-0-87-181.eu-west-2.compute.internal    Ready    <none>   4m22s   v1.32.3-e
 
 As you can see, pods were spread within AZs (1a and 1b) because of the `topology.kubernetes.io/zone` TSC. But at the same time, pods were spread within multiple nodes in each AZ because of the `kubernetes.io/hostname` TSC.
 
-```
+```yaml
       topologySpreadConstraints:
         - labelSelector:
             matchLabels:
@@ -80,6 +81,6 @@ In case you want to enforce this spread within `Deployments`, you can use projec
 
 ## Cleanup
 
-```
+```sh
 kubectl delete -f workload.yaml
 ```
