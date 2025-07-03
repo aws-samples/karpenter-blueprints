@@ -15,7 +15,7 @@ You need to create a new `EC2NodeClass` with the `userData` field, along with a 
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 
-```
+```sh
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
@@ -24,7 +24,7 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 
 Now, make sure you're in this blueprint folder, then run the following command to create the new `EC2NodeClass` and `NodePool`:
 
-```
+```sh
 sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" userdata.yaml
 sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" userdata.yaml
 kubectl apply -f .
@@ -33,9 +33,8 @@ kubectl apply -f .
 ## Results
 
 The pods from the sample workload should be running:
- 
 
-```
+```sh
 > kubectl get pods
 NAME                             READY   STATUS    RESTARTS       AGE
 userdata-75d87b5b6c-6s978        1/1     Running   0              45s
@@ -45,7 +44,7 @@ userdata-75d87b5b6c-krmxm        1/1     Running   0              45s
 
 You can confirm the Kubernetes settings have been added to the user data of the instance by running this command:
 
-```
+```sh
 aws ec2 describe-instance-attribute \
   --instance-id $(aws ec2 describe-instances \
   --filters "Name=tag:karpenter.sh/nodepool,Values=userdata" \
@@ -55,7 +54,7 @@ aws ec2 describe-instance-attribute \
 
 You should get an output like this with the `[settings.kubernetes]` configured in the `EC2NodeClass`:
 
-```
+```text
 MIME-Version: 1.0
 Content-Type: multipart/mixed; boundary="//"
 
@@ -75,6 +74,6 @@ Look at how the `userdata` from the instance has the `userdata` you specified wi
 
 To remove all objects created, simply run the following commands:
 
-```
+```sh
 kubectl delete -f .
 ```

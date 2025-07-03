@@ -7,6 +7,7 @@ Karpenter's actions like consolidation, drift detection and `expireAfter`, allow
 By applying a combination of disruptions budgets and Pod Disruptions Budgets (PDBs) you get both application and platform voluntary disruption controls, this can help you move towards continually operations to protect workload availability. You can learn more about Karpenter NodePool disruption budgets and how the Kapenter disruption controller works in the [Karpenter documentation](https://karpenter.sh/docs/concepts/disruption/#disruption-controller).
 
 ## Examples
+
 The following provides a set of example disruption budgets:
 
 ### Limit Disruptions to a Percentage of Nodes
@@ -15,7 +16,7 @@ To prevent disruptions from affecting more than a certain percentage of nodes in
 
 The following Disruption Budgets says, at any-point in time only disrupt 20% of the Nodes managed by the NodePool. For instance, if there were 19 nodes owned by the NodePool, 4 disruptions would be allowed, rounding up from 19 * .2 = 3.8.
 
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -35,7 +36,7 @@ spec:
 
 This configuration ensures that Karpenter avoids disrupting workloads during peak traffic periods. Specifically, it prevents disruptions from UTC 9:00 for an 8-hour window and limits disruptions to 20% outside of this window.
 
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -53,14 +54,13 @@ spec:
       duration: 16h
 ```
 
- ### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
+### Allow 20% disruptions during a maintenance window from UTC 22:00 to 2:00, but only 10% disruptions outside of a maintenance window
 
 By setting multiple disruption budgets, you can gain precise control over node disruptions. Karpenter will use the most restrictive budget applicable at any given time.
 
 In the following example, disruptions are limited to 20% of nodes during a 4-hour period starting from UTC 22:00. During the remaining hours (UTC 2:00 - 22:00), disruptions are limited to 10% of nodes.
 
-
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -90,7 +90,7 @@ While the first and second budgets are always in effect, they work together to l
 
 > **Note:** If multiple budgets are active at the same time, Karpenter will consider the most restrictive budget. You might consider using multiple disruption budgets to establish a default policy while providing an alternative policy for specific times, such as allowing more disruptions during maintenance windows to roll out new Amazon Machine Images faster.
 
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -112,10 +112,10 @@ spec:
 Karpenter allows specifying if a budget applies to any of `Drifted`, `Underutilized`, or `Empty`. When a budget has no reasons, it’s assumed that it applies to all reasons. When calculating allowed disruptions for a given reason, Karpenter will take the minimum of the budgets that have listed the reason or have left reasons undefined.
 
 #### Only Drifted Nodes
+
 This example sets a budget that applies only to nodes classified as Drifted. During times when nodes are identified as Drifted, Karpenter will only disrupt up to 20% of those nodes.
 
-
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -130,9 +130,10 @@ spec:
 ```
 
 #### Only Underutilized Nodes
+
 This example sets a budget that applies only to nodes classified as Underutilized. During times when nodes are identified as Underutilized, Karpenter will only disrupt up to 30% of those nodes.
 
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -147,9 +148,10 @@ spec:
 ```
 
 #### Only Empty Nodes
+
 This example sets a budget that applies only to nodes classified as Empty. During times when nodes are identified as Empty, Karpenter will only disrupt up to 10% of those nodes.
 
-```
+```yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
@@ -173,7 +175,7 @@ Let's say you want to control how nodes are upgraded when switching to Bottleroc
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 
-```
+```sh
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
@@ -182,7 +184,7 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 
 To deploy the Karpenter NodePool and the sample workload, simply run this command:
 
-```
+```sh
 sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" disruption-budgets.yaml
 sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" disruption-budgets.yaml
 kubectl apply -f .
@@ -190,7 +192,7 @@ kubectl apply -f .
 
 You should see the following output:
 
-```
+```console
 nodepool.karpenter.sh/disruption-budget created
 ec2nodeclass.karpenter.k8s.aws/disruption-budget created
 deployment.apps/disruption-budget created
@@ -198,7 +200,7 @@ deployment.apps/disruption-budget created
 
 You should now see new nodes provisioned in your Amazon EKS cluster:
 
-```
+```sh
 > kubectl get nodes
 NAME                                         STATUS   ROLES    AGE     VERSION
 ip-10-0-103-232.eu-west-2.compute.internal   Ready    <none>   2m8s    v1.32.2-eks-677bac1
@@ -217,7 +219,7 @@ ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   2m26s   v1.32.2-e
 
 Now, use the `kubectl patch` command to change `spec.amiSelectorTerms` alias from `al20232023.0.20230222` to `bottlerocket@v1.39.1`.
 
-```
+```sh
 kubectl patch ec2nodeclass disruption-budget --type='json' -p='[
   {"op": "replace", "path": "/spec/amiSelectorTerms/0/alias", "value": "bottlerocket@v1.39.1"}
 ]'
@@ -229,7 +231,7 @@ This is an example of an overly restrictive budget for demo purposes as it will 
 
 Karpenter will try to replace nodes via the Drift mechanism on an AMI change. However, if you watch the nodes, you’ll notice that they’re not being replaced with new instances provisioned with the Bottlerocket Amazon EKS optimized AMI.
 
-```
+```sh
 > kubectl get nodes -o wide -w
 
 NAME                                         STATUS   ROLES    AGE     VERSION               INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION                    CONTAINER-RUNTIME
@@ -249,7 +251,7 @@ ip-10-0-96-121.eu-west-2.compute.internal    Ready    <none>   3m40s   v1.32.2-e
 
 You will also see the following message in Kubernetes events stating disruptions are blocked:
 
-```
+```sh
 > kubectl get events -w
 
 0s          Normal    DisruptionBlocked               nodepool/restrictive-budget                       No allowed disruptions for disruption reason Drifted due to blocking budget
@@ -260,17 +262,18 @@ You will also see the following message in Kubernetes events stating disruptions
 
 This is because the NodePool defines the following budget which states, starting at UTC 00:00 everyday, for a time period of 24 hours no nodes can be voluntary drifted. This is a great fit when you want consolidation but might not want to apply it all the time.
 
-```
+```yaml
 budgets:
-    - nodes: "0"
-      schedule: "0 0 * * *"
-      duration: 24h
+  - nodes: "0"
+    schedule: "0 0 * * *"
+    duration: 24h
 ```
 
 If you edit the NodePool and replace the budget with the following, Karpenter will be able to Drift 20% of the Nodes.
 
 Edit with the `kubectl patch` command.
-```
+
+```sh
 kubectl patch nodepool disruption-budget --type='json' -p='[
   {"op": "replace", "path": "/spec/disruption/budgets/0/nodes", "value": "20"}
 ]'
@@ -278,7 +281,7 @@ kubectl patch nodepool disruption-budget --type='json' -p='[
 
 After modifying that budget for the NodePool you should observe the nodes drifting and new nodes being provisioned with the latest Amazon EKS optimized Bottlerocket AMI.
 
-```
+```sh
 > kubectl get nodes -o custom-columns=NAME:.metadata.name,OS-IMAGE:.status.nodeInfo.osImage
 
 NAME                                         OS-IMAGE
@@ -311,7 +314,7 @@ ip-10-0-97-201.eu-west-2.compute.internal    Bottlerocket OS 1.39.1 (aws-k8s-1.3
 
 You will also see the following message in Kubernetes events stating a node has been drifted:
 
-```
+```console
 0s       Normal    DisruptionTerminating        node/ip-10-0-96-121.eu-west-2.compute.internal    Disrupting Node: Drifted/Delete
 0s       Warning   InstanceTerminating          node/ip-10-0-96-121.eu-west-2.compute.internal    Instance is terminating
 0s       Normal    RemovingNode                 node/ip-10-0-96-121.eu-west-2.compute.internal    Node ip-10-0-96-121.eu-west-2.compute.internal event: Removing Node ip-10-0-96-121.eu-west-2.compute.internal from Controller
@@ -321,6 +324,6 @@ You will also see the following message in Kubernetes events stating a node has 
 
 To remove all objects created, simply run the following commands:
 
-```
+```sh
 kubectl delete -f .
 ```

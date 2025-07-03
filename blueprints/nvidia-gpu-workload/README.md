@@ -2,13 +2,14 @@
 
 ## Purpose
 
-Karpenter streamlines node lifecycle management, and it can help provide the right compute just-in-time based on your workloads scheduling constraints. This is particularly helpful for your machine learning workflows with variable and heterogeneous compute demands (e.g., NVIDIA GPU-based inference followed by CPU-based plotting). When your Kubernetes workload requires accelerated instance, Karpenter automatically selects the appropriate [Amazon EKS optimized accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html). 
+Karpenter streamlines node lifecycle management, and it can help provide the right compute just-in-time based on your workloads scheduling constraints. This is particularly helpful for your machine learning workflows with variable and heterogeneous compute demands (e.g., NVIDIA GPU-based inference followed by CPU-based plotting). When your Kubernetes workload requires accelerated instance, Karpenter automatically selects the appropriate [Amazon EKS optimized accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/eks-optimized-ami.html).
 
 Therefore, the purpose of this Karpenter blueprint is to demonstrate how to launch a GPU-based workload on Amazon EKS with Karpenter and AL2023 EKS optimized accelerated AMI. This example assumes a simple one-to-one mapping between a Kubernetes Pod and a GPU. This blueprint does not go into the details about GPU sharing techniques such as MiG, time slicing or other software based GPU fractional scheduling.
 
 Before you start seeing Karpenter in action, when using AL2023 you need to deploy a Kubernetes device plugin to advertise GPU information from the host.
 
 ## Requirements
+
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
 
 ## Deploy NVIDIA device plugin for Kubernetes
@@ -17,27 +18,13 @@ The [NVIDIA device plugin for Kubernetes](https://github.com/NVIDIA/k8s-device-p
 
 To install the device plugin run the following:
 
-```
+```sh
 helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
 helm repo update
-
-cat << EOF > values.yaml
-gfd:
-  enabled: true
-nfd:
-  enabled: true
-  worker:
-    tolerations:
-      - key: nvidia.com/gpu
-        operator: Exists
-        effect: NoSchedule
-      - operator: "Exists"
-EOF
-
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
   --namespace nvidia-device-plugin \
   --create-namespace \
-  --version 0.17.1 -f values.yaml
+  --version 0.17.2
 ```
 
 Now that you have the device set-up, let’s enable Karpenter to launch NVIDIA GPU instances.
@@ -48,7 +35,7 @@ The following NodeClass, specify the Security Group and Subnet selector, along w
 
 Before applying the `gpu-nodeclass.yaml` replace `KARPENTER_NODE_IAM_ROLE_NAME` and `CLUSTER_NAME` in the file with your specific cluster details. If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 
-```
+```sh
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
@@ -56,7 +43,8 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 > ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role(not the ARN).
 
 The EC2NodeClass we’ll deploy looks like this, execute the following command to create the EC2NodeClass file:
-```
+
+```sh
 cat << EOF > gpu-nodeclass.yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -80,16 +68,14 @@ spec:
   subnetSelectorTerms:
   - tags:
       karpenter.sh/discovery: $CLUSTER_NAME
-  tags:
-    intent: gpu
-    karpenter.sh/discovery: $CLUSTER_NAME
 EOF
 ```
+
 A separate [EC2NodeClass](https://karpenter.sh/docs/concepts/nodeclasses/) was created as you may want to tune node properties such as ephemeral storage size, block device mappings, [capacity reservations selector](https://karpenter.sh/docs/concepts/nodeclasses/).
 
 The next step is to create a dedicated NodePool to provision instances from the `g` Amazon EC2 instance category and nvidia gpu manufacturer, and only allow workloads that tolerate the `nvidia.com/gpu` taint to be scheduled. Such NodePool will look like this. Execute the following command to create the NodePool file:
 
-```
+```sh
 cat << EOF > gpu-nodepool.yaml
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -103,7 +89,7 @@ spec:
   template:
     metadata:
       labels:
-        intent: gpu
+        nvidia.com/gpu.present: true
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
@@ -132,19 +118,22 @@ EOF
 We’ve added the `nivida.com/gpu` taint in the NodePool to prevent workloads that do not tolerate this taint being scheduled on nodes managed by this NodePool (they might not take advantage of it). Also, notice that the `.spec.disruption` policy has been set to WhenEmpty and only consolidate after 5 minutes, this is to support spiky workloads like jobs with a high-churn - you’ll likely want to tweak this based on your workloads requirements.
 
 Once the placeholders are complete, to apply the EC2NodeClass and NodePool execute the following:
-```
+
+```sh
 $> kubectl apply -f gpu-nodeclass.yaml
 ec2nodeclass.karpenter.k8s.aws/gpu created
 
 $> kubectl apply -f gpu-nodepool.yaml
 nodepool.karpenter.sh/gpu created
 ```
+
 Now let’s deploy a test workload to see how Karpenter launches the GPU node.
 
 ### Deploy a test workload to test GPU drivers are loaded
 
-The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`. Execute the following command to create the `workload.yaml`: 
-```
+The following Pod manifest launches a pod and calls the NVIDIA systems management CLI to check if a GPU is detected and the driver versions printed to standard output, which you can see when you check the logs, like this: `kubectl logs pod/nvidia-smi`. Execute the following command to create the `workload.yaml`:
+
+```sh
 cat << EOF > workload.yaml
 apiVersion: v1
 kind: Pod
@@ -152,7 +141,7 @@ metadata:
   name: nvidia-smi
 spec:
   nodeSelector:
-    intent: gpu
+    nvidia.com/gpu.present: "true"
     karpenter.k8s.aws/instance-gpu-name: "t4"
   restartPolicy: OnFailure
   containers:
@@ -173,21 +162,27 @@ spec:
     operator: Exists
 EOF
 ```
-As GPU-based workloads are likely sensitive to different GPUs (e.g. GPU memory) we've specified a `karpenter.k8s.aws/instance-gpu-name` node selector to request an instance with a specific GPU for this workload. The following nodeSelector `karpenter.k8s.aws/instance-gpu-name: "t4"` influences Karpenter node provisioning and launch the workload on a node with a [NVIDIA T4 GPU](https://aws.amazon.com/ec2/instance-types/g4/). Review the [Karpenter documentation](https://karpenter.sh/docs/reference/instance-types/) for different Amazon EC2 instances and there labels. 
+
+As GPU-based workloads are likely sensitive to different GPUs (e.g. GPU memory) we've specified a `karpenter.k8s.aws/instance-gpu-name` node selector to request an instance with a specific GPU for this workload. The following nodeSelector `karpenter.k8s.aws/instance-gpu-name: "t4"` influences Karpenter node provisioning and launch the workload on a node with a [NVIDIA T4 GPU](https://aws.amazon.com/ec2/instance-types/g4/). Review the [Karpenter documentation](https://karpenter.sh/docs/reference/instance-types/) for different Amazon EC2 instances and there labels.
 
 To deploy the workload execute the following:
-```
+
+```sh
 $> kubectl apply -f workload.yaml
 pod/nvidia-smi created
 ```
+
 You can check the pods status by executing:
-```
+
+```sh
 $> kubectl get pods
 NAME         READY   STATUS    RESTARTS   AGE
 nvidia-smi   1/1     Running   0          3s
 ```
+
 You can view the pods nvidia-smi logs by executing:
-```
+
+```sh
 $> kubectl logs pod/nvidia-smi
 
 +-----------------------------------------------------------------------------------------+
@@ -210,17 +205,21 @@ $> kubectl logs pod/nvidia-smi
 |  No running processes found                                                             |
 +-----------------------------------------------------------------------------------------+
 ```
+
 To review which node was launched by Karpenter, execute the following:
-```
+
+```sh
 $> kubectl get nodeclaims
 
 NAME        TYPE           CAPACITY    ZONE         NODE                                          READY   AGE
 gpu-f69tm   g4dn.2xlarge   on-demand   eu-west-1c   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal True    5m44s
 ```
+
 ## Clean-up
 
 To clean-up execute the following commands:
-```
+
+```sh
 kubectl delete -f workload.yaml
 kubectl delete -f gpu-nodepool.yaml
 kubectl delete -f gpu-nodeclass.yaml

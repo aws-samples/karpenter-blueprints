@@ -1,7 +1,8 @@
 # Karpenter Blueprint: Using multiple EBS volumes
 
 ## Purpose
-This blueprint shows how to attach more than one EBS volume to a data plane node. Maybe you need to use a volume for logs, cache, or any container resources such as images. You do this configuration in the `EC2NodeClass`, then you configure a `NodePool` to use such template when launching a machine. 
+
+This blueprint shows how to attach more than one EBS volume to a data plane node. Maybe you need to use a volume for logs, cache, or any container resources such as images. You do this configuration in the `EC2NodeClass`, then you configure a `NodePool` to use such template when launching a machine.
 
 ## Requirements
 
@@ -13,7 +14,7 @@ This blueprint shows how to attach more than one EBS volume to a data plane node
 
 If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 
-```
+```sh
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
@@ -22,15 +23,15 @@ export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform"
 
 Now, make sure you're in this blueprint folder, then run the following command:
 
-```
+```sh
 sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" multi-ebs.yaml
 sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" multi-ebs.yaml
 kubectl apply -f .
 ```
 
-Here's the important configuration block within the spec of an `EC2NodeClass`: 
+Here's the important configuration block within the spec of an `EC2NodeClass`:
 
-```
+```yaml
   blockDeviceMappings:
     - deviceName: /dev/xvda
       ebs:
@@ -45,9 +46,10 @@ Here's the important configuration block within the spec of an `EC2NodeClass`:
 ```
 
 ## Results
+
 After waiting for about one minute, you should see a machine ready, and all pods in a `Running` state, like this:
 
-```
+```sh
 ❯ kubectl get pods                                                                                                             1m 52s
 NAME                        READY   STATUS    RESTARTS   AGE
 multi-ebs-f4fb69fdd-kstj9   1/1     Running   0          2m34s
@@ -60,13 +62,13 @@ multi-ebs-chvzv   m5.xlarge   eu-west-1a   ip-10-0-43-92.eu-west-1.compute.inter
 
 To validate that two EBS volumes have been attached to the EC2 instance, you need to run this command:
 
-```
+```sh
 aws ec2 describe-instances --filters "Name=tag:karpenter.sh/nodepool,Values=multi-ebs" --query 'Reservations[*].Instances[*].{Instance:InstanceId,Instance:BlockDeviceMappings}' --output json
 ```
 
 The output should be similar to this:
 
-```
+```json
 [
     [
         {
@@ -96,8 +98,9 @@ The output should be similar to this:
 ```
 
 ## Cleanup
+
 To remove all objects created, simply run the following commands:
 
-```
+```sh
 kubectl delete -f .
 ```
