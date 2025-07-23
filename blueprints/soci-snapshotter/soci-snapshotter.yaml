@@ -5,7 +5,7 @@ metadata:
 spec:
   amiSelectorTerms:
     - alias: al2023@latest
-  role: "karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -16,10 +16,10 @@ spec:
   instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   userData: |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="//"
@@ -100,7 +100,7 @@ metadata:
 spec:
   amiSelectorTerms:
     - alias: al2023@latest
-  role: "karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -111,10 +111,10 @@ spec:
   instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
