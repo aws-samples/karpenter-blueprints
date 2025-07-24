@@ -3,15 +3,21 @@
 
 ## Purpose
 
-SOCI parallel pull/unpack mode accelerates container image loading through concurrent downloads and decompression, reducing image pull time by up to 50% for large container images.
+Container image pull performance has become a bottleneck as container images grow larger, compared to when typical images were just a few hundred megabytes.
+The default pulling method uses sequential layer downloading and unpacking. SOCI parallel pull/unpack mode accelerates container image loading through concurrent downloads and unpacking operations, reducing image pull time by up to 50%. This makes it ideal for AI/ML and Batch workloads, where it is common for those applications to have a large container images.
 
-This optimization is essential when you need complete image availability before container startup but want to eliminate the performance bottleneck of sequential layer downloading. While lazy loading optimizes for immediate startup, parallel pull/unpack mode maximizes throughput during traditional image pulls - making it ideal for batch workloads, AI/ML applications with large images, and high-performance environments where fast, complete image loading is critical.
+This blueprint demonstrate how to setup SOCI snapshotter parallel pull/unpack mode on AL2023 through a custom `EC2NodeClass` and customizing the `userData` field.
 
-This blueprint demonstrate how to setup SOCI snapshotter parallel pull/unpack mode on AL2023 by using custom `userData`.
+> ***NOTE***: In this example we demonstrate SOCI snapshotter on Amazon Linux 2023 (AL2023), SOCI snapshotter is not currently supported on Bottlerocket. While SOCI snapshotter can be supported on other distros, we use this example on AL2023 that uses `NodeConfig` to simplify the customization of `containerd` and `kubelet` configuration. If you would like to setup on other distros, you can use the installation script provided in the example but you will have to customize `containerd` and `kubelet` configuration yourself.
+
+If you would like to learn more about SOCI snapshotter's new parallel pull/unpack mode you can visist the following resources:
+1. [SOCI snapshotter parallel mode docs](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md)
+2. [Accelerate container startup time on Amazon EKS with SOCI parallel mode](https://builder.aws.com/content/30EkTz8DbMjuqW0eHTQduc5uXi6/accelerate-container-startup-time-on-amazon-eks-with-soci-parallel-mode)
 
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
+* A Container Registry that supports HTTP range GET requests such as [Amazon Elastic Container Registry (ECR)](https://aws.amazon.com/ecr/)
 
 ## Deploy
 
@@ -40,7 +46,7 @@ Those commands created the following:
 3. Kubernetes `Deployment` named `vllm` that uses the `non-soci-snapshotter` `NodePool`
 4. Kubernetes `Deployment` named `vllm-soci` that uses the `soci-snapshotter` `NodePool`
 
-> ***NOTE***: Both deployments will request instances that have network and ebs bandwidth greater than 8000 Mbps by using `nodeAffinity`
+> ***NOTE***: For our example both deployments will request instances that have network and ebs bandwidth greater than 8000 Mbps by using `nodeAffinity` in order to eliminate network and storage I/O bottlenecks to demonstrate SOCI parallel mode capabilities.
 ```
       affinity:
         nodeAffinity:
@@ -56,19 +62,25 @@ Those commands created the following:
                 values:
                 - "8000"
 ```
+## Configuration
 
-The SOCI snapshotter `EC2NodeClass` configuration for setting up SOCI on AL2023 looks like this:
+The SOCI snapshotter `EC2NodeClass` configuration have several configuration parameters that affect SOCI parallel mode performance.
+
+The `blockDeviceMapping` field is used to increase root volume EBS performance and storage size.
+As SOCI parallel mode downloads layers, it buffers them on disk instead of in-memory, having a high performant storage subsystem is crucial to support it as well as enough storage to hold the container images.
+The example configure the root volume with IOPs of 16,000 and throughput of 1,000Mbps which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
+
+We also set the `instanceStorePolicy: RAID0` field, that will utilize instance store NVMe disks, in case of multiple disks, it will stripe them as RAID0, mount them, and make sure containerd root dir is used on those disks.
+If the `EC2NodeClass` is being used with `NodePool` that only launch instances with instance store, the `blockDeviceMappings` can be removed to reduce cost, as SOCI snapshotter root dir is configured to use containerd root dir and will utilize instance store which are high performant NVMe disks.
 
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: soci-snapshotter
+...
+...
 spec:
-  amiSelectorTerms:
-    - alias: al2023@latest
-  ...
-  ...
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -76,8 +88,33 @@ spec:
       volumeType: gp3
       iops: 16000
       throughput: 1000
-  ...
-  ...
+  instanceStorePolicy: RAID0
+...
+...
+```
+The `userData` field is used to initiate the SOCI snapshotter setup and to configure containerd and kubelet.
+
+SOCI parallel mode configuration is controlled by several key settings. While the default values align with containerd's standard configuration to ensure stability and safety, you can adjust these parameters to optimize performance based on your specific needs, but ensure the infastructure can support it.
+
+1. `max_concurrent_downloads_per_image`: Limits the maximum concurrent downloads per individual image, Default is 3. For images hosted on Amazon ECR we recommend setting this to 10-20.
+2. `max_concurrent_unpacks_per_image`: Sets the limit for concurrent unpacking of layers per image. Default is 1. Tuning this to match the number of avg layers count of your container images.
+3. `soci_root_dir`: where downloaded data is stored and extracted, this path should be backed by an high performance storage subsystem. Default is "/var/lib/soci-snapshotter-grpc". We have set this under /var/lib/containerd where containerd data is stored to benefit when using `instanceStorePolicy: RAID0`.
+
+The second part of the `userData` handles the configuration of containerd and kubelet through [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/) which is only supported on AL2023 and simplify various data plane configurations.
+
+1. We configure the `kubelet` image service endpoint to use SOCI as the image service proxy to cache credentials, you can read more on this [here](https://github.com/awslabs/soci-snapshotter/blob/main/docs/registry-authentication.md#kubernetes-cri-credentials)
+2. We configure `containerd` to introduce a new snapshotter plugin as well as configure the default snapshotter to use the configured SOCI snapshotter.
+
+```yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter
+...
+...
+spec:
+...
+...
   userData: |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="//"

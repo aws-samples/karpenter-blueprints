@@ -150,7 +150,7 @@ Here's the list of blueprints we have so far:
 * [Protecting batch jobs during the consolidation process](/blueprints/batch-jobs/)
 * [NodePool Disruption Budgets](/blueprints/disruption-budgets/)
 * [Deploy an NVIDIA GPU workload](/blueprints/nvidia-gpu-workload/)
-* [SOCI snapshotter parallel pull/unpack mode](/blueprints/soci-snapshotter/)
+* [Accelerating image pull time using SOCI parallel mode](/blueprints/soci-snapshotter/)
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 
