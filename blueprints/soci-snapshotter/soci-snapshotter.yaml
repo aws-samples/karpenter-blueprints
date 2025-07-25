@@ -11,8 +11,7 @@ spec:
     ebs:
       volumeSize: 100Gi
       volumeType: gp3
-      iops: 16000
-      throughput: 1000
+      throughput: 600
   instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
@@ -106,8 +105,7 @@ spec:
     ebs:
       volumeSize: 100Gi
       volumeType: gp3
-      iops: 16000
-      throughput: 1000
+      throughput: 600
   instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
