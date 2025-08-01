@@ -1,25 +1,96 @@
-# Karpenter Blueprint: Overprovision capacity in advanced to increase responsiveness
+# Karpenter Blueprint: Dynamic EBS Volume Sizing
 
 ## Purpose
 
-Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
+This blueprint demonstrates how to automatically resize EBS volumes based on the EC2 instance type that Karpenter provisions. Different instance types have varying storage requirements, and this pattern ensures that each node gets an appropriately sized root volume without manual intervention.
 
-To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity (to make Karpenter launch nodes). Then, when you deploy the workload with the pods you actually need, "dummy" pods are evicted to make rapidly start the pods you need for your workload.
+The solution uses a custom EC2NodeClass with userData that:
+1. Detects the instance type at boot time
+2. Calculates the appropriate volume size based on instance size suffix (nano, micro, small, medium, large, xlarge, etc.)
+3. Dynamically resizes the EBS volume using AWS CLI
+4. Extends the filesystem to use the additional space
+
+This approach is particularly useful for workloads that have different storage requirements based on the compute capacity of the underlying instance.
+
+## Volume Sizing Logic
+
+The blueprint includes intelligent volume sizing based on instance type suffixes:
+
+| Instance Suffix | Volume Size (GB) | Example Instances |
+|----------------|------------------|-------------------|
+| nano           | 20               | t4g.nano         |
+| micro          | 30               | t3.micro, t4g.micro |
+| small          | 40               | t3.small, c6i.small |
+| medium         | 60               | t3.medium, m5.medium |
+| large          | 100              | c5.large, m5.large |
+| xlarge         | 200              | c5.xlarge, r5.xlarge |
+| 2xlarge        | 300              | c5.2xlarge, m5.2xlarge |
+| 3xlarge        | 400              | c5.3xlarge, r5.3xlarge |
+| 4xlarge        | 500              | c5.4xlarge, m5.4xlarge |
+| 6xlarge        | 600              | c5.6xlarge, r5.6xlarge |
+| 8xlarge/9xlarge| 800              | c5.8xlarge, c5.9xlarge |
+| 12xlarge       | 1000             | c5.12xlarge, r5.12xlarge |
+| 16xlarge/18xlarge | 1200          | c5.16xlarge, r5.18xlarge |
+| 24xlarge       | 1500             | c5.24xlarge, r5.24xlarge |
+| 32xlarge/48xlarge/56xlarge/112xlarge | 2000 | c5.32xlarge, r5.48xlarge, r5.56xlarge, r5.112xlarge |
+| metal          | 1000             | c5.metal, m5.metal |
+| *default*      | 100              | Unknown instance sizes |
+
+## Technical Implementation
+
+The dynamic volume resizing is implemented through a bash script in the EC2NodeClass userData that:
+
+### Instance Detection
+- Uses IMDSv2 (Instance Metadata Service v2) for secure metadata retrieval
+- Extracts instance type, instance ID, and region information
+- Implements proper token-based authentication for metadata access
+
+### Volume Sizing Algorithm
+- Parses the instance type suffix using `sed` to extract size indicators
+- Maps suffixes to appropriate storage sizes using a case statement
+- Provides sensible defaults for unknown instance types
+
+### EBS Volume Management
+- Queries AWS API to find the root volume ID associated with `/dev/xvda`
+- Checks current volume size to avoid unnecessary modifications
+- Uses `aws ec2 modify-volume` to resize the EBS volume
+- Implements timeout and error handling for volume modification operations
+
+### Filesystem Extension
+- Uses `growpart` to extend the partition to use additional space
+- Automatically detects filesystem type (XFS or ext4)
+- Applies appropriate filesystem resize commands (`xfs_growfs` or `resize2fs`)
+- Handles both filesystem types commonly used in Amazon Linux 2023
+
+### Error Handling
+- Implements comprehensive error checking at each step
+- Continues with normal node bootstrap even if volume resize fails
+- Provides detailed logging for troubleshooting
 
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
+* The EC2NodeClass includes the necessary IAM permissions for EBS volume modification:
+  - `ec2:DescribeInstances`
+  - `ec2:DescribeVolumes`
+  - `ec2:ModifyVolume`
+  - `ec2:DescribeVolumesModifications`
 
 ## Deploy
 
-Let's start by deploying the "dummy" workload:
+First, deploy the EC2NodeClass and NodePool that includes the dynamic volume sizing logic:
 
 ```sh
-kubectl apply -f dummy-workload.yaml
+kubectl apply -f al2023.yaml
 ```
 
-After waiting for around two minutes, notice how Karpenter will provision the machine(s) needed to run the "dummy" workload:
+Then deploy the test workload:
+
+```sh
+kubectl apply -f workload.yaml
+```
+
+After waiting for around two minutes, notice how Karpenter will provision the machine(s) needed to run the workload:
 
 ```sh
 > kubectl get nodeclaims
@@ -27,76 +98,39 @@ NAME            TYPE          ZONE         NODE                                 
 default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    57s
 ```
 
-And the "dummy" pods are now running simply to reserve this capacity:
+And the workload pods are now running:
 
 ```sh
-> kubectl get pods                                                                                                             7s
-NAME                             READY   STATUS    RESTARTS   AGE
-dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          53s
-dummy-workload-6bf87d68f-8pnp8   1/1     Running   0          53s
-dummy-workload-6bf87d68f-ctlvc   1/1     Running   0          53s
-dummy-workload-6bf87d68f-fznv6   1/1     Running   0          53s
-dummy-workload-6bf87d68f-hp4qs   1/1     Running   0          53s
-dummy-workload-6bf87d68f-pwtp9   1/1     Running   0          53s
-dummy-workload-6bf87d68f-rg7tj   1/1     Running   0          53s
-dummy-workload-6bf87d68f-t7bqz   1/1     Running   0          53s
-dummy-workload-6bf87d68f-xwln7   1/1     Running   0          53s
-dummy-workload-6bf87d68f-zmhk8   1/1     Running   0          53s
+> kubectl get pods                                                                                                             
+NAME                                           READY   STATUS    RESTARTS   AGE
+dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
 ```
 
 ## Results
 
-Now, when you deploy the actual workload you need  to do some work (such as a data pipeline process), the "dummy" pods are going to be evicted. So, let's deploy the following workload to test it:
+You can verify that the EBS volume has been dynamically resized by checking the node's disk space. SSH into the node or use kubectl to check the filesystem size:
 
 ```sh
-kubectl apply -f workload.yaml
+# Get the node name
+kubectl get nodes
+
+# Check disk usage on the node
+kubectl debug node/<node-name> -it --image=busybox -- df -h
 ```
 
-Notice how your new pods are almost immediately running, and some of the "dummy" pods are "Pending":
+For example, if Karpenter provisioned a `c6i.2xlarge` instance, you should see that the root volume has been automatically resized to 300GB (as per the sizing logic for 2xlarge instances), even though the initial EBS volume was created with only 20GB.
 
-```sh
-> kubectl get pods
-NAME                             READY   STATUS    RESTARTS   AGE
-dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          11m
-dummy-workload-6bf87d68f-6bq4v   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-8nkp8   0/1     Pending   0          14s
-dummy-workload-6bf87d68f-cchqx   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-fznv6   1/1     Running   0          11m
-dummy-workload-6bf87d68f-hp4qs   1/1     Running   0          11m
-dummy-workload-6bf87d68f-r69g6   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-rg7tj   1/1     Running   0          11m
-dummy-workload-6bf87d68f-w4zk8   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-zmhk8   1/1     Running   0          11m
-workload-679c759476-6h47j        1/1     Running   0          15s
-workload-679c759476-hhjmp        1/1     Running   0          15s
-workload-679c759476-jxnc2        1/1     Running   0          15s
-workload-679c759476-lqv5t        1/1     Running   0          15s
-workload-679c759476-n269j        1/1     Running   0          15s
-workload-679c759476-nfjtp        1/1     Running   0          15s
-workload-679c759476-nv7sg        1/1     Running   0          15s
-workload-679c759476-p277d        1/1     Running   0          15s
-workload-679c759476-qw8sk        1/1     Running   0          15s
-workload-679c759476-sxjpt        1/1     Running   0          15s
-```
+The userData script in the EC2NodeClass handles:
+- Detecting the instance type using IMDSv2
+- Calculating the target volume size based on the instance suffix
+- Modifying the EBS volume using AWS CLI
+- Waiting for the modification to complete
+- Extending the partition and filesystem to use the additional space
+- Supporting both XFS and ext4 filesystems
 
-After waiting for around two minutes, you'll see all pods running and a new machine registered:
-
-```sh
-> kubectl get nodeclaims                                                                                                        18s
-NAME            TYPE          ZONE         NODE                                        READY   AGE
-default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-10-0-127-154.eu-west-2.compute.internal   True      29m
-default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-10-0-100-21.eu-west-2.compute.internal    True      75s
-```
-
-The new machine is simply there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can simply reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.
-
-```sh
-> kubectl scale deployment dummy-workload --replicas 0
-deployment.apps/dummy-workload scaled
-> kubectl get nodeclaims
-NAME            TYPE          ZONE         NODE                                       READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    16m
-```
+This ensures that each node gets storage capacity appropriate for its compute capacity without manual intervention.
 
 ## Cleanup
 

@@ -13,7 +13,7 @@ spec:
         app: dynamic-disk-ebs-volume-foo
     spec:
       nodeSelector:
-        intent: foo
+        intent: dynamic-disk-volume-np
       containers:
       - name: dynamic-disk-ebs-volume
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4

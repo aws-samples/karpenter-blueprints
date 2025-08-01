@@ -149,8 +149,6 @@ spec:
         echo "Resizing volume from ${current_size}GB to ${target_size}GB"
         aws ec2 modify-volume --volume-id $volume_id --size $target_size --region $region
 
-
-
         # Wait for completion with timeout
         local timeout=300
         local elapsed=0
