@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: dynamic-disk-ebs-volume-foo
 spec:
-  replicas: 3
+  replicas: 15
   selector:
     matchLabels:
       app: dynamic-disk-ebs-volume-foo
