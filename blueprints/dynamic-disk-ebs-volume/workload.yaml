@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dynamic-disk-ebs-volume-foo
+  name: dynamic-disk-ebs-volume
 spec:
   replicas: 15
   selector:
     matchLabels:
-      app: dynamic-disk-ebs-volume-foo
+      app: dynamic-disk-ebs-volume
   template:
     metadata:
       labels:
-        app: dynamic-disk-ebs-volume-foo
+        app: dynamic-disk-ebs-volume
     spec:
       nodeSelector:
-        intent: dynamic-disk-volume-np
+        intent: dynamic-disk-volume
       containers:
       - name: dynamic-disk-ebs-volume
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4

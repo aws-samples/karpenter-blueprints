@@ -5,7 +5,7 @@ metadata:
 spec:
   amiFamily: AL2023
   amiSelectorTerms:
-  - alias: al2023@2023.8.20250721 # Amazon Linux 2023
+  - alias: al2023@v20250715 # Amazon Linux 2023
   role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
@@ -154,6 +154,7 @@ spec:
                 --query 'VolumesModifications[0].ModificationState' --output text --region $region)
 
             if [[ "$state" = "completed" || "$state" = "optimizing" ]]; then
+                echo "Volume modification completed"
                 break
             elif [ "$state" = "failed" ]; then
                 echo "Volume modification failed"

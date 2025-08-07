@@ -7,7 +7,7 @@ This blueprint shows how to automatically resize EBS volumes based on the EC2 in
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-* A `default` Karpenter `NodePool` as that's the one we'll use in this blueprint. You did this already in the ["Deploy a Karpenter Default EC2NodeClass and NodePool"](../../README.md) section from this repository.
+* A Karpenter `NodePool` as that's the one we'll use in this blueprint. 
 * You need to create an [IAM policy](iam-policy.yaml) and attach it to the role used by Karpenter deployment. 
 
 ## Deploy
@@ -37,21 +37,21 @@ And the workload pods are now running:
 ```sh
 > kubectl get pods                                                                                                             
 NAME                                           READY   STATUS    RESTARTS   AGE
-dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-2ftbq    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-8pnp8    1/1     Running   0          53s
-dynamic-disk-ebs-volume-foo-6bf87d68f-ctlvc    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-ctlvc    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-ctlvc    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-ctlvc    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-ctlvc    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-2ftbq    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-8pnp8    1/1     Running   0          53s
+dynamic-disk-ebs-volume-6bf87d68f-ctlvc    1/1     Running   0          53s
 ```
 
 ## Results
