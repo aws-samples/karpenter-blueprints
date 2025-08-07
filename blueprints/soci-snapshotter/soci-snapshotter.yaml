@@ -1,0 +1,153 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      throughput: 600
+  instanceStorePolicy: RAID0
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  userData: |
+    MIME-Version: 1.0
+    Content-Type: multipart/mixed; boundary="//"
+
+    --//
+    Content-Type: text/x-shellscript; charset="us-ascii"
+
+    #!/bin/bash
+    export max_concurrent_downloads_per_image=10
+    export max_concurrent_unpacks_per_image=10
+    export soci_root_dir=/var/lib/containerd/io.containerd.snapshotter.v1.soci
+    curl -sSL https://raw.githubusercontent.com/awslabs/soci-snapshotter/refs/heads/main/scripts/parallel-mode-install.sh | bash
+
+    --//
+    Content-Type: application/node.eks.aws
+
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      kubelet:
+        config:
+          imageServiceEndpoint: unix:///run/soci-snapshotter-grpc/soci-snapshotter-grpc.sock
+      containerd:
+        config: |
+          [proxy_plugins.soci]
+            type = "snapshot"
+            address = "/run/soci-snapshotter-grpc/soci-snapshotter-grpc.sock"
+          [proxy_plugins.soci.exports]
+            root = "/var/lib/containerd/io.containerd.snapshotter.v1.soci"
+          [plugins."io.containerd.grpc.v1.cri".containerd]
+            snapshotter = "soci"
+            disable_snapshot_annotations = false
+    --//
+
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: soci-snapshotter
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+  template:
+    metadata:
+      labels:
+        intent: soci-snapshotter
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: soci-snapshotter
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: non-soci-snapshotter
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      throughput: 600
+  instanceStorePolicy: RAID0
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: non-soci-snapshotter
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+  template:
+    metadata:
+      labels:
+        intent: non-soci-snapshotter
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: non-soci-snapshotter
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
