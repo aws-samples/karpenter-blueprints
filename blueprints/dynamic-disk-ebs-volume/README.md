@@ -4,6 +4,8 @@
 
 This blueprint shows how to automatically resize EBS volumes based on the EC2 instance type that Karpenter provisions. EBS volume size requirements differ among different instance types and this pattern ensures that each node gets an appropriately sized root volume without manual intervention.
 
+This blueprint provides configurations for both Amazon Linux 2023 and Bottlerocket operating systems.
+
 ## Requirements
 
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
@@ -12,10 +14,23 @@ This blueprint shows how to automatically resize EBS volumes based on the EC2 in
 
 ## Deploy
 
-First, deploy the EC2NodeClass and NodePool that includes the dynamic volume sizing logic:
+### Amazon Linux 2023
+
+Deploy the EC2NodeClass and NodePool for Amazon Linux 2023:
 
 ```sh
 kubectl apply -f al2023.yaml
+```
+
+### Bottlerocket
+
+The Bottlerocket nodepool uses a base64-encoded resize script (`bottlerocket-resize-script.sh`) that runs as a bootstrap container to dynamically resize the EBS data volume (`/dev/xvdb`) based on the instance type. 
+
+The script has to be base64-encoded first and replace in the EC2NodeClass. Deploy the EC2NodeClass and NodePool for Bottlerocket:
+
+```sh
+sed -i '' "s/<<BASE64_USER_DATA>>/$(base64 -i bottlerocket-resize-script.sh | tr -d '\n')/" bottlerocket.yaml
+kubectl apply -f bottlerocket.yaml
 ```
 
 Then deploy the test workload:
