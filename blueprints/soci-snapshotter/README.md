@@ -72,7 +72,7 @@ The `blockDeviceMapping` field is used to increase root volume EBS performance a
 As SOCI parallel mode downloads layers, it buffers them on disk instead of in-memory, having a high performant storage subsystem is crucial to support it as well as enough storage to hold the container images.
 The example configure the root volume with IOPs of 16,000 and throughput of 1,000Mbps which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
 
-We also set the `instanceStorePolicy: RAID0` field, that will utilize instance store NVMe disks, in case of multiple disks, it will stripe them as RAID0, mount them, and make sure containerd root dir is used on those disks.
+We also set the `instanceStorePolicy: RAID0` field on AL2023, that will utilize instance store NVMe disks, in case of multiple disks, it will stripe them as RAID0, mount them, and make sure containerd root dir is used on those disks.
 If the `EC2NodeClass` is being used with `NodePool` that only launch instances with instance store, the `blockDeviceMappings` can be removed to reduce cost, as SOCI snapshotter root dir is configured to use containerd root dir and will utilize instance store which are high performant NVMe disks.
 
 ### Amazon Linux 2023
@@ -118,7 +118,6 @@ spec:
         volumeType: gp3
         throughput: 600
         encrypted: true
-  instanceStorePolicy: RAID0
 ...
 ...
 ```
@@ -187,6 +186,8 @@ spec:
 
 SOCI is integrated into Bottlerocket latest AMIs and simplify setup and configuration through Bottlerocket APIs as in the example below.
 
+In Bottlerocket, SOCI's data dir is configured at `/var/lib/soci-snapshotter`, to take advantage of instances with NVMe disks, we will need to configure ephemeral storage through Bottlerocket's Settings API, replacing `instanceStorePolicy: RAID0` with `[settings.bootstrap-commands.k8s-ephemeral-storage]` as you can see below, we added `/var/lib/soci-snapshotter` as a bind dir.
+
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -207,6 +208,13 @@ spec:
     concurrent-download-chunk-size = "16mb"
     max-concurrent-unpacks-per-image = 10
     discard-unpacked-layers = true
+    [settings.bootstrap-commands.k8s-ephemeral-storage]
+    commands = [
+        ["apiclient", "ephemeral-storage", "init"],
+        ["apiclient", "ephemeral-storage" ,"bind", "--dirs", "/var/lib/containerd", "/var/lib/kubelet", "/var/log/pods", "/var/lib/soci-snapshotter"]
+    ]
+    essential = true
+    mode = "always"
 ```
 
 ## Results

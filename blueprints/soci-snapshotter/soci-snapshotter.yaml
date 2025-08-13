@@ -111,7 +111,6 @@ spec:
         volumeType: gp3
         throughput: 600
         encrypted: true
-  instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"
@@ -128,6 +127,13 @@ spec:
     concurrent-download-chunk-size = "16mb"
     max-concurrent-unpacks-per-image = 10
     discard-unpacked-layers = true
+    [settings.bootstrap-commands.k8s-ephemeral-storage]
+    commands = [
+        ["apiclient", "ephemeral-storage", "init"],
+        ["apiclient", "ephemeral-storage" ,"bind", "--dirs", "/var/lib/containerd", "/var/lib/kubelet", "/var/log/pods", "/var/lib/soci-snapshotter"]
+    ]
+    essential = true
+    mode = "always"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
