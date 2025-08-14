@@ -39,6 +39,44 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: vllm-soci-br
+  labels:
+    app: vllm-soci-br
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-soci-br
+  template:
+    metadata:
+      labels:
+        app: vllm-soci-br
+    spec:
+      containers:
+      - name: vllm
+        image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2
+        command: ["bash", "-c"]
+        args: ["trap 'exit 0' TERM; sleep 9999 & wait"]
+      nodeSelector:
+        intent: soci-snapshotter-br
+        kubernetes.io/arch: amd64
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: karpenter.k8s.aws/instance-ebs-bandwidth
+                operator: Gt
+                values:
+                - "8000"
+              - key: karpenter.k8s.aws/instance-network-bandwidth
+                operator: Gt
+                values:
+                - "8000"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: vllm
   labels:
     app: vllm
