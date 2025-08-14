@@ -40,7 +40,9 @@ sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" s
 kubectl apply -f .
 ```
 
-Those commands created the following:
+> ***NOTE***: It can take a couple of minutes for resource to be created, while resources are being created you can continue reading.
+
+Those commands creates the following:
 1. `EC2NodeClass` and `NodePool` named `soci-snapshotter` for using SOCI snapshotter parallel pull/unpack mode with customized `blockDeviceMappings` for increased I/O and storage size on Amazon Linux 2023.
 2. `EC2NodeClass` and `NodePool` named `soci-snapshotter-br` for using SOCI snapshotter parallel pull/unpack mode with customized `blockDeviceMappings` for increased I/O and storage size on Bottlerocket.
 3. `EC2NodeClass` and `NodePool` named `non-soci-snapshotter` for using default containerd implementation with customized `blockDeviceMappings` for increased I/O and storage size.
@@ -70,12 +72,15 @@ The SOCI snapshotter `EC2NodeClass` configuration have several configuration par
 
 The `blockDeviceMapping` field is used to increase root volume EBS performance and storage size.
 As SOCI parallel mode downloads layers, it buffers them on disk instead of in-memory, having a high performant storage subsystem is crucial to support it as well as enough storage to hold the container images.
-The example configure the root volume with IOPs of 16,000 and throughput of 1,000Mbps which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
+The example configure the root volume with IOPs of 16,000 and throughput of 1,000MiB/s which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
+> ***NOTE***: From our benchmarks, we have also seen a good starting point by setting the throughput to 600MiB/s and keeping base IOPs to 3,000.
 
 We also set the `instanceStorePolicy: RAID0` field on AL2023, that will utilize instance store NVMe disks, in case of multiple disks, it will stripe them as RAID0, mount them, and make sure containerd root dir is used on those disks.
 If the `EC2NodeClass` is being used with `NodePool` that only launch instances with instance store, the `blockDeviceMappings` can be removed to reduce cost, as SOCI snapshotter root dir is configured to use containerd root dir and will utilize instance store which are high performant NVMe disks.
 
-### Amazon Linux 2023
+<details>
+<summary>Amazon Linux 2023</summary>
+
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -89,12 +94,15 @@ spec:
     ebs:
       volumeSize: 100Gi
       volumeType: gp3
-      throughput: 600
+      throughput: 1000
+      iops: 16000
   instanceStorePolicy: RAID0
 ...
 ...
 ```
-### Bottlerocket
+</details>
+<details>
+<summary>Bottlerocket</summary>
 
 Bottlerocket defaults to two block devices, one for Bottlerocket's control volume and the other for container resources such as images and logs, in the example below we have configured Bottlerocket's secondary block device with increased EBS storage & throughput to support SOCI parallel mode.
 
@@ -116,11 +124,15 @@ spec:
       ebs:
         volumeSize: 100Gi
         volumeType: gp3
-        throughput: 600
+        throughput: 1000
+        iops: 16000
         encrypted: true
 ...
 ...
 ```
+
+</details>
+<br>
 
 The `userData` field is used to initiate the SOCI snapshotter setup and to configure containerd and kubelet.
 
@@ -132,7 +144,8 @@ SOCI parallel mode configuration is controlled by several key settings. While th
 
 The second part of the `userData` handles the configuration of containerd and kubelet through [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/) which is only supported on AL2023 and simplify various data plane configurations, Bottlerocket by default configure containerd and kubelet when enabling SOCI parallel mode.
 
-### Amazon Linux 2023
+<details>
+<summary>Amazon Linux 2023</summary>
 
 1. We configure the `kubelet` image service endpoint to use SOCI as the image service proxy to cache credentials, you can read more on this [here](https://github.com/awslabs/soci-snapshotter/blob/main/docs/registry-authentication.md#kubernetes-cri-credentials)
 2. We configure `containerd` to introduce a new snapshotter plugin as well as configure the default snapshotter to use the configured SOCI snapshotter.
@@ -181,8 +194,10 @@ spec:
             disable_snapshot_annotations = false
     --//
 ```
+</details>
 
-### Bottlerocket
+<details>
+<summary>Bottlerocket</summary>
 
 SOCI is integrated into Bottlerocket latest AMIs and simplify setup and configuration through Bottlerocket APIs as in the example below.
 
@@ -216,6 +231,7 @@ spec:
     essential = true
     mode = "always"
 ```
+</details>
 
 ## Results
 
@@ -227,26 +243,30 @@ pod/vllm-soci-6d9bfd996d-vhr4j condition met
 pod/vllm-soci-br-74b59cc4bd-rq8cw condition met
 ```
 
-The sample workload deploys two Deployments running [Amazon Deep Learning Containers for vLLM](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/dlc-vllm-x86-ec2.html), one using SOCI parallel pull/unpack mode and one remains using the default containerd implementation.
+The sample workload deploys three Deployments running [Amazon Deep Learning Container (DLC) for vLLM](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/dlc-vllm-x86-ec2.html) two using SOCI parallel pull/unpack mode (AL2023, Bottlerocket) and one remains using the default containerd implementation.
+> ***NOTE*** The Amazon DLC for vLLM container image size is about **~10GB**
 
 Let's examine the pull time for each Deployment:
 
 The `vllm` deployment using the default containerd implementation results in pull time of **1m52.33s**.
 ```sh
-> kubectl describe pod/vllm-59bfb6f86c-9nfxb | grep Pulled
-  Normal   Pulled            7m2s   kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2" in 1m52.33s (1m52.33s including waiting). Image size: 10778400361 bytes.
+> kubectl describe pod -l app=vllm | grep Pulled
+  Normal   Pulled            7m2s   kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2"
+  in 1m52.33s (1m52.33s including waiting). Image size: 10778400361 bytes.
 ```
 
 The `vllm-soci` deployment using SOCI snapshotter's parallel pull/unpack mode implementation results in pull time of **59.813s**.
 ```sh
-> kubectl describe pod/vllm-soci-6d9bfd996d-vhr4j | grep Pulled
-  Normal   Pulled            8m27s  kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2" in 59.813s (59.813s including waiting). Image size: 10778400361 bytes.
+> kubectl describe pod -l app=vllm-soci | grep Pulled
+  Normal   Pulled            8m27s  kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2"
+  in 59.813s (59.813s including waiting). Image size: 10778400361 bytes.
 ```
 
 The `vllm-soci-br` deployment using SOCI snapshotter's parallel pull/unpack mode implementation on Bottlerocket, results in pull time of **44.974s**.
 ```sh
-> kubectl describe pod/vllm-soci-br-74b59cc4bd-rq8cw | grep Pulled
-  Normal   Pulled            9m46s  kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2" in 44.974s (44.974s including waiting). Image size: 10778400361 bytes.
+> kubectl describe pod -l app=vllm-soci-br | grep Pulled
+  Normal   Pulled            9m46s  kubelet            Successfully pulled image "763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2"
+  in 44.974s (44.974s including waiting). Image size: 10778400361 bytes.
 ```
 
 We can see that using SOCI snapshotter's improved container pull time by about **50%** on Amazon Linux 2023, and about **60%** on Bottlerocket, the reason for that is that Bottlerocket have an improved decompression library for Intel based CPUs ([bottlerocket-core-kit PR #443](https://github.com/bottlerocket-os/bottlerocket-core-kit/pull/443))
