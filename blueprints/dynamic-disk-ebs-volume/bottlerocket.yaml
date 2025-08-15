@@ -1,0 +1,80 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: dynamic-disk-volume
+spec:
+  amiFamily: Bottlerocket
+  amiSelectorTerms:
+  - alias: bottlerocket@v1.43.0 # Bottlerocket
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  metadataOptions:
+    httpEndpoint: enabled
+    httpTokens: required
+    httpPutResponseHopLimit: 1
+  blockDeviceMappings:
+    # Root device
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 4Gi
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
+    # Data device: Container resources such as images and logs
+    - deviceName: /dev/xvdb
+      ebs:
+        volumeSize: 20Gi
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
+  userData: |
+    [settings.bootstrap-containers.ebsresize]
+    mode = "once"
+    user-data = "<<BASE64_USER_DATA>>"
+    
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: dynamic-disk-volume
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+  limits:
+    cpu: 1k
+    memory: 500Gi
+  template:
+    metadata:
+      labels:
+        intent: dynamic-disk-volume
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: dynamic-disk-volume
+      requirements:
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
