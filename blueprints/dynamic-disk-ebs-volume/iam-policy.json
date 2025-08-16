@@ -1,0 +1,16 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "EBSVolumeOperations",
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeInstances",
+                "ec2:ModifyVolume",
+                "ec2:DescribeVolumesModifications"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
