@@ -1,7 +1,7 @@
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
-  name: dynamic-disk-volume
+  name: dynamic-disk-volume-nc
 spec:
   amiFamily: AL2023
   amiSelectorTerms:
@@ -42,68 +42,51 @@ spec:
             --max-time 10 --retry 3
     }
 
-    # Get target size based on instance size suffix
+    detect_os() {
+        if [ -f /etc/bottlerocket-release ]; then
+            echo "bottlerocket"
+        elif [ -f /etc/os-release ] && grep -q "Amazon Linux" /etc/os-release; then
+            echo "al2023"
+        fi
+    }
+
     get_target_size_by_suffix() {
         local instance_type=$1
         local size_suffix=$(echo $instance_type | sed 's/.*\.//')
 
         case $size_suffix in
-            nano)
-                echo 20
-                ;;
-            micro)
-                echo 30
-                ;;
-            small)
-                echo 40
-                ;;
-            medium)
-                echo 60
-                ;;
-            large)
-                echo 100
-                ;;
-            xlarge)
-                echo 200
-                ;;
-            2xlarge)
-                echo 300
-                ;;
-            3xlarge)
-                echo 400
-                ;;
-            4xlarge)
-                echo 500
-                ;;
-            6xlarge)
-                echo 600
-                ;;
-            8xlarge|9xlarge)
-                echo 800
-                ;;
-            12xlarge)
-                echo 1000
-                ;;
-            16xlarge|18xlarge)
-                echo 1200
-                ;;
-            24xlarge)
-                echo 1500
-                ;;
-            32xlarge|48xlarge|56xlarge|112xlarge)
-                echo 2000
-                ;;
-            metal)
-                echo 1000  # Bare metal instances
-                ;;
-            *)
-                echo 100   # Default for unknown sizes
-                ;;
+            nano) echo 20 ;;
+            micro) echo 30 ;;
+            small) echo 40 ;;
+            medium) echo 60 ;;
+            large) echo 100 ;;
+            xlarge) echo 200 ;;
+            2xlarge) echo 300 ;;
+            3xlarge) echo 400 ;;
+            4xlarge) echo 500 ;;
+            6xlarge) echo 600 ;;
+            8xlarge|9xlarge) echo 800 ;;
+            12xlarge) echo 1000 ;;
+            16xlarge|18xlarge) echo 1200 ;;
+            24xlarge) echo 1500 ;;
+            32xlarge|48xlarge|56xlarge|112xlarge) echo 2000 ;;
+            metal) echo 1000 ;;
+            *) echo 100 ;;
         esac
     }
 
     resize_ebs_for_instance() {
-        local device="/dev/xvda"
+        local os_type=$(detect_os)
+        local device
+
+        case $os_type in
+            bottlerocket)
+                device="/dev/xvdb"
+                ;;
+            al2023)
+                device="/dev/xvda"
+                ;;
+        esac
 
         local token=$(get_imds_token)
         if [ -z "$token" ]; then
@@ -120,11 +103,8 @@ spec:
             return 1
         fi
 
-        # Get target size based on instance suffix
         local target_size=$(get_target_size_by_suffix "$instance_type")
-        local size_suffix=$(echo $instance_type | sed 's/.*\.//')
-
-        echo "Instance: $instance_type (suffix: $size_suffix) -> Target: ${target_size}GB"
+        echo "OS: $os_type, Instance: $instance_type -> Target: ${target_size}GB"
 
         local volume_id=$(aws ec2 describe-instances --instance-ids $instance_id \
             --query 'Reservations[0].Instances[0].BlockDeviceMappings[?DeviceName==`'$device'`].Ebs.VolumeId' \
@@ -145,10 +125,12 @@ spec:
 
         echo "Resizing volume from ${current_size}GB to ${target_size}GB"
         aws ec2 modify-volume --volume-id $volume_id --size $target_size --region $region
-
-        # Wait for completion with timeout
+        
+        # Wait for completion
         local timeout=300
         local elapsed=0
+        local wait_time=2
+
         while [ $elapsed -lt $timeout ]; do
             local state=$(aws ec2 describe-volumes-modifications --volume-ids $volume_id \
                 --query 'VolumesModifications[0].ModificationState' --output text --region $region)
@@ -161,8 +143,10 @@ spec:
                 return 1
             fi
 
-            sleep 5
-            elapsed=$((elapsed + 5))
+            sleep $wait_time
+            elapsed=$((elapsed + wait_time))
+            wait_time=$((wait_time * 2))
+            [ $wait_time -gt 30 ] && wait_time=30
         done
 
         if [ $elapsed -ge $timeout ]; then
@@ -170,32 +154,33 @@ spec:
             return 1
         fi
 
-        # Extend partition and filesystem
-        growpart $device 1 || {
-            echo "Failed to extend partition"
-            return 1
-        }
-
-        # Detect filesystem and resize
-        local fs_type=$(lsblk -f ${device}1 | tail -1 | awk '{print $2}')
-        case $fs_type in
-            xfs)
-                xfs_growfs / || {
-                    echo "Failed to resize XFS filesystem"
-                    return 1
-                }
-                ;;
-            ext4)
-                resize2fs ${device}1 || {
-                    echo "Failed to resize ext4 filesystem"
-                    return 1
-                }
-                ;;
-            *)
-                echo "Unsupported filesystem: $fs_type"
+        # OS-specific filesystem resize
+        if [ "$os_type" = "al2023" ]; then
+            growpart $device 1 || {
+                echo "Failed to extend partition"
                 return 1
+            }
+
+            local fs_type=$(lsblk -f ${device}1 | tail -1 | awk '{print $2}')
+            case $fs_type in
+                xfs)
+                    xfs_growfs / || {
+                        echo "Failed to resize XFS filesystem"
+                        return 1
+                    }
+                    ;;
+                ext4)
+                    resize2fs ${device}1 || {
+                        echo "Failed to resize ext4 filesystem"
+                        return 1
+                    }
                 ;;
-        esac
+                *)
+                    echo "Unsupported filesystem: $fs_type"
+                    return 1
+                    ;;
+            esac
+        fi
 
         echo "EBS resize completed successfully"
         return 0
@@ -203,16 +188,19 @@ spec:
 
     # Execute resize
     if ! resize_ebs_for_instance; then
-        echo "EBS resize failed, continuing with bootstrap"
+        echo "EBS resize failed"
     fi
 
-    # AL2023 bootstrap
-    /usr/bin/nodeadm init
+    # OS-specific bootstrap
+    os_type=$(detect_os)
+    if [ "$os_type" = "al2023" ]; then
+        /usr/bin/nodeadm init
+    fi
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: dynamic-disk-volume
+  name: dynamic-disk-volume-np
 spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
@@ -228,7 +216,7 @@ spec:
       nodeClassRef:
         group: karpenter.k8s.aws
         kind: EC2NodeClass
-        name: dynamic-disk-volume
+        name: dynamic-disk-volume-nc
       requirements:
       - key: karpenter.sh/capacity-type
         operator: In
