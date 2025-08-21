@@ -13,7 +13,6 @@ spec:
       volumeType: gp3
       throughput: 1000
       iops: 16000
-  instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"
@@ -21,38 +20,11 @@ spec:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   userData: |
-    MIME-Version: 1.0
-    Content-Type: multipart/mixed; boundary="//"
-
-    --//
-    Content-Type: text/x-shellscript; charset="us-ascii"
-
-    #!/bin/bash
-    export max_concurrent_downloads_per_image=10
-    export max_concurrent_unpacks_per_image=10
-    export soci_root_dir=/var/lib/containerd/io.containerd.snapshotter.v1.soci
-    curl -sSL https://raw.githubusercontent.com/awslabs/soci-snapshotter/refs/heads/main/scripts/parallel-mode-install.sh | bash
-
-    --//
-    Content-Type: application/node.eks.aws
-
     apiVersion: node.eks.aws/v1alpha1
     kind: NodeConfig
     spec:
-      kubelet:
-        config:
-          imageServiceEndpoint: unix:///run/soci-snapshotter-grpc/soci-snapshotter-grpc.sock
-      containerd:
-        config: |
-          [proxy_plugins.soci]
-            type = "snapshot"
-            address = "/run/soci-snapshotter-grpc/soci-snapshotter-grpc.sock"
-          [proxy_plugins.soci.exports]
-            root = "/var/lib/containerd/io.containerd.snapshotter.v1.soci"
-          [plugins."io.containerd.grpc.v1.cri".containerd]
-            snapshotter = "soci"
-            disable_snapshot_annotations = false
-    --//
+      featureGates:
+        FastImagePull: true
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -125,9 +97,9 @@ spec:
     [settings.container-runtime-plugins.soci-snapshotter]
     pull-mode = "parallel-pull-unpack"
     [settings.container-runtime-plugins.soci-snapshotter.parallel-pull-unpack]
-    max-concurrent-downloads-per-image = 10
+    max-concurrent-downloads-per-image = 20
     concurrent-download-chunk-size = "16mb"
-    max-concurrent-unpacks-per-image = 10
+    max-concurrent-unpacks-per-image = 12
     discard-unpacked-layers = true
     [settings.bootstrap-commands.k8s-ephemeral-storage]
     commands = [
@@ -190,7 +162,6 @@ spec:
       volumeType: gp3
       throughput: 1000
       iops: 16000
-  instanceStorePolicy: RAID0
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"

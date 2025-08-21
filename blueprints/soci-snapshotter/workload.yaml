@@ -35,6 +35,14 @@ spec:
                 operator: Gt
                 values:
                 - "8000"
+              - key: karpenter.k8s.aws/instance-cpu
+                operator: Gt
+                values:
+                - "7"
+              - key: karpenter.k8s.aws/instance-memory
+                operator: Gt
+                values:
+                - "8000"
 ---
 apiVersion: apps/v1
 kind: Deployment
