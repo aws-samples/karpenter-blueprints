@@ -8,10 +8,10 @@ The default pulling method uses sequential layer downloading and unpacking. SOCI
 
 This blueprint demonstrate how to setup SOCI snapshotter parallel pull/unpack mode on AL2023 and Bottlerocket through a custom `EC2NodeClass` and customizing the `userData` field.
 
-> ***NOTE***: SOCI snapshotter parallel mode is supported on Amazon Linux 2023 (AL2023) and [Bottlerocket >v1.44.0](https://github.com/bottlerocket-os/bottlerocket/releases/tag/v1.44.0)
+> ***NOTE***: SOCI snapshotter parallel mode is supported on [Amazon Linux 2023 (AL2023) > v20250821](https://github.com/awslabs/amazon-eks-ami/releases/tag/v20250821) and [Bottlerocket > v1.44.0](https://github.com/bottlerocket-os/bottlerocket/releases/tag/v1.44.0)
 
 If you would like to learn more about SOCI snapshotter's new parallel pull/unpack mode you can visit the following resources:
-1. [SOCI snapshotter parallel mode docs](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md)
+1. [SOCI snapshotter parallel mode feature docs](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md) in the [SOCI project repository](https://github.com/awslabs/soci-snapshotter) on GitHub.
 
 ## Requirements
 
@@ -145,9 +145,7 @@ As installing a snapshotter to containerd and EKS requires several configuration
 <details>
 <summary>Amazon Linux 2023</summary>
 
-SOCI snapshotter parallel mode can be enabled in AL2023 through featureGate named "FastImagePull", in AL2023 we use [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/) simplify various data plane configurations.
-
-> ***NOTE***: At this time, it is not possible to change SOCI parallel mode settings on AL2023.
+SOCI snapshotter parallel mode can be enabled in AL2023 through featureGate named "FastImagePull", in AL2023 we use [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/doc/examples/#enabling-fast-image-pull-experimental) simplify various data plane configurations.
 
 
 ```yaml
@@ -167,6 +165,46 @@ spec:
       featureGates:
         FastImagePull: true
 ```
+
+Modifying SOCI snapshotter parallel mode configuration in AL2023 requires modifying the `/etc/soci-snapshotter-grpc/config.toml` file, this can be achieved by a `userData` script as additional to the `NodeConfig` configuration.
+
+The following sets `max_concurrent_downloads_per_image` and `max_concurrent_unpacks_per_image` to `10` respectively
+
+```yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter
+...
+...
+spec:
+...
+...
+  userData: |
+    MIME-Version: 1.0
+    Content-Type: multipart/mixed; boundary="//"
+
+    --//
+    Content-Type: text/x-shellscript; charset="us-ascii"
+
+    #!/bin/bash
+    max_concurrent_downloads_per_image=10
+    max_concurrent_unpacks_per_image=10
+
+    sed -i "s/^max_concurrent_downloads_per_image = .*$/max_concurrent_downloads_per_image = $max_concurrent_downloads_per_image/" /etc/soci-snapshotter-grpc/config.toml
+    sed -i "s/^max_concurrent_unpacks_per_image = .*$/max_concurrent_unpacks_per_image = $max_concurrent_unpacks_per_image/" /etc/soci-snapshotter-grpc/config.toml
+
+    --//
+    Content-Type: application/node.eks.aws
+
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      featureGates:
+        FastImagePull: true
+    --//
+```
+
 </details>
 
 <details>
