@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: savings-workload
+spec:
+  replicas: 20
+  selector:
+    matchLabels:
+      app: savings-workload
+  template:
+    metadata:
+      labels:
+        app: savings-workload
+    spec:
+      nodeSelector:
+        intent: savings-apps
+      containers:
+      - name: app
+        image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
+        resources:
+          requests:
+            cpu: 950m
+            memory: 512Mi

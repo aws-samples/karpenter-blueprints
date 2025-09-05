@@ -1,0 +1,31 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: odcr-priority
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+  template:
+    metadata:
+      labels:
+        intent: odcr-apps
+    spec:
+      expireAfter: 168h0m0s
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        name: odcr-nodeclass
+        kind: EC2NodeClass
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      # Priority: reserved (ODCR) first, then on-demand fallback
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values: ["reserved", "on-demand"]
