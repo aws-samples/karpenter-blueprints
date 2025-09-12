@@ -48,9 +48,6 @@ resource "helm_release" "karpenter" {
     tolerations:
       - key: CriticalAddonsOnly
         operator: Exists
-      - key: karpenter.sh/controller
-        operator: Exists
-        effect: NoSchedule
     webhook:
       enabled: false
     EOT
