@@ -13,7 +13,7 @@ spec:
         app: odcr-workload
     spec:
       nodeSelector:
-        intent: odcr-apps
+        intent: apps
       containers:
       - name: app
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4

@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: savings-workload
 spec:
-  replicas: 20
+  replicas: 25  # 25 × 1 vCPU = 25 vCPUs (exceeds 20 vCPU limit)
   selector:
     matchLabels:
       app: savings-workload
@@ -12,12 +12,11 @@ spec:
       labels:
         app: savings-workload
     spec:
-      nodeSelector:
-        intent: savings-apps
+
       containers:
       - name: app
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
         resources:
           requests:
-            cpu: 950m
+            cpu: 1000m
             memory: 512Mi
