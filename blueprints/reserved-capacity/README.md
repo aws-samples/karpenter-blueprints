@@ -62,9 +62,24 @@ kubectl apply -f workload-savings.yaml
 ```sh
 # Check nodes and NodePools
 kubectl get nodes -o custom-columns="NAME:.metadata.name,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type,NODEPOOL:.metadata.labels.karpenter\.sh/nodepool"
+```
 
+**Expected output:**
+```
+NAME                                        INSTANCE      NODEPOOL
+ip-10-0-x-x.region.compute.internal         c5.4xlarge    savings-plans
+ip-10-0-x-x.region.compute.internal         c5.xlarge     savings-plans
+ip-10-0-x-x.region.compute.internal         c6g.2xlarge   default
+```
+
+```sh
 # Check capacity usage
 kubectl get nodepool savings-plans -o jsonpath='{.status.resources.cpu}' && echo " vCPUs used"
+```
+
+**Expected output:**
+```
+20 vCPUs used
 ```
 
 **What this demonstrates:**
@@ -122,6 +137,13 @@ kubectl apply -f workload-reserved.yaml
 **Check the results:**
 ```sh
 kubectl get nodes -o custom-columns="NAME:.metadata.name,INSTANCE:.metadata.labels.node\.kubernetes\.io/instance-type,NODEPOOL:.metadata.labels.karpenter\.sh/nodepool"
+```
+
+**Expected output:**
+```
+NAME                                        INSTANCE      NODEPOOL
+ip-10-0-x-x.region.compute.internal         c5.2xlarge    reserved-instances
+ip-10-0-x-x.region.compute.internal         c6g.2xlarge   default
 ```
 
 **What this demonstrates:**
@@ -197,9 +219,24 @@ kubectl apply -f workload-odcr.yaml
 **Check the results:**
 ```sh
 kubectl get nodes -L karpenter.sh/capacity-type,karpenter.k8s.aws/capacity-reservation-id
+```
 
+**Expected output:**
+```
+NAME                                        STATUS   CAPACITY-TYPE   CAPACITY-RESERVATION-ID
+ip-10-0-x-x.region.compute.internal         Ready    on-demand       
+ip-10-0-x-x.region.compute.internal         Ready    on-demand       
+```
+
+```sh
 # Check Karpenter logs to see reserved capacity attempted first
 kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter --tail=50 | grep -E "replacement-nodes.*reserved|launched.*capacity-type"
+```
+
+**Expected output:**
+```
+"replacement-nodes":[{"capacity-type":"reserved",...}]  # Planned reserved first
+"launched nodeclaim"..."capacity-type":"on-demand"     # Fell back to on-demand
 ```
 
 **What this demonstrates:**
