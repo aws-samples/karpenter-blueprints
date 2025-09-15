@@ -1,0 +1,208 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      throughput: 1000
+      iops: 16000
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  userData: |
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      featureGates:
+        FastImagePull: true
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: soci-snapshotter
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+  template:
+    metadata:
+      labels:
+        intent: soci-snapshotter
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: soci-snapshotter
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter-br
+spec:
+  amiSelectorTerms:
+    - alias: bottlerocket@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 4Gi
+        volumeType: gp3
+        encrypted: true
+    - deviceName: /dev/xvdb
+      ebs:
+        volumeSize: 100Gi
+        volumeType: gp3
+        throughput: 1000
+        iops: 16000
+        encrypted: true
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  userData: |
+    [settings.container-runtime]
+    snapshotter = "soci"
+    [settings.container-runtime-plugins.soci-snapshotter]
+    pull-mode = "parallel-pull-unpack"
+    [settings.container-runtime-plugins.soci-snapshotter.parallel-pull-unpack]
+    max-concurrent-downloads-per-image = 20
+    concurrent-download-chunk-size = "16mb"
+    max-concurrent-unpacks-per-image = 12
+    discard-unpacked-layers = true
+    [settings.bootstrap-commands.k8s-ephemeral-storage]
+    commands = [
+        ["apiclient", "ephemeral-storage", "init"],
+        ["apiclient", "ephemeral-storage" ,"bind", "--dirs", "/var/lib/containerd", "/var/lib/kubelet", "/var/log/pods", "/var/lib/soci-snapshotter"]
+    ]
+    essential = true
+    mode = "always"
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: soci-snapshotter-br
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+  template:
+    metadata:
+      labels:
+        intent: soci-snapshotter-br
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: soci-snapshotter-br
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: non-soci-snapshotter
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      throughput: 1000
+      iops: 16000
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: non-soci-snapshotter
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+  template:
+    metadata:
+      labels:
+        intent: non-soci-snapshotter
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: non-soci-snapshotter
+      requirements:
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand

@@ -15,5 +15,5 @@ output "vpc_id" {
 
 output "node_instance_role_name" {
   description = "IAM Role name that each Karpenter node will use"
-  value       = module.karpenter.iam_role_name
+  value       = local.name
 }
