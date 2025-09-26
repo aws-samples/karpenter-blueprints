@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-burst
+  namespace: default
+  labels:
+    app: demo-burst
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-burst
+  template:
+    metadata:
+      labels:
+        app: demo-burst
+    spec:
+      priorityClassName: burst-critical
+      containers:
+        - name: cpu-burn
+          image: public.ecr.aws/amazonlinux/amazonlinux:2
+          command: ["/bin/sh","-c"]
+          args: ["while true; do sha1sum /dev/zero | head -c 1000000 > /dev/null; sleep 0.5; done"]
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "128Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
