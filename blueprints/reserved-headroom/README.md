@@ -1,15 +1,31 @@
 # Reserved Headroom (DaemonSet) Blueprint
 
 ## Purpose
-You might want to ensure there is always **reserved resources capacity on each node** for spiky or bursty workloads. Unlike the classic overprovisioning pattern that warms up new nodes by running low-priority pods, reserved headroom guarantees that a slice of CPU and memory remains available **within existing nodes**. This ensures burst-critical workloads can start immediately without waiting for new nodes or being throttled by full utilization.
+You might want to ensure there is always **reserved resources capacity on a specific nodes or nodepools** for spiky or bursty workloads. Unlike the classic overprovisioning pattern that warms up new nodes by running low-priority pods, reserved headroom guarantees that a slice of CPU and memory remains available **within existing nodes**. This ensures burst-critical workloads can start immediately without waiting for new nodes or being throttled by full utilization.
 
-The headroom DaemonSet works by running lightweight `pause` pods that **request** CPU and memory on each node without actually consuming them. 
-This means the Kubernetes scheduler marks those resources as “in use,” preventing normal workloads from filling the node completely. 
+The headroom DaemonSet works by running low-priority pods that **reserve** CPU and memory resources from a node while performing useful tasks like log cleanup and system maintenance. 
+This means the Kubernetes scheduler marks those resources as “in use”, preventing normal workloads from filling the node completely. 
 When a burst-critical workload arrives, it can immediately preempt the headroom pod and gain access to that reserved slice of CPU/memory. 
-In practice, this ensures that resources stay free for spiky workloads without wasting capacity on actual resource-consuming pods.
+In practice, this ensures that resources stay free for spiky workloads while utilizing capacity for productive background processing.
 
 - **Overprovisioning**: Warm up cluster-level capacity by forcing scale-out.
 - **Reserved Headroom**: Reserve node-level capacity so workloads already placed on a node can burst quickly.
+
+## When to Use This Blueprint
+
+**✅ Use this pattern when:**
+- You need **immediate burst capacity** on existing nodes without waiting for scale-out
+- You have **legitimate low-priority pods** that can run continuously (log processing, cleanup, monitoring)
+- Your burst workloads have **unpredictable timing** and need instant resource access
+- You want to **maximize resource utilization** while maintaining burst capability
+
+**❌ Avoid this pattern when:**
+- You don't have useful background work to run (pure resource waste)
+- Your cluster scales frequently - **headroom scales proportionally with node count**, leading to significant resource waste
+- Your burst workloads are **unpredictable in size** or **very large** - reserved headroom may not be sufficient, requiring new nodes anyway
+- You prefer **cluster-level scaling** over **node-level resource reservation** - overprovisioning or cluster autoscaling might be simpler
+
+**💡 Best Practice:** Target specific node pools with appropriate workload characteristics rather than applying cluster-wide.
 
 ## Requirements
 * A Kubernetes cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
@@ -71,9 +87,25 @@ spec:
     spec:
       priorityClassName: headroom-high
       terminationGracePeriodSeconds: 0
+      # nodeSelector:
+      #   karpenter.sh/nodepool: maintenance-pool  # Target specific node pool for headroom
       containers:
-        - name: pause
-          image: registry.k8s.io/pause:3.9
+        - name: background-job
+          image: public.ecr.aws/amazonlinux/amazonlinux:2
+          command: ["/bin/sh", "-c"]
+          args: 
+            - |
+              echo "Starting background processing job..."
+              while true; do
+                echo "$(date): Processing background tasks..."
+                find /tmp -name "*.tmp" -delete 2>/dev/null || true
+                sleep 30
+                echo "Performing maintenance tasks..."
+                for i in $(seq 1 10); do
+                  echo "Task $i completed" > /dev/null
+                done
+                sleep 60
+              done
           resources:
             requests:
               cpu: "500m"
@@ -109,7 +141,9 @@ spec:
       labels:
         app: demo-burst
     spec:
-      priorityClassName: burst-critical       # tolerate common taints so the scheduler can place this
+      priorityClassName: burst-critical
+      # nodeSelector:
+      #   karpenter.sh/nodepool: maintenance-pool  # Target same node pool as headroom
       containers:
         - name: cpu-burn
           image: public.ecr.aws/amazonlinux/amazonlinux:2
@@ -117,11 +151,11 @@ spec:
           args: ["while true; do sha1sum /dev/zero | head -c 1000000 > /dev/null; sleep 0.5; done"]
           resources:
             requests:
-              cpu: "200m"
-              memory: "128Mi"
-            limits:
-              cpu: "1000m"
+              cpu: "500m"
               memory: "512Mi"
+            limits:
+              cpu: "800m"
+              memory: "1Gi"
 
 ```
 

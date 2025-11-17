@@ -16,6 +16,8 @@ spec:
         app: demo-burst
     spec:
       priorityClassName: burst-critical
+      # nodeSelector:
+      #   karpenter.sh/nodepool: maintenance-pool  # Target same node pool as headroom
       containers:
         - name: cpu-burn
           image: public.ecr.aws/amazonlinux/amazonlinux:2
@@ -23,8 +25,8 @@ spec:
           args: ["while true; do sha1sum /dev/zero | head -c 1000000 > /dev/null; sleep 0.5; done"]
           resources:
             requests:
-              cpu: "200m"
-              memory: "128Mi"
-            limits:
-              cpu: "1000m"
+              cpu: "500m"
               memory: "512Mi"
+            limits:
+              cpu: "800m"
+              memory: "1Gi"
