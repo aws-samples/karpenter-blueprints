@@ -1,4 +1,4 @@
-# Reserved Headroom (DaemonSet) Blueprint
+# Node Reserved Headroom (DaemonSet) Blueprint
 
 ## Purpose
 You might want to ensure there is always **reserved resources capacity on a specific nodes or nodepools** for spiky or bursty workloads. Unlike the classic overprovisioning pattern that warms up new nodes by running low-priority pods, reserved headroom guarantees that a slice of CPU and memory remains available **within existing nodes**. This ensures burst-critical workloads can start immediately without waiting for new nodes or being throttled by full utilization.
