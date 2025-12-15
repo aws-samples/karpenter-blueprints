@@ -63,14 +63,14 @@ locals {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "20.37.0"
+  version = "21.10.1"
 
-  cluster_name                             = local.name
-  cluster_version                          = "1.32"
-  cluster_endpoint_public_access           = true
+  name                                     = local.name
+  kubernetes_version                    = "1.34"
+  endpoint_public_access                   = true
   enable_cluster_creator_admin_permissions = true
 
-  cluster_addons = {
+  addons = {
     aws-ebs-csi-driver = {
       most_recent = true
     }
@@ -160,7 +160,7 @@ module "aws_ebs_csi_pod_identity" {
   source = "terraform-aws-modules/eks-pod-identity/aws"
 
   name    = "aws-ebs-csi"
-  version = "1.12.0"
+  version = "2.5.0"
 
   attach_aws_ebs_csi_policy = true
 
@@ -185,7 +185,7 @@ module "aws_ebs_csi_pod_identity" {
 
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
-  version = "5.21.0"
+  version = "6.5.1"
 
   name = local.name
   cidr = local.vpc_cidr

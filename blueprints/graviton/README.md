@@ -56,7 +56,7 @@ You should see something similar to this:
 
 ```console
 NAME                                        STATUS   ROLES    AGE    VERSION               CAPACITY-TYPE
-ip-10-0-87-181.eu-west-2.compute.internal   Ready    <none>   114s   v1.32.3-eks-473151a   on-demand       c6g.xlarge      default    eu-west-2b
+ip-10-0-87-181.eu-west-2.compute.internal   Ready    <none>   114s   v1.34.1-eks-473151a   on-demand       c6g.xlarge      default    eu-west-2b
 ```
 
 Notice that now Karpenter decided to launch a `c6g.2xlarge` Spot instance because the workload and the NodePool support both pricing models, and the one that has a better price at this moment was a Graviton Spot instance.

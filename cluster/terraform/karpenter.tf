@@ -8,11 +8,10 @@ locals {
 
 module "karpenter" {
   source  = "terraform-aws-modules/eks/aws//modules/karpenter"
-  version = "20.37.0"
+  version = "21.10.1"
 
-  cluster_name          = module.eks.cluster_name
-  enable_v1_permissions = true
-  namespace             = local.karpenter_namespace
+  cluster_name = module.eks.cluster_name
+  namespace    = local.karpenter_namespace
 
   # Name needs to match role name passed to the EC2NodeClass
   node_iam_role_use_name_prefix   = false
@@ -34,7 +33,7 @@ resource "helm_release" "karpenter" {
   repository_username = data.aws_ecrpublic_authorization_token.token.user_name
   repository_password = data.aws_ecrpublic_authorization_token.token.password
   chart               = "karpenter"
-  version             = "1.5.0"
+  version             = "1.8.3"
   wait                = false
 
   values = [

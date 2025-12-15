@@ -35,24 +35,24 @@ You should see an output similar to this:
 
 ```console
 NAME                                         STATUS   ROLES    AGE     VERSION               CAPACITY-TYPE   INSTANCE-TYPE   NODEPOOL   ZONE
-ip-10-0-101-160.eu-west-2.compute.internal   Ready    <none>   19s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
-ip-10-0-109-204.eu-west-2.compute.internal   Ready    <none>   20s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
-ip-10-0-112-15.eu-west-2.compute.internal    Ready    <none>   20s     v1.32.3-eks-473151a   spot            m8g.xlarge      default    eu-west-2c
-ip-10-0-117-72.eu-west-2.compute.internal    Ready    <none>   2m51s   v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
-ip-10-0-36-130.eu-west-2.compute.internal    Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-37-110.eu-west-2.compute.internal    Ready    <none>   21s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-40-176.eu-west-2.compute.internal    Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-44-135.eu-west-2.compute.internal    Ready    <none>   21s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-45-90.eu-west-2.compute.internal     Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-47-113.eu-west-2.compute.internal    Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-48-218.eu-west-2.compute.internal    Ready    <none>   21s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-53-185.eu-west-2.compute.internal    Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-54-107.eu-west-2.compute.internal    Ready    <none>   23s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-54-129.eu-west-2.compute.internal    Ready    <none>   22s     v1.32.3-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
-ip-10-0-66-57.eu-west-2.compute.internal     Ready    <none>   22s     v1.32.3-eks-473151a   spot            c7gd.xlarge     default    eu-west-2b
-ip-10-0-77-61.eu-west-2.compute.internal     Ready    <none>   21s     v1.32.3-eks-473151a   spot            c7gd.xlarge     default    eu-west-2b
-ip-10-0-85-117.eu-west-2.compute.internal    Ready    <none>   23s     v1.32.3-eks-473151a   spot            c8g.xlarge      default    eu-west-2b
-ip-10-0-87-181.eu-west-2.compute.internal    Ready    <none>   4m22s   v1.32.3-eks-473151a   on-demand       c6g.xlarge      default    eu-west-2b
+ip-10-0-101-160.eu-west-2.compute.internal   Ready    <none>   19s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
+ip-10-0-109-204.eu-west-2.compute.internal   Ready    <none>   20s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
+ip-10-0-112-15.eu-west-2.compute.internal    Ready    <none>   20s     v1.34.1-eks-473151a   spot            m8g.xlarge      default    eu-west-2c
+ip-10-0-117-72.eu-west-2.compute.internal    Ready    <none>   2m51s   v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2c
+ip-10-0-36-130.eu-west-2.compute.internal    Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-37-110.eu-west-2.compute.internal    Ready    <none>   21s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-40-176.eu-west-2.compute.internal    Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-44-135.eu-west-2.compute.internal    Ready    <none>   21s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-45-90.eu-west-2.compute.internal     Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-47-113.eu-west-2.compute.internal    Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-48-218.eu-west-2.compute.internal    Ready    <none>   21s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-53-185.eu-west-2.compute.internal    Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-54-107.eu-west-2.compute.internal    Ready    <none>   23s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-54-129.eu-west-2.compute.internal    Ready    <none>   22s     v1.34.1-eks-473151a   spot            m7g.xlarge      default    eu-west-2a
+ip-10-0-66-57.eu-west-2.compute.internal     Ready    <none>   22s     v1.34.1-eks-473151a   spot            c7gd.xlarge     default    eu-west-2b
+ip-10-0-77-61.eu-west-2.compute.internal     Ready    <none>   21s     v1.34.1-eks-473151a   spot            c7gd.xlarge     default    eu-west-2b
+ip-10-0-85-117.eu-west-2.compute.internal    Ready    <none>   23s     v1.34.1-eks-473151a   spot            c8g.xlarge      default    eu-west-2b
+ip-10-0-87-181.eu-west-2.compute.internal    Ready    <none>   4m22s   v1.34.1-eks-473151a   on-demand       c6g.xlarge      default    eu-west-2b
 ```
 
 As you can see, pods were spread within AZs (1a and 1b) because of the `topology.kubernetes.io/zone` TSC. But at the same time, pods were spread within multiple nodes in each AZ because of the `kubernetes.io/hostname` TSC.
