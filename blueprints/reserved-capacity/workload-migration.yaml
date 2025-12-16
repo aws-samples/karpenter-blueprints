@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: migration-workload
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: migration-test
+  template:
+    metadata:
+      labels:
+        app: migration-test
+        intent: apps
+    spec:
+      containers:
+      - name: app
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      nodeSelector:
+        karpenter.sh/nodepool: reserved-migration

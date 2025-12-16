@@ -5,19 +5,17 @@ metadata:
 spec:
   amiSelectorTerms:
     - alias: al2023@latest
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  role: "karpenter-blueprints"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+      karpenter.sh/discovery: karpenter-blueprints
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+      karpenter.sh/discovery: karpenter-blueprints
   capacityReservationSelectorTerms:
-  # Select ODCRs by tags - replace with your actual tags
   - tags:
       intent: apps
-  # Or select specific ODCR by ID - replace with your actual ODCR ID
-  # - id: cr-1234567890abcdef0
+      project: karpenter-blueprints
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -31,6 +29,7 @@ spec:
     metadata:
       labels:
         intent: apps
+        workload-type: odcr
     spec:
       expireAfter: 168h0m0s
       nodeClassRef:
@@ -46,7 +45,14 @@ spec:
         operator: In
         values:
         - amd64
-      # Priority: reserved (ODCR) first, then on-demand fallback
+      - key: node.kubernetes.io/instance-type
+        operator: In
+        values:
+        - t3.small
+      - key: topology.kubernetes.io/zone
+        operator: In
+        values:
+        - eu-west-2a  # Same AZ as ODCR
       - key: karpenter.sh/capacity-type
         operator: In
-        values: ["reserved", "on-demand"]
+        values: ['reserved', 'on-demand']

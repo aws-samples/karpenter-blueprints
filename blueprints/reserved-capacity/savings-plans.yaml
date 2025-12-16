@@ -7,7 +7,7 @@ spec:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
   limits:
-    cpu: "20" # Match your Savings Plan capacity
+    cpu: "20"
   template:
     metadata:
       labels:
@@ -22,11 +22,7 @@ spec:
       - key: karpenter.k8s.aws/instance-family
         operator: In
         values:
-        - c5  # Instance family matching your Savings Plan
-        # Alternatively, you can configure fixed instance types
-        # - key: "node.kubernetes.io/instance-type"
-        #   operator: In
-        #   values: ["c4.xlarge"] # 4 vCPUs
+        - c5
       - key: kubernetes.io/os
         operator: In
         values:

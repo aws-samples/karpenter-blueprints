@@ -7,7 +7,7 @@ spec:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
   limits:
-    cpu: "16" # Limit to match your Reserved Instance capacity
+    cpu: "16"
   template:
     metadata:
       labels:
@@ -22,7 +22,7 @@ spec:
       - key: node.kubernetes.io/instance-type
         operator: In
         values:
-        - c5.xlarge  # Replace with your Reserved Instance types
+        - c5.xlarge
         - c5.2xlarge
       - key: kubernetes.io/os
         operator: In

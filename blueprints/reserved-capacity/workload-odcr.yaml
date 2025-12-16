@@ -13,11 +13,11 @@ spec:
         app: odcr-workload
     spec:
       nodeSelector:
-        intent: apps
+        workload-type: odcr
       containers:
       - name: app
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
         resources:
           requests:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 100m
+            memory: 256Mi
