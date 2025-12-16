@@ -6,6 +6,8 @@
 
 If you have purchased Savings Plans, Reserved Instances, or On-Demand Capacity Reservations (ODCRs), you want to prioritize this reserved capacity before using standard on-demand or spot instances. This blueprint demonstrates how to configure Karpenter to prioritize different types of reserved capacity, ensuring maximum utilization and cost optimization.
 
+> **AWS Recommendation**: We recommend using On-Demand Capacity Reservations (ODCRs) for guaranteed capacity needs, especially as current guidance favors Savings Plans over Reserved Instances. Note that Savings Plans provide cost savings but do not reserve capacity. For capacity guarantees, ODCRs are the preferred approach. See [AWS documentation on capacity reservation differences](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-reservations.html#capacity-reservations-differences) for more details.
+
 This blueprint covers four main scenarios:
 1. **Savings Plans** - Prioritize instance families that match your Savings Plans
 2. **Reserved Instances** - Prioritize specific instance types with Reserved Instance commitments  
