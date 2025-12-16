@@ -5,17 +5,17 @@ metadata:
 spec:
   amiSelectorTerms:
     - alias: al2023@latest
-  role: "karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: karpenter-blueprints
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
   capacityReservationSelectorTerms:
   - tags:
       intent: apps
-      project: karpenter-blueprints
+      project: <<CLUSTER_NAME>>
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -52,7 +52,7 @@ spec:
       - key: topology.kubernetes.io/zone
         operator: In
         values:
-        - eu-west-2a  # Same AZ as ODCR
+        - <<AZ>>  # Same AZ as ODCR
       - key: karpenter.sh/capacity-type
         operator: In
         values: ['reserved', 'on-demand']
