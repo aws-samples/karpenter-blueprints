@@ -17,3 +17,13 @@ output "node_instance_role_name" {
   description = "IAM Role name that each Karpenter node will use"
   value       = local.name
 }
+
+output "region" {
+  description = "AWS region where the cluster is deployed"
+  value       = var.region
+}
+
+output "availability_zones" {
+  description = "Availability zones used by the cluster"
+  value       = local.azs
+}

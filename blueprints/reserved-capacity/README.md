@@ -218,8 +218,6 @@ kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter --tail=50 | grep -
 - **AZ-specific behavior**: ODCRs only work within their designated availability zone
 - **Cost optimization**: Reserved capacity is consumed before on-demand instances
 
-
-
 ### Cleanup
 
 ```sh
