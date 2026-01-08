@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: reserved-first
+  name: reserved-workload
 spec:
-  replicas: 20
+  replicas: 5
   selector:
     matchLabels:
-      app: reserved-first
+      app: reserved-workload
   template:
     metadata:
       labels:
-        app: reserved-first
+        app: reserved-workload
     spec:
       nodeSelector:
-        intent: apps
+        intent: reserved-apps
       containers:
-      - name: reserved-first
+      - name: app
         image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
         resources:
           requests:
-            cpu: 950m
+            cpu: 800m
             memory: 512Mi

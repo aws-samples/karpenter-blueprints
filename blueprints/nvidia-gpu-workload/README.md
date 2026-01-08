@@ -21,10 +21,16 @@ To install the device plugin run the following:
 ```sh
 helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
 helm repo update
+# Check available versions: helm show chart nvdp/nvidia-device-plugin
 helm upgrade -i nvdp nvdp/nvidia-device-plugin \
   --namespace nvidia-device-plugin \
   --create-namespace \
-  --version 0.17.2
+  --version 0.18.0
+```
+
+**Confirm installation:**
+```sh
+helm list -n nvidia-device-plugin
 ```
 
 Now that you have the device set-up, let’s enable Karpenter to launch NVIDIA GPU instances.
@@ -89,7 +95,7 @@ spec:
   template:
     metadata:
       labels:
-        nvidia.com/gpu.present: true
+        nvidia.com/gpu.present: "true"
     spec:
       nodeClassRef:
         group: karpenter.k8s.aws
@@ -186,14 +192,14 @@ You can view the pods nvidia-smi logs by executing:
 $> kubectl logs pod/nvidia-smi
 
 +-----------------------------------------------------------------------------------------+
-| NVIDIA-SMI 570.133.20             Driver Version: 570.133.20     CUDA Version: 12.8     |
-|-----------------------------------------+------------------------+----------------------+
+| NVIDIA-SMI 580.105.08             Driver Version: 580.105.08     CUDA Version: 13.0     |
++-----------------------------------------+------------------------+----------------------+
 | GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
 | Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  Tesla T4                       On  |   00000000:00:1E.0 Off |                    0 |
-| N/A   29C    P8             17W /   70W |       0MiB /  15360MiB |      0%      Default |
+| N/A   30C    P8              9W /   70W |       0MiB /  15360MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odcr-workload
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: odcr-workload
+  template:
+    metadata:
+      labels:
+        app: odcr-workload
+    spec:
+      nodeSelector:
+        workload-type: odcr
+      containers:
+      - name: app
+        image: public.ecr.aws/eks-distro/kubernetes/pause:v1.33.0-eks-1-33-4
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi

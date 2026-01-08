@@ -130,9 +130,9 @@ You should see something similar to this, where a new node just appeared:
 
 ```console
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
-ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   16d   v1.32.3-eks-473151a   m4.large
-ip-10-0-47-60.eu-west-1.compute.internal     Ready    <none>   44s   v1.32.3-eks-473151a   c6g.4xlarge
+ip-10-0-125-209.eu-west-1.compute.internal   Ready    <none>   16d   v1.34.1-eks-473151a   m4.large
+ip-10-0-46-139.eu-west-1.compute.internal    Ready    <none>   16d   v1.34.1-eks-473151a   m4.large
+ip-10-0-47-60.eu-west-1.compute.internal     Ready    <none>   44s   v1.34.1-eks-473151a   c6g.4xlarge
 ```
 
 Check the three new pods are running by executing:
@@ -224,7 +224,7 @@ NAME        COMPLETIONS   DURATION   AGE
 Now, **it is possible to replace the node** by a cheaper and smaller instance because the the NGINX server can be disrupted as it does't contain the `karpenter.sh/do-not-disrupt: "true"` annotation. You can check this in the Karpenter logs terminal:
 
 ```json
-{"level":"INFO","time":"2024-08-16T10:17:21.322Z","logger":"controller","message":"created nodeclaim","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"1135db0e-45ef-4529-9492-63789a9837c6","NodePool":{"name":"default"},"NodeClaim":{"name":"default-9m4bv"},"requests":{"cpu":"2260m","memory":"290Mi","pods":"6"},"instance-types":"c4.xlarge, c5.xlarge, c5a.xlarge, c5d.xlarge, c5n.xlarge and 32 other(s)"}
+{"level":"INFO","time":"2024-08-16T10:17:21.342Z","logger":"controller","message":"created nodeclaim","commit":"5bdf9c3","controller":"disruption","namespace":"","name":"","reconcileID":"1135db0e-45ef-4529-9492-63789a9837c6","NodePool":{"name":"default"},"NodeClaim":{"name":"default-9m4bv"},"requests":{"cpu":"2260m","memory":"290Mi","pods":"6"},"instance-types":"c4.xlarge, c5.xlarge, c5a.xlarge, c5d.xlarge, c5n.xlarge and 32 other(s)"}
 ...
 {"level":"INFO","time":"2024-08-16T10:17:23.452Z","logger":"controller","message":"launched nodeclaim","commit":"5bdf9c3","controller":"nodeclaim.lifecycle","controllerGroup":"karpenter.sh","controllerKind":"NodeClaim","NodeClaim":{"name":"default-9m4bv"},"namespace":"","name":"default-9m4bv","reconcileID":"f0e0cc47-45a9-479c-a1c7-b5f0f0341026","provider-id":"aws:///eu-west-2a/i-0a4fa068af5550afa","instance-type":"c6g.xlarge","zone":"eu-west-2a","capacity-type":"on-demand","allocatable":{"cpu":"3920m","ephemeral-storage":"17Gi","memory":"6525Mi","pods":"58","vpc.amazonaws.com/pod-eni":"18"}}
 ...
@@ -238,9 +238,9 @@ Karpenter replaces the **c6g.4xlarge** (16 vCPU, 32 GiB) with a **c6g.xlarge** n
 ```sh
 $> kubectl get nodes --label-columns node.kubernetes.io/instance-type
 NAME                                         STATUS   ROLES    AGE   VERSION               INSTANCE-TYPE
-ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
-ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   m4.large
-ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.32.3-eks-473151a   c6g.xlarge
+ip-10-0-105-122.eu-west-2.compute.internal   Ready    <none>   10m   v1.34.1-eks-473151a   m4.large
+ip-10-0-34-49.eu-west-2.compute.internal     Ready    <none>   10m   v1.34.1-eks-473151a   m4.large
+ip-10-0-85-30.eu-west-1.compute.internal     Ready    <none>   10m   v1.34.1-eks-473151a   c6g.xlarge
 ```
 
 Finally, you can check the NGINX server pod has been re-scheduled into the new pod:

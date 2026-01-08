@@ -1,17 +1,17 @@
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: savings-plans
+  name: reserved-instances
 spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 1m
   limits:
-    cpu: "20" # For example: Limit to launch up to 5 c4.xlarge instances
+    cpu: "16"
   template:
     metadata:
       labels:
-        intent: apps
+        intent: reserved-apps
     spec:
       expireAfter: 168h0m0s
       nodeClassRef:
@@ -19,14 +19,11 @@ spec:
         name: default
         kind: EC2NodeClass
       requirements:
-      - key: karpenter.k8s.aws/instance-family
+      - key: node.kubernetes.io/instance-type
         operator: In
         values:
-        - c4
-        # Alternatively, you can configure fixed instance types
-        # - key: "node.kubernetes.io/instance-type"
-        #   operator: In
-        #   values: ["c4.xlarge"] # 4 vCPUs
+        - c5.xlarge
+        - c5.2xlarge
       - key: kubernetes.io/os
         operator: In
         values:
