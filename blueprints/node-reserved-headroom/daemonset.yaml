@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: headroom-reserver
+  namespace: default
+  labels:
+    app: headroom-reserver
+spec:
+  selector:
+    matchLabels:
+      app: headroom-reserver
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: headroom-reserver
+    spec:
+      priorityClassName: headroom-high
+      terminationGracePeriodSeconds: 0
+      # nodeSelector:
+      #   karpenter.sh/nodepool: maintenance-pool  # Target specific node pool for headroom
+      containers:
+        - name: background-job
+          image: public.ecr.aws/amazonlinux/amazonlinux:2
+          command: ["/bin/sh", "-c"]
+          args: 
+            - |
+              echo "Starting background processing job..."
+              while true; do
+                # Simulate log processing, data cleanup, or system maintenance
+                echo "$(date): Processing background tasks..."
+                find /tmp -name "*.tmp" -delete 2>/dev/null || true
+                sleep 30
+                
+                # Simulate some CPU work (log analysis, compression, etc.)
+                echo "Performing maintenance tasks..."
+                for i in $(seq 1 10); do
+                  echo "Task $i completed" > /dev/null
+                done
+                sleep 60
+              done
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
