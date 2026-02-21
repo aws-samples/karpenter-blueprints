@@ -6,17 +6,18 @@ spec:
   amiFamily: AL2023
   amiSelectorTerms:
   - alias: al2023@v20250715 # Amazon Linux 2023
-  role: "karpenter-blueprints"
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
   securityGroupSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   subnetSelectorTerms:
   - tags:
-      karpenter.sh/discovery: "karpenter-blueprints"
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   metadataOptions:
     httpEndpoint: enabled
     httpTokens: required
     httpPutResponseHopLimit: 1
+  instanceStorePolicy: RAID0
   blockDeviceMappings:
     - deviceName: /dev/xvda
       ebs:
@@ -48,6 +49,15 @@ spec:
         elif [ -f /etc/os-release ] && grep -q "Amazon Linux" /etc/os-release; then
             echo "al2023"
         fi
+    }
+
+    has_ephemeral_storage() {
+      if ls /dev/disk/by-id/*Instance_Storage* 2>/dev/null || \
+         ls /.bottlerocket/rootfs/dev/disk/by-id/*Instance_Storage* 2>/dev/null; then
+        echo "NVMe instance storage detected, skipping EBS resize"
+        return 0
+      fi
+      return 1
     }
 
     get_target_size_by_suffix() {
@@ -120,7 +130,7 @@ spec:
 
         if [ "$current_size" -ge "$target_size" ]; then
             echo "Volume already correct size (${current_size}GB)"
-            return 0
+            exit 0
         fi
 
         echo "Resizing volume from ${current_size}GB to ${target_size}GB"
@@ -186,6 +196,15 @@ spec:
         return 0
     }
 
+    # Check for ephemeral storage first
+    if has_ephemeral_storage; then
+      os_type=$(detect_os)
+      if [ "$os_type" = "al2023" ]; then
+        /usr/bin/nodeadm init
+      fi
+      exit 0
+    fi
+
     # Execute resize
     if ! resize_ebs_for_instance; then
         echo "EBS resize failed"
@@ -195,6 +214,9 @@ spec:
     os_type=$(detect_os)
     if [ "$os_type" = "al2023" ]; then
         /usr/bin/nodeadm init
+    elif [ "$os_type" = "bottlerocket" ] && [ $resize_result -eq 0 ]; then
+      echo "Rebooting Bottlerocket instance after successful EBS resize"
+      apiclient reboot
     fi
 ---
 apiVersion: karpenter.sh/v1

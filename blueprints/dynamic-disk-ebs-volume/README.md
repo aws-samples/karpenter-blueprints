@@ -2,15 +2,17 @@
 
 ## Purpose
 
-When Karpenter provisions nodes of varying sizes, EBS volume capacity becomes a critical constraint. Consider a scenario where 10 pods require substantial storage for multiple container images and ephemeral data—if Karpenter launches a mix of instance types (2xlarge, 4xlarge, 6xlarge), a fixed 20GB root volume will fail on larger instances that need to store more container images and handle higher pod density. With the rise of AI/ML workloads on Kubernetes, the growth in container image sizes has been considerably, where image are commonly ten of gigabytes in size; these images will demand big instance types along with suitable allocated disk space. 
+When Karpenter provisions nodes of varying sizes, EBS volume capacity becomes a critical constraint. A fixed 20GB root volume fails on larger instances that need to store more container images and handle higher pod density.
 
-This blueprint automatically resizes EBS volumes based on instance type: a c6i.2xlarge receives 300GB, a c6i.4xlarge gets 500GB, and a c6i.6xlarge provisions 600GB—eliminating manual intervention and preventing storage-related disruptions. 
+Consider a scenario where 10 pods require substantial storage for multiple container images and ephemeral data. If Karpenter launches a mix of instance types (2xlarge, 4xlarge, 6xlarge), the fixed volume size becomes a bottleneck. This problem has intensified with AI/ML workloads on Kubernetes, where container images are commonly tens of gigabytes in size and demand larger instance types with suitable disk space.
 
-Key use cases include:
+This blueprint automatically resizes EBS volumes based on instance type: a c6i.2xlarge receives 300GB, a c6i.4xlarge gets 500GB, and a c6i.6xlarge provisions 600GB—eliminating manual intervention and preventing storage-related disruptions.
 
-* AI/ML workloads where images demand considerable disk space. 
-* Larger instances hosting more pods require proportionally larger EBS volumes to store the corresponding container images.
-* Larger instances hosting pods that utilize ephemeral storage (emptyDir volumes) need EBS volumes with higher IOPS to prevent I/O bottlenecks.
+**Key use cases:**
+
+* AI/ML workloads with large container images requiring considerable disk space
+* Larger instances hosting more pods that need proportionally larger EBS volumes to store container images
+* Larger instances with pods using ephemeral storage (emptyDir volumes) that require higher IOPS to prevent I/O bottlenecks
 
 ## Requirements
 
@@ -19,37 +21,53 @@ Key use cases include:
 
 ## Deploy
 
-If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
+### 1. Set Environment Variables
 
+If you're using the Terraform template provided in this repo, run the following commands to get the EKS cluster name and the IAM Role name for the Karpenter nodes:
 ```sh
 export CLUSTER_NAME=$(terraform -chdir="../../cluster/terraform" output -raw cluster_name)
 export KARPENTER_NODE_IAM_ROLE_NAME=$(terraform -chdir="../../cluster/terraform" output -raw node_instance_role_name)
 ```
 
-> ***NOTE***: If you're not using Terraform, you need to get those values manually. `CLUSTER_NAME` is the name of your EKS cluster (not the ARN). Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) in your `EC2NodeClass` given the role that you specify in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/) with the placeholder `KARPENTER_NODE_IAM_ROLE_NAME`, which is a way to pass a single IAM role to the EC2 instance launched by the Karpenter `NodePool`. Typically, the instance profile name is the same as the IAM role (not the ARN).
+**If not using Terraform**, set these variables manually:
+- `CLUSTER_NAME`: Your EKS cluster name (not the ARN)
+- `KARPENTER_NODE_IAM_ROLE_NAME`: The IAM role name (not ARN) used in your EC2NodeClass `spec.role` field
 
-The Karpenter node IAM role needs additional permissions to allow the bootstrap script to expand EBS volume sizes. Let's create an IAM policy with the required permissions and attach it to the Karpenter node IAM role:
+> Karpenter auto-generates the [instance profile](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles) from the role specified in [spec.role](https://karpenter.sh/preview/concepts/nodeclasses/). Typically, the instance profile name matches the IAM role name.
 
+### 2. Attach IAM Policy
+
+The Karpenter node IAM role needs additional permissions to allow the bootstrap script to expand EBS volume sizes. Create and attach the required IAM policy:
 ```sh
-aws iam attach-role-policy --role-name $KARPENTER_NODE_IAM_ROLE_NAME --policy-arn $(aws iam create-policy --policy-name resizeEBSVolumePolicy --policy-document file://iam-policy.json --query 'Policy.Arn' --output text)
+aws iam attach-role-policy \
+ --role-name $KARPENTER_NODE_IAM_ROLE_NAME \
+ --policy-arn $(aws iam create-policy \
+   --policy-name resizeEBSVolumePolicy \
+   --policy-document file://iam-policy.json \
+   --query 'Policy.Arn' \
+   --output text)
 ```
 
-Now, make sure you're in this blueprint folder, then run the following command:
+### 3. Deploy Resources
 
+Make sure you're in this blueprint folder, then apply the configuration:
 ```sh
 sed -i '' "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" ebs-dynamic-resize.yaml
 sed -i '' "s/<<KARPENTER_NODE_IAM_ROLE_NAME>>/$KARPENTER_NODE_IAM_ROLE_NAME/g" ebs-dynamic-resize.yaml
-kubectl apply -f .
+kubectl apply -f ebs-dynamic-resize.yaml -f deployment.yaml
 ```
 
-> ***NOTE***: It can take a couple of minutes for resource to be created, while resources are being created you can continue reading.
+> **Note**: Resource creation takes a couple of minutes. You can continue reading while resources are being created.
 
-Those commands creates the following:
-1. `EC2NodeClass` and `NodePool` named `ebs-dynamic-resize` for enabling the dynamic resize of EBS according to instance size on Amazon Linux 2023.
-2. Kubernetes `Deployment` named `vllm-ebs-dynamic-resize` that uses the `ebs-dynamic-resize` `NodePool`
+This creates the following resources:
 
-> ***NOTE***: For our example, the deployment uses [SOCI-Seekable OCI](https://github.com/awslabs/soci-snapshotter) parallel mode capabilities; therefore, it request instances that have network and ebs bandwidth greater than 8000 Mbps by using `nodeAffinity` in order to eliminate network and storage I/O bottlenecks.
-```
+1. **EC2NodeClass and NodePool** (`ebs-dynamic-resize`): Enables dynamic EBS resizing based on instance size using Amazon Linux 2023
+2. **Kubernetes Deployment** (`vllm-ebs-dynamic-resize`): Sample workload that uses the `ebs-dynamic-resize` NodePool
+
+### Instance Selection
+
+The sample deployment uses [SOCI (Seekable OCI)](https://github.com/awslabs/soci-snapshotter) parallel mode capabilities and requires instances with sufficient network and EBS bandwidth. It uses `nodeAffinity` to select instances with both network and EBS bandwidth greater than 8000 Mbps to eliminate I/O bottlenecks:
+```yaml
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -67,25 +85,28 @@ Those commands creates the following:
 
 ## Results
 
-Wait until the pods from the sample workload are in running status:
+Let's verify that the EBS volumes were dynamically resized based on the instance types provisioned by Karpenter.
 
+First, wait until the pods from the sample workload are running:
 ```sh
-> kubectl wait --for=condition=Ready pods --all --namespace default --timeout=500s
+> kubectl wait --for=condition=Ready pods --all --namespace default --timeout=360s
+```
+
+Expected output:
+```sh
 pod/vllm-ebs-dynamic-resize-9b558b46-87nm2 condition met
 pod/vllm-ebs-dynamic-resize-9b558b46-9n58b condition met
 pod/vllm-ebs-dynamic-resize-9b558b46-vtdvt condition met
 ```
 
-The sample workload deploys one Deployments with three replicas running [Amazon Deep Learning Container (DLC) for vLLM](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/dlc-vllm-x86-ec2.html). The Amazon DLC for vLLM container image size is about **~10GB** which will not fit on the base EC2NodeClass that has a 20Gi volume size. 
+The sample workload deploys one Deployment with three replicas running the [Amazon Deep Learning Container (DLC) for vLLM](https://docs.aws.amazon.com/deep-learning-containers/latest/devguide/dlc-vllm-x86-ec2.html). This container image is approximately 10GB, which exceeds the base EC2NodeClass volume size of 20Gi.
 
-Let's examine the EBS volume resized for each instance, you need to run this command:
-
+Now, examine the resized EBS volumes for the provisioned instances:
 ```sh
 aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=$(aws ec2 describe-instances --filters "Name=tag:karpenter.sh/nodepool,Values=ebs-dynamic-resize" --query 'Reservations[*].Instances[*].InstanceId' --output text | tr '\n' ',' | sed 's/,$//')" --query 'Volumes[*].{VolumeId:VolumeId,Size:Size,InstanceId:Attachments[0].InstanceId,Device:Attachments.Device}' --output json
 ```
 
-The output should be similar to this:
-
+Expected output:
 ```json
 [
     {
@@ -97,23 +118,43 @@ The output should be similar to this:
 ]
 ```
 
-The volume size in the NodePool was set to 20Gi and it was dynamically set to 300Gi based on the instance type. 
+Notice that the volume size was dynamically increased from the NodePool's configured 20Gi to 300Gi based on the instance type provisioned.
 
 ## Cleanup
 
 To remove all objects created, simply run the following commands:
 
 ```sh
-kubectl delete -f .
+kubectl delete f ebs-dynamic-resize.yaml -f deployment.yaml
 ```
+
+## Instances with ephemeral storage
+
+This script does not resize EBS volumes when the instance has ephemeral storage, since it is better suited for storing container images, ephemeral data, and logs.
+
+The following parameter in the NodePool sets up a RAID-0 XFS filesystem from any NVMe instance storage disks, moves the contents of `/var/lib/kubelet`, `/var/log/pods`, and `/var/lib/containerd` to the new RAID, and symlinks those directories back to the root filesystem:
+```yaml
+  instanceStorePolicy: RAID0
+```
+
+If this parameter is not set in your NodePool, you must manually configure `/var/lib/kubelet`, `/var/log/pods`, and `/var/lib/containerd` to use the ephemeral storage.
 
 ## Bottlerocket
 
-In case you want to use this blueprint with Bottlerocket instances, the resize bash script must be passed via a [bootstrap container](https://github.com/bottlerocket-os/bottlerocket-bootstrap-container). The user-data script needs to be base64 encoded. 
-```
+If you want to use Bottlerocket OS instead of Amazon Linux 2023, the resize script must be delivered differently due to Bottlerocket's immutable design.
+
+The script needs to be passed via a [bootstrap container](https://github.com/bottlerocket-os/bottlerocket-bootstrap-container) and base64-encoded in the user-data configuration:
+```yaml
   userData: |
     [settings.bootstrap-containers.ebsresize]
     mode = "once"
     user-data = "<<BASE64_USER_DATA>>"
 ```
-The script used in this blueprint for an Amazon Linux 2023 instance can be base64-encoded as it is and it will work.
+
+The same bash script used for Amazon Linux 2023 instances in this blueprint can be base64-encoded as-is and will work with Bottlerocket.
+
+To encode the script:
+```sh
+cat resize-script.sh | base64 | tr -d '\n'
+```
+Then replace `<<BASE64_USER_DATA>>` with the encoded output.
