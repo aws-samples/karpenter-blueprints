@@ -57,8 +57,9 @@ Using NodeOverlays, you can adjust the perceived price of older generation insta
 
 When you apply a `priceAdjustment` to instance types via NodeOverlay, Karpenter adjusts its internal price calculations before making provisioning decisions:
 
-- **For On-Demand instances**: Karpenter uses the `lowest-price` allocation strategy by default. With NodeOverlay price adjustments, the perceived prices change, effectively creating a `prioritized` behavior where instances with lower adjusted prices are preferred.
-- **For Spot instances**: Karpenter uses the `price-capacity-optimized` (PCO) allocation strategy. While price adjustments do influence the selection, capacity availability takes precedence—EC2 will prioritize pools with the highest capacity to reduce interruption risk, which may override your price preferences.
+- **For On-Demand instances**: Karpenter uses the [`lowest-price` allocation strategy](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html#ec2-fleet-allocation-use-cases) by default. With NodeOverlay price adjustments, the perceived prices change, effectively creating a [`prioritized` allocation strategy](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-fleet-allocation-strategy.html#ec2-fleet-allocation-use-cases) where instances with lower adjusted prices are preferred.
+
+- **For Spot instances**: When NodeOverlay price adjustments are applied, Karpenter switches from the default [`price-capacity-optimized`](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-allocation-strategy.html#spot-fleet-price-capacity-optimized) allocation strategy to [`capacity-optimized-prioritized`](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-fleet-allocation-strategy.html#spot-fleet-capacity-optimized-prioritized). The custom pricing from NodeOverlay is passed to the EC2 CreateFleet API as priorities. However, note that priorities in `capacity-optimized-prioritized` are relative (not weighted), so the difference between priority values matters less than their relative ordering. EC2 will still prioritize capacity availability to reduce interruption risk, which may override your price preferences in some cases.
 
 For this reason, we'll use On-Demand instances in this example to demonstrate deterministic behavior based on price adjustments.
 
