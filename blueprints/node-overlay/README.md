@@ -324,17 +324,168 @@ kubectl delete -f gpu-nodeclass.yaml
 
 ---
 
+## Scenario 3: Targeting Specific NodePools
+
+### Overview
+
+By default, NodeOverlays apply to all instance types that match their requirements across your entire cluster. However, in multi-tenant environments or clusters with multiple NodePools serving different purposes, you may want to apply a NodeOverlay to only specific workloads or NodePools without affecting others.
+
+NodeOverlays support targeting using requirements that work exactly like NodePool requirements. You can use any well-known label or Karpenter-specific label to scope where your overlay applies, including targeting specific NodePools, capacity types, architectures, zones, or any other node attribute.
+
+### Use Case
+
+In multi-tenant clusters where different teams manage their own NodePools, you may want to apply specific instance selection preferences to your team's workloads without affecting other teams' configurations. Without proper targeting, applying a NodeOverlay would affect the entire cluster, potentially disrupting other teams' carefully tuned configurations.
+
+NodeOverlay requirements work exactly like NodePool requirements, allowing you to target by NodePool name (`karpenter.sh/nodepool`), capacity type (`karpenter.sh/capacity-type`), zone (`topology.kubernetes.io/zone`), architecture (`kubernetes.io/arch`), or any other well-known label.
+
+### Deploy
+
+First, create a dedicated NodePool that you want to target. This example creates a NodePool called `team-alpha` that accepts both ARM and AMD architectures:
+
+```sh
+kubectl apply -f nodepool-targeted.yaml
+```
+
+The key part of this NodePool configuration allows both architectures:
+
+```yaml
+requirements:
+  - key: kubernetes.io/arch
+    operator: In
+    values: ["arm64", "amd64"]  # Accepts both architectures
+```
+
+Now create a NodeOverlay that targets ONLY the `team-alpha` NodePool to prefer ARM-based Graviton instances. In this example, we use the `karpenter.sh/nodepool` requirement to target a specific NodePool:
+
+```sh
+kubectl apply -f node-overlay-targeted.yaml
+```
+
+Here's the key section that enables targeting:
+
+```yaml
+apiVersion: karpenter.sh/v1alpha1
+kind: NodeOverlay
+metadata:
+  name: team-alpha-prefer-graviton
+spec:
+  weight: 10
+  requirements:
+    # Target a specific NodePool by name
+    - key: karpenter.sh/nodepool
+      operator: In
+      values: ["team-alpha"]
+    # Apply the overlay to AMD64 instances
+    - key: kubernetes.io/arch
+      operator: In
+      values: ["amd64"]
+  # Penalize AMD64 by 20% to prefer ARM64 Graviton instances
+  priceAdjustment: "+20%"
+```
+
+The requirements work exactly like NodePool requirements. You can use `karpenter.sh/nodepool` to target by NodePool name, or use any other requirement key like `karpenter.sh/capacity-type`, `topology.kubernetes.io/zone`, or custom labels to scope your overlay.
+
+### Testing
+
+Deploy a workload that targets the `team-alpha` NodePool:
+
+```sh
+kubectl apply -f workload-targeted.yaml
+```
+
+Wait for Karpenter to provision a node:
+
+```sh
+kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha
+```
+
+You should see an ARM-based Graviton instance provisioned for the `team-alpha` NodePool:
+
+```console
+NAME            TYPE          ZONE         NODE                                        READY   AGE
+team-alpha-xxx  c7g.xlarge    eu-west-1a   ip-10-0-xx-xx.eu-west-1.compute.internal    True    45s
+```
+
+Verify the architecture:
+
+```sh
+kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[*].metadata.labels.kubernetes\.io/arch}'
+```
+
+You should see `arm64`, confirming the NodeOverlay preference is working.
+
+Now verify that the `default` NodePool is NOT affected by these overlays. Deploy a workload to the default NodePool:
+
+```sh
+kubectl apply -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workload-default
+  template:
+    metadata:
+      labels:
+        app: workload-default
+    spec:
+      nodeSelector:
+        karpenter.sh/nodepool: default
+      containers:
+      - name: pause
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.9
+        resources:
+          requests:
+            cpu: 1
+            memory: 1Gi
+      terminationGracePeriodSeconds: 0
+EOF
+```
+
+Check what architecture was selected for the default NodePool:
+
+```sh
+kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[*].metadata.labels.kubernetes\.io/arch}'
+```
+
+The default NodePool should select instances based on pure price optimization (likely `amd64` depending on current pricing), proving that the NodeOverlays only affected the `team-alpha` NodePool.
+
+### Results
+
+This demonstrates that:
+
+1. NodeOverlays can be scoped using requirements, just like NodePools
+2. You can target specific NodePools, capacity types, zones, architectures, or any other node attribute
+3. Multiple NodePools can coexist with different NodeOverlay configurations
+4. Teams in multi-tenant clusters can independently tune their workload behavior without affecting others
+
+### Cleanup Scenario 3
+
+```sh
+kubectl delete -f workload-targeted.yaml
+kubectl delete deployment workload-default
+kubectl delete -f node-overlay-targeted.yaml
+kubectl delete -f nodepool-targeted.yaml
+```
+
+---
+
 ## Key Takeaways
 
 1. **NodeOverlay informs Karpenter's scheduling simulation**: It helps Karpenter make better provisioning decisions by understanding capacity before nodes exist. The actual node configuration must match what NodeOverlay declares.
 
-2. **Price adjustments work best with On-Demand**: For Spot instances, EC2's capacity-optimized strategy may override your price preferences.
+2. **NodeOverlays can be targeted using requirements**: Use any requirement key available in NodePools (like `karpenter.sh/nodepool`, `karpenter.sh/capacity-type`, `topology.kubernetes.io/zone`, etc.) to scope overlays to specific workloads or NodePools, enabling targeted configuration in multi-tenant clusters without affecting other teams.
 
-3. **GPU time-slicing requires both NodeOverlay and node configuration**: NodeOverlay tells Karpenter about the capacity, while the EC2NodeClass userData configures actual time-slicing on Bottlerocket nodes.
+3. **Price adjustments work best with On-Demand**: For Spot instances, EC2's capacity-optimized strategy may override your price preferences.
 
-4. **Bottlerocket simplifies GPU time-slicing**: Unlike other AMIs that require the full NVIDIA GPU Operator, Bottlerocket has built-in support for time-slicing via userData settings.
+4. **GPU time-slicing requires both NodeOverlay and node configuration**: NodeOverlay tells Karpenter about the capacity, while the EC2NodeClass userData configures actual time-slicing on Bottlerocket nodes.
 
-5. **NodeOverlays integrate with consolidation**: Price and capacity changes affect consolidation decisions, potentially triggering node replacements when configurations change.
+5. **Bottlerocket simplifies GPU time-slicing**: Unlike other AMIs that require the full NVIDIA GPU Operator, Bottlerocket has built-in support for time-slicing via userData settings.
+
+6. **NodeOverlays integrate with consolidation**: Price and capacity changes affect consolidation decisions, potentially triggering node replacements when configurations change.
 
 ## Full Cleanup
 
