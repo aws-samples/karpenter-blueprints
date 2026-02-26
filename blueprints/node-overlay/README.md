@@ -336,26 +336,17 @@ NodeOverlays support targeting using requirements that work exactly like NodePoo
 
 In multi-tenant clusters where different teams manage their own NodePools, you may want to apply specific instance selection preferences to your team's workloads without affecting other teams' configurations. Without proper targeting, applying a NodeOverlay would affect the entire cluster, potentially disrupting other teams' carefully tuned configurations.
 
-NodeOverlay requirements work exactly like NodePool requirements, allowing you to target by NodePool name (`karpenter.sh/nodepool`), capacity type (`karpenter.sh/capacity-type`), zone (`topology.kubernetes.io/zone`), architecture (`kubernetes.io/arch`), or any other well-known label.
+NodeOverlay requirements work exactly like NodePool requirements, allowing you to target by NodePool name (`karpenter.sh/nodepool`), capacity type (`karpenter.sh/capacity-type`), zone (`topology.kubernetes.io/zone`), instance generation (`karpenter.k8s.aws/instance-generation`), or any other well-known label.
 
 ### Deploy
 
-First, create a dedicated NodePool that you want to target. This example creates a NodePool called `team-alpha` that accepts both ARM and AMD architectures:
+First, create a dedicated NodePool that you want to target. This example creates a NodePool called `team-alpha`:
 
 ```sh
 kubectl apply -f nodepool-targeted.yaml
 ```
 
-The key part of this NodePool configuration allows both architectures:
-
-```yaml
-requirements:
-  - key: kubernetes.io/arch
-    operator: In
-    values: ["arm64", "amd64"]  # Accepts both architectures
-```
-
-Now create a NodeOverlay that targets ONLY the `team-alpha` NodePool to prefer ARM-based Graviton instances. In this example, we use the `karpenter.sh/nodepool` requirement to target a specific NodePool:
+Now create NodeOverlays that target ONLY the `team-alpha` NodePool to prefer the latest generation instances. In this example, we use the `karpenter.sh/nodepool` requirement to target a specific NodePool:
 
 ```sh
 kubectl apply -f node-overlay-targeted.yaml
@@ -367,7 +358,7 @@ Here's the key section that enables targeting:
 apiVersion: karpenter.sh/v1alpha1
 kind: NodeOverlay
 metadata:
-  name: team-alpha-prefer-graviton
+  name: team-alpha-prefer-latest-gen
 spec:
   weight: 10
   requirements:
@@ -375,12 +366,12 @@ spec:
     - key: karpenter.sh/nodepool
       operator: In
       values: ["team-alpha"]
-    # Apply the overlay to AMD64 instances
-    - key: kubernetes.io/arch
+    # Apply the overlay to generation 5 instances
+    - key: karpenter.k8s.aws/instance-generation
       operator: In
-      values: ["amd64"]
-  # Penalize AMD64 by 20% to prefer ARM64 Graviton instances
-  priceAdjustment: "+20%"
+      values: ["5"]
+  # Penalize generation 5 by 45% to prefer newer generations
+  priceAdjustment: "+45%"
 ```
 
 The requirements work exactly like NodePool requirements. You can use `karpenter.sh/nodepool` to target by NodePool name, or use any other requirement key like `karpenter.sh/capacity-type`, `topology.kubernetes.io/zone`, or custom labels to scope your overlay.
@@ -399,20 +390,20 @@ Wait for Karpenter to provision a node:
 kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha
 ```
 
-You should see an ARM-based Graviton instance provisioned for the `team-alpha` NodePool:
+You should see a newer generation instance (generation 7 or 8) provisioned for the `team-alpha` NodePool:
 
 ```console
 NAME            TYPE          ZONE         NODE                                        READY   AGE
-team-alpha-xxx  c7g.xlarge    eu-west-1a   ip-10-0-xx-xx.eu-west-1.compute.internal    True    45s
+team-alpha-xxx  c7i.xlarge    eu-west-1a   ip-10-0-xx-xx.eu-west-1.compute.internal    True    45s
 ```
 
-Verify the architecture:
+Verify the generation:
 
 ```sh
-kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[*].metadata.labels.kubernetes\.io/arch}'
+kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[*].metadata.labels.karpenter\.k8s\.aws/instance-generation}'
 ```
 
-You should see `arm64`, confirming the NodeOverlay preference is working.
+You should see `7` or `8`, confirming the NodeOverlay preference is working.
 
 Now verify that the `default` NodePool is NOT affected by these overlays. Deploy a workload to the default NodePool:
 
@@ -445,13 +436,13 @@ spec:
 EOF
 ```
 
-Check what architecture was selected for the default NodePool:
+Check what generation was selected for the default NodePool:
 
 ```sh
-kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[*].metadata.labels.kubernetes\.io/arch}'
+kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[*].metadata.labels.karpenter\.k8s\.aws/instance-generation}'
 ```
 
-The default NodePool should select instances based on pure price optimization (likely `amd64` depending on current pricing), proving that the NodeOverlays only affected the `team-alpha` NodePool.
+The default NodePool should select instances based on pure price optimization (likely generation 5 or 6 depending on current pricing), proving that the NodeOverlays only affected the `team-alpha` NodePool.
 
 ### Results
 

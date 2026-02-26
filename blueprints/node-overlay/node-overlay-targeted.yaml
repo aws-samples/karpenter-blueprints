@@ -1,0 +1,56 @@
+# Prefer latest generation instances - ONLY for team-alpha NodePool
+# This overlay demonstrates how to target specific workloads using requirements.
+# NodeOverlay requirements work exactly like NodePool requirements - you can use
+# any requirement key such as:
+#   - karpenter.sh/nodepool (target by NodePool name)
+#   - karpenter.sh/capacity-type (target spot or on-demand)
+#   - topology.kubernetes.io/zone (target specific zones)
+#   - karpenter.k8s.aws/instance-generation (target specific generations)
+#   - Any other well-known label or Karpenter label
+apiVersion: karpenter.sh/v1alpha1
+kind: NodeOverlay
+metadata:
+  name: team-alpha-prefer-latest-gen
+spec:
+  weight: 10
+  requirements:
+    # Target a specific NodePool by name
+    - key: karpenter.sh/nodepool
+      operator: In
+      values: ["team-alpha"]
+    # Apply the overlay to generation 5 instances
+    - key: karpenter.k8s.aws/instance-generation
+      operator: In
+      values: ["5"]
+  # Penalize generation 5 by 45% to prefer newer generations
+  priceAdjustment: "+45%"
+---
+apiVersion: karpenter.sh/v1alpha1
+kind: NodeOverlay
+metadata:
+  name: team-alpha-prefer-gen7-8
+spec:
+  weight: 10
+  requirements:
+    - key: karpenter.sh/nodepool
+      operator: In
+      values: ["team-alpha"]
+    - key: karpenter.k8s.aws/instance-generation
+      operator: In
+      values: ["6"]
+  priceAdjustment: "+30%"
+---
+apiVersion: karpenter.sh/v1alpha1
+kind: NodeOverlay
+metadata:
+  name: team-alpha-prefer-gen8
+spec:
+  weight: 10
+  requirements:
+    - key: karpenter.sh/nodepool
+      operator: In
+      values: ["team-alpha"]
+    - key: karpenter.k8s.aws/instance-generation
+      operator: In
+      values: ["7"]
+  priceAdjustment: "+15%"

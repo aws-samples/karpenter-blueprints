@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-team-alpha
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workload-team-alpha
+  template:
+    metadata:
+      labels:
+        app: workload-team-alpha
+    spec:
+      # Target the team-alpha NodePool specifically
+      nodeSelector:
+        karpenter.sh/nodepool: team-alpha
+      containers:
+      - name: pause
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.9
+        resources:
+          requests:
+            cpu: 1
+            memory: 1Gi
+      terminationGracePeriodSeconds: 0

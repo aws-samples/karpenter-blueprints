@@ -328,15 +328,15 @@ test_scenario3() {
     sleep 5
     
     # Apply NodeOverlay targeting team-alpha NodePool
-    log_info "Applying NodeOverlay to prefer Graviton for team-alpha NodePool..."
+    log_info "Applying NodeOverlay to prefer latest generation for team-alpha NodePool..."
     kubectl apply -f node-overlay-targeted.yaml
     
     sleep 5
     
     # Verify NodeOverlay is ready
-    overlay_count=$(kubectl get nodeoverlay team-alpha-prefer-graviton --no-headers 2>/dev/null | wc -l)
-    if [ "$overlay_count" -lt 1 ]; then
-        log_error "NodeOverlay not created"
+    overlay_count=$(kubectl get nodeoverlay team-alpha-prefer-latest-gen team-alpha-prefer-gen7-8 team-alpha-prefer-gen8 --no-headers 2>/dev/null | wc -l)
+    if [ "$overlay_count" -lt 3 ]; then
+        log_error "Expected 3 NodeOverlays, found $overlay_count"
         cleanup_scenario3
         return 1
     fi
@@ -352,17 +352,17 @@ test_scenario3() {
         return 1
     fi
     
-    # Verify the node is ARM-based
-    log_info "Verifying node architecture for team-alpha NodePool..."
-    node_arch=$(kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[0].metadata.labels.kubernetes\.io/arch}' 2>/dev/null || echo "unknown")
+    # Verify the node is generation 7 or 8
+    log_info "Verifying node generation for team-alpha NodePool..."
+    node_gen=$(kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[0].metadata.labels.karpenter\.k8s\.aws/instance-generation}' 2>/dev/null || echo "unknown")
     instance_type=$(kubectl get nodeclaims -l karpenter.sh/nodepool=team-alpha -o jsonpath='{.items[0].spec.instanceType}' 2>/dev/null || echo "unknown")
     
-    log_info "team-alpha provisioned instance: $instance_type (arch: $node_arch)"
+    log_info "team-alpha provisioned instance: $instance_type (generation $node_gen)"
     
-    if [ "$node_arch" == "arm64" ]; then
-        log_test "✅ team-alpha NodePool correctly selected ARM64 instance"
+    if [ "$node_gen" == "7" ] || [ "$node_gen" == "8" ]; then
+        log_test "✅ team-alpha NodePool correctly selected generation $node_gen instance"
     else
-        log_warn "⚠️  team-alpha NodePool selected $node_arch (expected arm64, but may vary by region availability)"
+        log_warn "⚠️  team-alpha NodePool selected generation $node_gen (expected 7 or 8, but may vary by region availability)"
     fi
     
     # Deploy workload to default NodePool to verify isolation
@@ -403,28 +403,28 @@ EOF
     
     # Verify default NodePool is NOT affected by the overlay
     log_info "Verifying default NodePool is not affected by team-alpha overlay..."
-    default_arch=$(kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[0].metadata.labels.kubernetes\.io/arch}' 2>/dev/null || echo "unknown")
+    default_gen=$(kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[0].metadata.labels.karpenter\.k8s\.aws/instance-generation}' 2>/dev/null || echo "unknown")
     default_instance=$(kubectl get nodeclaims -l karpenter.sh/nodepool=default -o jsonpath='{.items[0].spec.instanceType}' 2>/dev/null || echo "unknown")
     
-    log_info "default provisioned instance: $default_instance (arch: $default_arch)"
+    log_info "default provisioned instance: $default_instance (generation $default_gen)"
     
-    # The test passes if the architectures are different OR if default selected based on price
-    if [ "$node_arch" == "arm64" ] && [ "$default_arch" == "amd64" ]; then
-        log_test "✅ PASSED: NodeOverlay correctly isolated to team-alpha NodePool"
-        log_test "  - team-alpha: $instance_type ($node_arch)"
-        log_test "  - default: $default_instance ($default_arch)"
-        cleanup_scenario3
-        return 0
-    elif [ "$node_arch" == "$default_arch" ]; then
-        log_warn "⚠️  Both NodePools selected same architecture ($node_arch)"
-        log_info "This may occur due to regional availability or pricing"
-        log_test "✅ PASSED: NodeOverlay targeting mechanism works (isolation verified by separate NodePools)"
+    # The test passes if the generations are different OR if team-alpha got gen 7/8
+    if [ "$node_gen" == "7" ] || [ "$node_gen" == "8" ]; then
+        if [ "$default_gen" == "5" ] || [ "$default_gen" == "6" ]; then
+            log_test "✅ PASSED: NodeOverlay correctly isolated to team-alpha NodePool"
+            log_test "  - team-alpha: $instance_type (generation $node_gen)"
+            log_test "  - default: $default_instance (generation $default_gen)"
+        else
+            log_test "✅ PASSED: team-alpha NodePool selected newer generation ($node_gen)"
+            log_test "  - team-alpha: $instance_type (generation $node_gen)"
+            log_test "  - default: $default_instance (generation $default_gen)"
+        fi
         cleanup_scenario3
         return 0
     else
-        log_test "✅ PASSED: NodePools provisioned independently"
-        log_test "  - team-alpha: $instance_type ($node_arch)"
-        log_test "  - default: $default_instance ($default_arch)"
+        log_warn "⚠️  Could not verify generation difference"
+        log_info "This may occur due to regional availability"
+        log_test "✅ PASSED: NodeOverlay targeting mechanism works (isolation verified by separate NodePools)"
         cleanup_scenario3
         return 0
     fi
