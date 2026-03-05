@@ -1,5 +1,9 @@
 # Karpenter Blueprint: Overprovision capacity in advanced to increase responsiveness
 
+## Notes
+
+Starting in v1.8.0, Karpenter natively supports this use case through [static capacity](https://karpenter.sh/docs/concepts/nodepools/#static-nodepool), an [Alpha feature gate](https://karpenter.sh/docs/reference/settings/#feature-gates) that maintains a fixed number of nodes regardless of pod demand. Consider using static capacity instead of the workaround described in this blueprint.
+
 ## Purpose
 
 Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
