@@ -154,6 +154,7 @@ Here's the list of blueprints we have so far:
 * [Reserve node capacity for spiky workloads](/blueprints/node-reserved-headroom/)
 * [Using NodeOverlays for instance prioritization and GPU slicing](/blueprints/node-overlay/)
 * [Dynamic EBS Volume Sizing](/blueprints/dynamic-disk-ebs-volume)
+* [Deploy an AWS Trainium or AWS Inferentia workload](/neuron-workload)
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 
