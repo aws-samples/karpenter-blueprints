@@ -1,8 +1,8 @@
 # Karpenter Blueprint: Deploy an AWS Trainium or AWS Inferentia workload
 
-Karpenter streamlines managing accelerated instance node lifecycle management. When you specify accelerated instance types in your Karpenter NodePool, Karpenter automatically selects the appropriate Amazon EKS AMI. Karpenter's provisioning also enables efficient use of Spot Instances across a diverse range of instance types - you can specify multiple accelerator options in your NodePool configuration. This flexibility allows you to balance performance and cost-effectiveness while running accelerator workloads in your Amazon EKS cluster.
+This blueprint describes the components to get started with using AWS Trainium or AWS Inferentia with Amazon EKS, from AMIs to device plugins. Karpenter streamlines managing accelerated instance node lifecycle management. When you specify accelerated instance types in your Karpenter NodePool, Karpenter automatically selects the appropriate Amazon EKS AMI. Karpenter's provisioning also enables efficient use of Spot Instances across a diverse range of instance types - you can specify multiple accelerator options in your NodePool configuration. This flexibility allows you to balance performance and cost-effectiveness while running accelerator workloads in your Amazon EKS cluster.
 
-When using AL2023 and Bottlerocket you need to deploy a Neuron Kubernetes device plugin to advertise neuron devices from the host. To use neuron accelerators you need the neuron driver. For AL2023 there is a [Neuron EKS Accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/ml-eks-optimized-ami.html#eks-amis-neuron-al2023) which is packaged with the Neuron driver, whereas with Bottlerocket [standard EKS Bottlerocket AMI](https://docs.aws.amazon.com/eks/latest/userguide/ml-eks-optimized-ami.html#eks-amis-neuron-bottlerocket) includes the Neuron driver.
+When using AL2023 and Bottlerocket you need to deploy a Neuron Kubernetes device plugin to advertise neuron devices from the host, you also need the neuron driver (aws-neuronx-dkms). For AL2023 there is a [Neuron EKS Accelerated AMI](https://docs.aws.amazon.com/eks/latest/userguide/ml-eks-optimized-ami.html#eks-amis-neuron-al2023) which is packaged with the Neuron driver. Bottlerocket also has the neuron driver packaged though it is part of the [standard EKS Bottlerocket AMI](https://docs.aws.amazon.com/eks/latest/userguide/ml-eks-optimized-ami.html#eks-amis-neuron-bottlerocket).
 
 ## Requirements
 
@@ -82,7 +82,7 @@ EOF
 kubectl apply -f neuron-nodeclass.yaml
 ```
 
-A separate [EC2NodeClass](https://karpenter.sh/docs/concepts/nodeclasses/) was created as you may want to tune node properties such as ephemeral storage size, block device mappings, [capacity reservations selector](https://karpenter.sh/docs/concepts/nodeclasses/).
+If you want to tune node properties it is suggested to create a new [EC2NodeClass](https://karpenter.sh/docs/concepts/nodeclasses/). For example, you may want to tune node properties such as ephemeral storage size, block device mappings, [capacity reservations selector](https://karpenter.sh/docs/concepts/nodeclasses/).
 
 Create a dedicated NodePool, states provision instances from `inf` and `trn` category, and only allow workloads that tolerate the `aws.amazon.com/neuron taint` to be scheduled. Apply the following NodePool.
 
@@ -164,7 +164,7 @@ spec:
 EOF
 ```
 
-Notice, we set a node selector `karpenter.k8s.aws/instance-accelerator-name` to specify the accelerator. We also set the `schedulerName` to `neuron-scheduler`.
+Besides the other constraints to match the workload with the NodePool constraints, we set a node selector `karpenter.k8s.aws/instance-accelerator-name` to specify the accelerator. We also set the `schedulerName` to `neuron-scheduler`.
 
 To deploy the workload execute the following:
 
