@@ -12,9 +12,17 @@ Static capacity does not scale nodes to keep overprovision. Use this blueprint, 
 
 ## Purpose
 
-Let's say you have a data pipeline process that knows it needs to launch 100 pods at the same time. To reduce the initiation time, you overprovision capacity in advance to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
+This blueprint keeps your cluster overprovisioned so workloads are scheduled almost instantly. It deploys a dummy workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity. When real workloads arrive, the dummy pods are preempted and your pods start on already-provisioned nodes.
 
-To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity (to make Karpenter launch nodes). Then, when you deploy the workload with the pods you actually need, "dummy" pods are evicted so your workload pods start rapidly.
+With a flexible `NodePool` (a [recommended practice](https://aws.github.io/aws-eks-best-practices/karpenter/) for efficient compute), Karpenter optimizes for cost — meaning a single dummy pod would trigger a small, cheap instance that doesn't represent useful overprosion. This blueprint uses `nodeAffinity` to guarantee minimum instance requirements on the dummy workload, and `podAntiAffinity` to ensure each replica reserves a separate node. Together, the replica count controls how many right-sized nodes are kept overprovisioned. Adjust the `nodeAffinity` constraints to match your actual workload's instance requirements so the overprovisioned nodes are genuinely useful when preemption happens.
+
+This pattern is useful in scenarios where provisioning latency directly impacts workload performance, for example:
+
+- Data pipelines that launch a burst of pods simultaneously
+- AI/ML inference endpoints that autoscale on traffic spikes, where cold-starting a large instance adds minutes of latency
+- CI/CD runners that spin up in bursts when multiple PRs merge and waiting for nodes serializes builds
+- Event-driven workloads like webhook processors or queue consumers that scale from near-zero and risk dropped events during the scale-up window
+- Scheduled batch jobs (e.g., nightly ETL, end-of-day reconciliation) where the launch time is known and you want zero provisioning delay at kickoff
 
 ## Requirements
 
@@ -49,7 +57,7 @@ dummy-workload-b48bcd44-fghws   1/1     Running   0          7m8s
 
 ## Results
 
-When you deploy the actual workload (for example, a data pipeline), the dummy pods are evicted. So, let's deploy the following workload to test it:
+When you deploy the actual workload, the dummy pods are evicted. So, let's deploy the following workload to test it:
 
 ```sh
 kubectl apply -f workload.yaml
