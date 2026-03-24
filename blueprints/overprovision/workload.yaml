@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: workload
 spec:
-  replicas: 10
+  replicas: 14
   selector:
     matchLabels:
       app: workload

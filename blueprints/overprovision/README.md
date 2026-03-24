@@ -1,10 +1,28 @@
-# Karpenter Blueprint: Overprovision capacity in advanced to increase responsiveness
+# Karpenter Blueprint: Overprovision capacity in advance to increase responsiveness
+
+## Note
+
+Starting in v1.8.0, Karpenter natively supports [static capacity](https://karpenter.sh/docs/concepts/nodepools/#static-nodepool), an [Alpha feature gate](https://karpenter.sh/docs/reference/settings/#feature-gates) that maintains a fixed node count regardless of pod demand. Static capacity addresses these use cases: 
+
+1. Performance-critical applications where just-in-time provisioning latency is unacceptable
+2. Workloads that require predictable, always-available capacity
+3. Operational models that rely on a fixed number of nodes for budgeting, isolation, or infrastructure boundary
+
+Static capacity does not scale nodes to keep overprovision. Use this blueprint, if your use case requires keeping your cluster overprovisioned.
 
 ## Purpose
 
-Let's say you have a data pipeline process that knows it will need to have the capacity to launch 100 pods at the same time. To reduce the initiation time, you could overprovision capacity in advanced to increase responsiveness so when the data pipeline launches the pods, the capacity is already there.
+This blueprint keeps your cluster overprovisioned so workloads are scheduled almost instantly. It deploys a dummy workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity. When real workloads arrive, the dummy pods are preempted and your pods start on already-provisioned nodes.
 
-To achieve this, you deploy a "dummy" workload with a low [PriorityClass](https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#priorityclass) to reserve capacity (to make Karpenter launch nodes). Then, when you deploy the workload with the pods you actually need, "dummy" pods are evicted to make rapidly start the pods you need for your workload.
+With a flexible `NodePool` (a [recommended practice](https://aws.github.io/aws-eks-best-practices/karpenter/) for efficient compute), Karpenter optimizes for cost — meaning a single dummy pod would trigger a small, cheap instance that doesn't represent useful overprosion. This blueprint uses `nodeAffinity` to guarantee minimum instance requirements on the dummy workload, and `podAntiAffinity` to ensure each replica reserves a separate node. Together, the replica count controls how many right-sized nodes are kept overprovisioned. Adjust the `nodeAffinity` constraints to match your actual workload's instance requirements so the overprovisioned nodes are genuinely useful when preemption happens.
+
+This pattern is useful in scenarios where provisioning latency directly impacts workload performance, for example:
+
+- Data pipelines that launch a burst of pods simultaneously
+- AI/ML inference endpoints that autoscale on traffic spikes, where cold-starting a large instance adds minutes of latency
+- CI/CD runners that spin up in bursts when multiple PRs merge and waiting for nodes serializes builds
+- Event-driven workloads like webhook processors or queue consumers that scale from near-zero and risk dropped events during the scale-up window
+- Scheduled batch jobs (e.g., nightly ETL, end-of-day reconciliation) where the launch time is known and you want zero provisioning delay at kickoff
 
 ## Requirements
 
@@ -19,88 +37,80 @@ Let's start by deploying the "dummy" workload:
 kubectl apply -f dummy-workload.yaml
 ```
 
-After waiting for around two minutes, notice how Karpenter will provision the machine(s) needed to run the "dummy" workload:
+After waiting for approximately two minutes, notice how Karpenter will provision the machine(s) needed to run the "dummy" workload:
 
 ```sh
 > kubectl get nodeclaims
-NAME            TYPE          ZONE         NODE                                       READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    57s
+NAME            TYPE          ZONE         NODE                          READY   AGE
+default-66hfd   m6g.xlarge    us-east-1b   ip-10-0-25-181.ec2.internal   True    7m20s
+default-lgmtl   m6g.xlarge    us-east-1b   ip-10-0-29-137.ec2.internal   True    7m20s
 ```
 
-And the "dummy" pods are now running simply to reserve this capacity:
+And the "dummy" pods are now running to reserve this capacity:
 
 ```sh
 > kubectl get pods                                                                                                             7s
-NAME                             READY   STATUS    RESTARTS   AGE
-dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          53s
-dummy-workload-6bf87d68f-8pnp8   1/1     Running   0          53s
-dummy-workload-6bf87d68f-ctlvc   1/1     Running   0          53s
-dummy-workload-6bf87d68f-fznv6   1/1     Running   0          53s
-dummy-workload-6bf87d68f-hp4qs   1/1     Running   0          53s
-dummy-workload-6bf87d68f-pwtp9   1/1     Running   0          53s
-dummy-workload-6bf87d68f-rg7tj   1/1     Running   0          53s
-dummy-workload-6bf87d68f-t7bqz   1/1     Running   0          53s
-dummy-workload-6bf87d68f-xwln7   1/1     Running   0          53s
-dummy-workload-6bf87d68f-zmhk8   1/1     Running   0          53s
+NAME                            READY   STATUS    RESTARTS   AGE
+dummy-workload-b48bcd44-f24ng   1/1     Running   0          7m8s
+dummy-workload-b48bcd44-fghws   1/1     Running   0          7m8s
 ```
 
 ## Results
 
-Now, when you deploy the actual workload you need  to do some work (such as a data pipeline process), the "dummy" pods are going to be evicted. So, let's deploy the following workload to test it:
+When you deploy the actual workload, the dummy pods are evicted. So, let's deploy the following workload to test it:
 
 ```sh
 kubectl apply -f workload.yaml
 ```
 
-Notice how your new pods are almost immediately running, and some of the "dummy" pods are "Pending":
+Notice how your new pods are running within seconds, and some "dummy" pods are "Pending":
 
 ```sh
 > kubectl get pods
-NAME                             READY   STATUS    RESTARTS   AGE
-dummy-workload-6bf87d68f-2ftbq   1/1     Running   0          11m
-dummy-workload-6bf87d68f-6bq4v   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-8nkp8   0/1     Pending   0          14s
-dummy-workload-6bf87d68f-cchqx   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-fznv6   1/1     Running   0          11m
-dummy-workload-6bf87d68f-hp4qs   1/1     Running   0          11m
-dummy-workload-6bf87d68f-r69g6   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-rg7tj   1/1     Running   0          11m
-dummy-workload-6bf87d68f-w4zk8   0/1     Pending   0          15s
-dummy-workload-6bf87d68f-zmhk8   1/1     Running   0          11m
-workload-679c759476-6h47j        1/1     Running   0          15s
-workload-679c759476-hhjmp        1/1     Running   0          15s
-workload-679c759476-jxnc2        1/1     Running   0          15s
-workload-679c759476-lqv5t        1/1     Running   0          15s
-workload-679c759476-n269j        1/1     Running   0          15s
-workload-679c759476-nfjtp        1/1     Running   0          15s
-workload-679c759476-nv7sg        1/1     Running   0          15s
-workload-679c759476-p277d        1/1     Running   0          15s
-workload-679c759476-qw8sk        1/1     Running   0          15s
-workload-679c759476-sxjpt        1/1     Running   0          15s
+NAME                            READY   STATUS    RESTARTS   AGE
+dummy-workload-b48bcd44-p7htz   0/1     Pending   0          13s
+dummy-workload-b48bcd44-z76nf   0/1     Pending   0          13s
+workload-6db87b48b4-28sxx       1/1     Running   0          74s
+workload-6db87b48b4-9vmr8       1/1     Running   0          13s
+workload-6db87b48b4-cs2fs       1/1     Running   0          74s
+workload-6db87b48b4-dbk79       1/1     Running   0          13s
+workload-6db87b48b4-gnhb6       1/1     Running   0          52s
+workload-6db87b48b4-h9bfc       1/1     Running   0          33s
+workload-6db87b48b4-hmkrx       1/1     Running   0          74s
+workload-6db87b48b4-kpx5m       1/1     Running   0          33s
+workload-6db87b48b4-n77fr       1/1     Running   0          74s
+workload-6db87b48b4-nvf55       1/1     Running   0          74s
+workload-6db87b48b4-tdpfh       1/1     Running   0          74s
+workload-6db87b48b4-xx9kx       1/1     Running   0          74s
+workload-6db87b48b4-z2g7n       1/1     Running   0          52s
+workload-6db87b48b4-zcnbk       1/1     Running   0          74s
 ```
 
-After waiting for around two minutes, you'll see all pods running and a new machine registered:
+After waiting for approximately two minutes, you'll get the overprovision capacity and see all pods running:
 
 ```sh
-> kubectl get nodeclaims                                                                                                        18s
-NAME            TYPE          ZONE         NODE                                        READY   AGE
-default-4q9dn   c6g.xlarge   on-demand   eu-west-2c   ip-10-0-127-154.eu-west-2.compute.internal   True      29m
-default-xwbvp   c7g.xlarge   spot        eu-west-2c   ip-10-0-100-21.eu-west-2.compute.internal    True      75s
+> kubectl get nodeclaims                                                                            
+NAME            TYPE          ZONE         NODE                          READY   AGE
+default-66hfd   m6g.xlarge    us-east-1b   ip-10-0-25-181.ec2.internal   True    11m
+default-lgmtl   m6g.xlarge    us-east-1b   ip-10-0-29-137.ec2.internal   True    11m
+default-nzg92   m6g.xlarge    us-east-1c   ip-10-0-44-194.ec2.internal   True    57s
+default-xrvmt   m6g.xlarge    us-east-1c   ip-10-0-34-140.ec2.internal   True    57s
 ```
 
-The new machine is simply there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can simply reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.
+The new machine is there because some "dummy" pods were pending and they exist to reserve capacity. If you think you won't need those "dummy" pods while your workload is running, you can reduce the "dummy" deployment replicas to 0, and Karpenter consolidation will kick in to remove unnecessary machines.
 
 ```sh
 > kubectl scale deployment dummy-workload --replicas 0
 deployment.apps/dummy-workload scaled
 > kubectl get nodeclaims
-NAME            TYPE          ZONE         NODE                                       READY   AGE
-default-kpj7k   c6i.2xlarge   eu-west-1b   ip-10-0-73-34.eu-west-1.compute.internal   True    16m
+NAME            TYPE         ZONE         NODE                          READY   AGE
+default-nzg92   m6g.xlarge   us-east-1c   ip-10-0-44-194.ec2.internal   True    2m16s
+default-xrvmt   m6g.xlarge   us-east-1c   ip-10-0-34-140.ec2.internal   True    2m16s
 ```
 
 ## Cleanup
 
-To remove all objects created, simply run the following commands:
+To remove all objects created, run the following commands:
 
 ```sh
 kubectl delete -f .
