@@ -1,0 +1,44 @@
+# NodePool for GPU instances with slicing support
+# This NodePool allows both p (performance) and g (graphics) instance categories
+# which include various GPU instance types.
+# It references the gpu-bottlerocket NodeClass.
+#
+# NOTE: With time-slicing enabled (4 replicas per GPU), each physical GPU
+# is advertised as 4 nvidia.com/gpu resources. The limit below accounts for this.
+# LIMITATION: GPU time-slicing requires userData which is NOT supported in Auto Mode.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu-slices
+spec:
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m
+  limits:
+    cpu: 100
+    memory: 200Gi
+    nvidia.com/gpu: 40  # Allows up to 10 physical GPUs (10 × 4 time-sliced = 40)
+  template:
+    metadata:
+      labels:
+        intent: gpu-workloads
+        nvidia.com/gpu.present: "true"
+    spec:
+      expireAfter: 336h
+      nodeClassRef:
+        group: eks.amazonaws.com
+        name: gpu-bottlerocket
+        kind: NodeClass
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: eks.amazonaws.com/instance-category
+          operator: In
+          values: ["g", "p"]
+        - key: eks.amazonaws.com/instance-gpu-manufacturer
+          operator: In
+          values: ["nvidia"]
+      taints:
+        - key: nvidia.com/gpu
+          effect: NoSchedule
