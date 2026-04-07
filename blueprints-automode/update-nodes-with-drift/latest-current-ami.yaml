@@ -1,0 +1,82 @@
+# EKS Auto Mode NodeClass
+# LIMITATION: Custom AMI selection via amiSelectorTerms (AMI IDs) is NOT supported in Auto Mode.
+#   Auto Mode fully manages AMI selection. You cannot specify custom AMI IDs.
+#   The original blueprint used specific AMI IDs for drift-based node updates.
+#   In Auto Mode, node updates are managed automatically by AWS.
+#
+# Note: tags removed — the original tags referenced KubernetesVersion for tracking AMI versions,
+#   which is not applicable in Auto Mode since AMI management is handled by AWS.
+#
+# Note: When using a custom NodeClass in Auto Mode, an EKS Access Entry is required:
+#   aws eks create-access-entry --cluster-name <cluster-name> --principal-arn <node-role-arn> --type EC2
+#   aws eks associate-access-policy --cluster-name <cluster-name> --principal-arn <node-role-arn> \
+#     --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy --access-scope type=cluster
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: latest-current-ami
+spec:
+  # amiSelectorTerms: removed — NOT SUPPORTED in Auto Mode (was custom AMI IDs)
+  # role: removed — Auto Mode manages node IAM role via access entries
+  # tags: removed — KubernetesVersion tag not applicable in Auto Mode
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  ephemeralStorage:
+    size: "20Gi"
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: latest-current-ami
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+  limits:
+    cpu: 100k
+    memory: 5000Gi
+  template:
+    metadata:
+      labels:
+        intent: latest-current-ami
+    spec:
+      expireAfter: 168h0m0s
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: latest-current-ami
+      requirements:
+      - key: eks.amazonaws.com/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+        - i
+        - d
+      - key: eks.amazonaws.com/instance-cpu
+        operator: In
+        values:
+        - "4"
+        - "8"
+        - "16"
+        - "32"
+        - "48"
+        - "64"
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
