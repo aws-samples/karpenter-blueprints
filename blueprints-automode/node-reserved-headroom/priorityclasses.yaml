@@ -1,0 +1,17 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: headroom-high
+value: 900000000
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: "High priority for DaemonSet reserving per-node headroom. Preemptible by burst-critical."
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: burst-critical
+value: 1000000000
+preemptionPolicy: PreemptLowerPriority
+globalDefault: false
+description: "Workloads with this priority can preempt headroom-high pods to consume reserved capacity instantly."
