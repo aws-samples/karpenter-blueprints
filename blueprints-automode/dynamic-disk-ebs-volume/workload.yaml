@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-ebs-dynamic-resize
+  labels:
+    app: vllm-ebs-dynamic-resize
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vllm-ebs-dynamic-resize
+  template:
+    metadata:
+      labels:
+        app: vllm-ebs-dynamic-resize
+    spec:
+      containers:
+      - name: vllm
+        image: 763104351884.dkr.ecr.us-east-1.amazonaws.com/vllm:0.9-gpu-py312-ec2
+        command: ["bash", "-c"]
+        args: ["trap 'exit 0' TERM; sleep 9999 & wait"]
+      nodeSelector:
+        intent: ebs-dynamic-resize
+        kubernetes.io/arch: amd64
+        eks.amazonaws.com/compute-type: auto
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: eks.amazonaws.com/instance-ebs-bandwidth
+                operator: Gt
+                values:
+                - "8000"
+              - key: eks.amazonaws.com/instance-network-bandwidth
+                operator: Gt
+                values:
+                - "8000"
