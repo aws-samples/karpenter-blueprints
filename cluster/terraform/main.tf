@@ -71,9 +71,6 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
 
   addons = {
-    aws-ebs-csi-driver = {
-      most_recent = true
-    }
     coredns = {
       most_recent = true
     }
@@ -147,6 +144,13 @@ module "eks_blueprints_addons" {
 
   create_delay_dependencies = [for grp in module.eks.eks_managed_node_groups : grp.node_group_arn]
 
+  eks_addons = {
+    # Amazon EKS add-ons
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
+
   enable_aws_load_balancer_controller = true
 
   enable_aws_for_fluentbit = true
@@ -160,6 +164,8 @@ module "eks_blueprints_addons" {
   }
 
   tags = local.tags
+
+  depends_on = [module.aws_ebs_csi_pod_identity]
 }
 
 module "aws_ebs_csi_pod_identity" {
