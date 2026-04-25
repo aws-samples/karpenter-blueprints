@@ -37,24 +37,14 @@ spec:
       schedule: "0 0 * * *"
       duration: 24h
 ---
-# EKS Auto Mode NodeClass
-# Note: amiSelectorTerms, role removed — Auto Mode manages AMI selection and node IAM role
-# Note: When using a custom NodeClass in Auto Mode, an EKS Access Entry is required:
-#   aws eks create-access-entry --cluster-name <cluster-name> --principal-arn <node-role-arn> --type EC2
-#   aws eks associate-access-policy --cluster-name <cluster-name> --principal-arn <node-role-arn> \
-#     --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy --access-scope type=cluster
 apiVersion: eks.amazonaws.com/v1
 kind: NodeClass
 metadata:
   name: disruption-budget
 spec:
-  # role: removed — Auto Mode manages node IAM role via access entries
-  # amiSelectorTerms: removed — Auto Mode manages AMI selection
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   subnetSelectorTerms:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
-  ephemeralStorage:
-    size: "20Gi"

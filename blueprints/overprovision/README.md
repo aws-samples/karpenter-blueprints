@@ -108,6 +108,31 @@ default-nzg92   m6g.xlarge   us-east-1c   ip-10-0-44-194.ec2.internal   True    
 default-xrvmt   m6g.xlarge   us-east-1c   ip-10-0-34-140.ec2.internal   True    2m16s
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+This blueprint uses the default NodePool and requires no custom NodePool or EC2NodeClass manifests. The workloads work as-is on an EKS Auto Mode cluster with a default `NodeClass` (`eks.amazonaws.com/v1`).
+
+```sh
+kubectl apply -f .
+```
+
+**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Cleanup
 
 To remove all objects created, run the following commands:

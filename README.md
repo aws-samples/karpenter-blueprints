@@ -135,25 +135,41 @@ terraform destroy --auto-approve
 
 After you have a cluster up and running with Karpenter installed, you can start testing each blueprint. A blueprint might have a `NodePool`, `EC2NodeClass` and a workload example. You need to open the blueprint folder and follow the steps to deploy the resources needed to test the blueprint.
 
+## Why EKS Auto Mode content?
+
+[EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) uses the same Karpenter scheduling logic as OSS Karpenter but AWS manages the data plane: AMIs, node IAM role, IMDS settings, bootstrap, and patching. That means a few fields disappear from your manifests and a few API groups change. For every Auto Mode-compatible blueprint below, you'll find an `-automode.yaml` alongside the original.
+
+The differences boil down to:
+
+- **`NodeClass` replaces `EC2NodeClass`** (`apiVersion: eks.amazonaws.com/v1`)
+- **Managed fields removed**: `amiFamily`, `amiSelectorTerms`, `role`, `userData`, `blockDeviceMappings`, `metadataOptions`
+- **Instance label prefix**: `eks.amazonaws.com/instance-*` replaces `karpenter.k8s.aws/instance-*`
+- **Max node lifetime**: 336h (14 days) — `expireAfter` is capped at this value
+- **Access Entry required**: the node IAM role needs `AmazonEKSAutoNodePolicy` via an EKS Access Entry
+
+Workload manifests (Deployments, Jobs, etc.) are identical between OSS and Auto Mode.
+
 Here's the list of blueprints we have so far:
 
-* [High-Availability: Spread Pods across AZs & Nodes](/blueprints/ha-az-nodes/)
-* [Split Between On-Demand & Spot Instances](/blueprints/od-spot-split/)
-* [Prioritize Reserved Capacity with Savings Plans and/or Reserved Instances](/blueprints/reserved-capacity/)
-* [Working with Graviton Instances](/blueprints/graviton)
-* [Overprovision capacity in advanced to increase responsiveness](/blueprints/overprovision/)
-* [Using multiple EBS volumes](/blueprints/multi-ebs/)
-* [Working with Stateful Workloads using EBS](/blueprints/stateful/)
-* [Update Nodes using Drift](/blueprints/update-nodes-with-drift/)
-* [Launching nodes using custom AMIs](/blueprints/custom-ami/)
-* [Customizing nodes with your own User Data automation](/blueprints/userdata/)
-* [Protecting batch jobs during the consolidation process](/blueprints/batch-jobs/)
-* [NodePool Disruption Budgets](/blueprints/disruption-budgets/)
-* [Deploy an NVIDIA GPU workload](/blueprints/nvidia-gpu-workload/)
-* [Accelerating image pull time using SOCI parallel mode](/blueprints/soci-snapshotter/)
-* [Reserve node capacity for spiky workloads](/blueprints/node-reserved-headroom/)
-* [Using NodeOverlays for instance prioritization and GPU slicing](/blueprints/node-overlay/)
-* [Dynamic EBS Volume Sizing](/blueprints/dynamic-disk-ebs-volume)
+| Blueprint | Karpenter OSS | EKS Auto Mode |
+| --- | :---: | :---: |
+| [High-Availability: Spread Pods across AZs & Nodes](/blueprints/ha-az-nodes/) | ✅ | ✅ |
+| [Split Between On-Demand & Spot Instances](/blueprints/od-spot-split/) | ✅ | ✅ |
+| [Prioritize Reserved Capacity with Savings Plans and/or Reserved Instances](/blueprints/reserved-capacity/) | ✅ | ✅ |
+| [Working with Graviton Instances](/blueprints/graviton) | ✅ | ✅ |
+| [Overprovision capacity in advance to increase responsiveness](/blueprints/overprovision/) | ✅ | ✅ |
+| [Using multiple EBS volumes](/blueprints/multi-ebs/) | ✅ | ❌ |
+| [Working with Stateful Workloads using EBS](/blueprints/stateful/) | ✅ | ✅ |
+| [Update Nodes using Drift](/blueprints/update-nodes-with-drift/) | ✅ | ✅ |
+| [Launching nodes using custom AMIs](/blueprints/custom-ami/) | ✅ | ❌ |
+| [Customizing nodes with your own User Data automation](/blueprints/userdata/) | ✅ | ❌ |
+| [Protecting batch jobs during the consolidation process](/blueprints/batch-jobs/) | ✅ | ✅ |
+| [NodePool Disruption Budgets](/blueprints/disruption-budgets/) | ✅ | ✅ |
+| [Deploy an NVIDIA GPU workload](/blueprints/nvidia-gpu-workload/) | ✅ | ❌ |
+| [Accelerating image pull time using SOCI parallel mode](/blueprints/soci-snapshotter/) | ✅ | ❌ |
+| [Reserve node capacity for spiky workloads](/blueprints/node-reserved-headroom/) | ✅ | ✅ |
+| [Using NodeOverlays for instance prioritization and GPU slicing](/blueprints/node-overlay/) | ✅ | ❌ |
+| [Dynamic EBS Volume Sizing](/blueprints/dynamic-disk-ebs-volume) | ✅ | ❌ |
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 

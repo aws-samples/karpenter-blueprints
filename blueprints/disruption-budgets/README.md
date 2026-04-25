@@ -320,6 +320,36 @@ You will also see the following message in Kubernetes events stating a node has 
 0s       Normal    RemovingNode                 node/ip-10-0-96-121.eu-west-2.compute.internal    Node ip-10-0-96-121.eu-west-2.compute.internal event: Removing Node ip-10-0-96-121.eu-west-2.compute.internal from Controller
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+To deploy this blueprint on an EKS Auto Mode cluster, use the `-automode.yaml` manifest instead:
+
+```sh
+kubectl apply -f disruption-budgets-automode.yaml
+```
+
+Differences from the OSS version:
+- `NodeClass` (`eks.amazonaws.com/v1`) replaces `EC2NodeClass` (`karpenter.k8s.aws/v1`)
+- `amiFamily`, `amiSelectorTerms`, `role`, `metadataOptions`, and `blockDeviceMappings` are removed — Auto Mode manages these
+- Instance label keys use the `eks.amazonaws.com/` prefix instead of `karpenter.k8s.aws/`
+
+**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Clean-up
 
 To remove all objects created, simply run the following commands:
