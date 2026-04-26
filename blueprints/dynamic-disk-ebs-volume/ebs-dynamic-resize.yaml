@@ -214,7 +214,7 @@ spec:
     os_type=$(detect_os)
     if [ "$os_type" = "al2023" ]; then
         /usr/bin/nodeadm init
-    elif [ "$os_type" = "bottlerocket" ] && [ $resize_result -eq 0 ]; then
+    elif [ "$os_type" = "bottlerocket" ]; then
       echo "Rebooting Bottlerocket instance after successful EBS resize"
       apiclient reboot
     fi
