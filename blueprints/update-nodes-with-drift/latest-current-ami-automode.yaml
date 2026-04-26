@@ -1,0 +1,66 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: latest-current-ami
+spec:
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  tags:
+    KubernetesVersion: "1.31"
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: latest-current-ami
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+  limits:
+    cpu: 100k
+    memory: 5000Gi
+  template:
+    metadata:
+      labels:
+        intent: latest-current-ami
+    spec:
+      expireAfter: 168h0m0s
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: latest-current-ami
+      requirements:
+      - key: eks.amazonaws.com/instance-category
+        operator: In
+        values:
+        - c
+        - m
+        - r
+        - i
+        - d
+      - key: eks.amazonaws.com/instance-cpu
+        operator: In
+        values:
+        - "4"
+        - "8"
+        - "16"
+        - "32"
+        - "48"
+        - "64"
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - spot
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64

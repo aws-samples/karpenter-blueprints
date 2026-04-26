@@ -79,6 +79,31 @@ If you're using a region with more than two AZs available, you might have notice
 
 In case you want to enforce this spread within `Deployments`, you can use projects like [Kyverno](https://kyverno.io) to mutate a `Deployment` object and set the TSC you've seen in this blueprint. Here's a [Kyverno policy example](https://kyverno.io/policies/other/s-z/spread-pods-across-topology/spread-pods-across-topology/) that mutates a `Deployment` to include a TSC, just make sure it replicates the same rule from this blueprint (`whenUnsatisfiable` to `ScheduleAnyway`).
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+This blueprint uses the default NodePool and requires no custom NodePool or EC2NodeClass manifests. The workloads work as-is on an EKS Auto Mode cluster with a default `NodeClass` (`eks.amazonaws.com/v1`).
+
+```sh
+kubectl apply -f workload.yaml
+```
+
+**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Cleanup
 
 ```sh

@@ -339,6 +339,39 @@ aws ec2 describe-capacity-reservations --filters Name=state,Values=active --quer
 kubectl delete -f workload-migration.yaml -f migration-nodeclass.yaml
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+To deploy this blueprint on an EKS Auto Mode cluster, use the `-automode.yaml` manifests instead:
+
+```sh
+kubectl apply -f savings-plans-automode.yaml
+kubectl apply -f reserved-instances-automode.yaml
+kubectl apply -f odcr-automode.yaml
+kubectl apply -f migration-nodeclass-automode.yaml
+```
+
+Differences from the OSS version:
+- `NodeClass` (`eks.amazonaws.com/v1`) replaces `EC2NodeClass` (`karpenter.k8s.aws/v1`)
+- `amiFamily`, `amiSelectorTerms`, `role`, `metadataOptions`, and `blockDeviceMappings` are removed — Auto Mode manages these
+- Instance label keys use the `eks.amazonaws.com/` prefix instead of `karpenter.k8s.aws/`
+
+**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Complete Cleanup
 
 To remove all objects from all scenarios:
