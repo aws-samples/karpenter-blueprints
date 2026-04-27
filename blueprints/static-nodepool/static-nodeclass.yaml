@@ -1,0 +1,22 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: gpu-static
+spec:
+  amiSelectorTerms:
+  - alias: al2023@latest
+  role: "$KARPENTER_NODE_IAM_ROLE_NAME"
+  networkInterfaces:
+  - networkCardIndex: 0
+    deviceIndex: 0
+    interfaceType: "interface"
+  - networkCardIndex: 0
+    deviceIndex: 1
+    interfaceType: "efa-only"
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: $CLUSTER_NAME
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: $CLUSTER_NAME
+  instanceStorePolicy: RAID0
