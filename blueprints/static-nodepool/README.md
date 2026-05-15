@@ -10,7 +10,7 @@ You might consider this when:
 
 ## Requirements
 
-* A Kubernetes cluster with Karpenter installed. Karpenter v1.11+ is required for placement group and network interface configuration support. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
+* A Kubernetes cluster with Karpenter installed. Karpenter v1.11+ is required for placement group and network interface configuration support. You can use the cluster we've used to test this pattern at the `cluster` folder in the root of this repository.
 * The `StaticCapacity` feature gate must be enabled. This feature is in Alpha (default: `false`) since Karpenter v1.8.x. Update your Karpenter deployment to include the feature gate:
 
 ```sh
@@ -31,7 +31,7 @@ kubectl -n karpenter get deployment karpenter -o jsonpath='{.spec.template.spec.
 
 You should see `StaticCapacity=true` in the output.
 
-For accelerated instances, you will also need your cluster to have the required drivers and device plugins to advertise accelerators to Kubernetes.
+For accelerated instances, you will also need your cluster to have the required drivers and device plugins to advertise accelerators to Kubernetes. You can learn more about what is included as part of the EKS-optimized accelerated AMIs [here](https://docs.aws.amazon.com/eks/latest/userguide/ml-eks-optimized-ami.html).
 
 ## Deploy
 
@@ -56,7 +56,7 @@ metadata:
   name: gpu-static
 spec:
   amiSelectorTerms:
-  - alias: al2023@latest
+  - alias: bottlerocket@latest
   role: "$KARPENTER_NODE_IAM_ROLE_NAME"
   networkInterfaces:
   - networkCardIndex: 0
@@ -77,22 +77,14 @@ EOF
 
 #### Network interface configuration (ENA / EFA)
 
-To attach EFA devices for high-throughput inter-node communication, configure `networkInterfaces` on the EC2NodeClass. Two interface types are available:
+You might decide to attach EFA devices for high-throughput inter-node communication (e.g. RDMA). To do this you can configure `networkInterfaces` as part of the EC2NodeClass. Two interface types are available:
 
 - `interface` — standard ENA providing IP connectivity
 - `efa-only` — EFA device for RDMA, doesn't consume an IP address
 
-```yaml
-  networkInterfaces:
-  - networkCardIndex: 0
-    deviceIndex: 0
-    interfaceType: "interface"
-  - networkCardIndex: 0
-    deviceIndex: 1
-    interfaceType: "efa-only"
-```
-
 The `interface` entry handles IP networking. The `efa-only` entry attaches an EFA device for RDMA traffic. Instances with multiple network cards (e.g., p6-b200.48xlarge) need additional entries.
+
+The configuration in the EC2NodeClass above defines that instances launched by this EC2NodeClass primary network interface is `ena` and secondary as `efa-only`.
 
 > **NOTE**: Network interface configuration varies by instance type. Check the [EFA documentation](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/efa-acc-inst-types.html) and [EC2 network specifications](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-network-bandwidth.html) for your specific instance.
 
@@ -105,7 +97,7 @@ To specify an [EC2 placement group](https://docs.aws.amazon.com/AWSEC2/latest/Us
     name: my-gpu-cluster-pg
 ```
 
-Karpenter supports three placement group strategies:
+You might use placement groups to co-locate compute for performance, or spread for resillience. Karpenter supports three placement group strategies:
 - **Cluster** — single AZ, same network segment, best for EFA workloads
 - **Partition** — up to 7 isolated partitions per AZ for fault isolation
 - **Spread** — each instance on distinct hardware, max 7 per AZ per group
@@ -166,16 +158,17 @@ spec:
         - key: node.kubernetes.io/instance-type
           operator: In
           values: ["g6e.8xlarge"]
-      expireAfter: Never
       taints:
         - key: nvidia.com/gpu
           effect: NoSchedule
 EOF
 ```
 
-> **NOTE**: Adjust `replicas`, `limits.nodes`, and instance type for your setup. `limits.nodes` caps the node count during scaling or drift replacement. This example uses `on-demand` capacity, to use reserved capacity (ODCRs or Capacity Blocks), add `reserved` to the `karpenter.sh/capacity-type` values and ensure the EC2NodeClass references the reserved capacity.
+In this example, the `karpenter.sh/capacity-type` was set to `on-demand`, to use reserved capacity (ODCRs or Capacity Blocks), add `reserved` to the `karpenter.sh/capacity-type` values and check the EC2NodeClass references the reserved capacity otherwise reservations will not be used. You need to set `node.kubernetes.io/instance-type` to the reserved instance type so it matches the capacity reservation.
 
-To specify an AZ for capacity, you can add the `topology.kubernetes.io/zone` to your NodePool
+> **NOTE**: Adjust `replicas`, `limits.nodes`, and instance type for your setup. `limits.nodes` caps the node count during scaling or drift replacement.
+
+To specify an AZ for static capacity based on your reservation, you can add the `topology.kubernetes.io/zone` to your NodePool:
 
 ```sh
 - key: topology.kubernetes.io/zone
