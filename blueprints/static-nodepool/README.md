@@ -97,7 +97,7 @@ To specify an [EC2 placement group](https://docs.aws.amazon.com/AWSEC2/latest/Us
     name: my-gpu-cluster-pg
 ```
 
-You might use placement groups to co-locate compute for performance, or spread for resillience. Karpenter supports three placement group strategies:
+You might use placement groups to co-locate compute for performance, or spread for resilience. Karpenter supports three placement group strategies:
 - **Cluster** — single AZ, same network segment, best for EFA workloads
 - **Partition** — up to 7 isolated partitions per AZ for fault isolation
 - **Spread** — each instance on distinct hardware, max 7 per AZ per group
