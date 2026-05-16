@@ -103,7 +103,11 @@ You can repeat this process every time you need to run a controlled upgrade of t
 <details>
 <summary><strong>EKS Auto Mode</strong></summary>
 
-To deploy this blueprint on an EKS Auto Mode cluster, use the `-automode.yaml` manifest instead:
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+To deploy this blueprint on Auto Mode, use the `-automode.yaml` manifest instead of the OSS one:
 
 ```sh
 kubectl apply -f latest-current-ami-automode.yaml
@@ -114,7 +118,7 @@ Differences from the OSS version:
 - `amiFamily`, `amiSelectorTerms`, `role`, `metadataOptions`, and `blockDeviceMappings` are removed — Auto Mode manages these
 - Instance label keys use the `eks.amazonaws.com/` prefix instead of `karpenter.k8s.aws/`
 
-**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
 
 ```sh
 aws eks create-access-entry \

@@ -145,9 +145,11 @@ The differences boil down to:
 - **Managed fields removed**: `amiFamily`, `amiSelectorTerms`, `role`, `userData`, `blockDeviceMappings`, `metadataOptions`
 - **Instance label prefix**: `eks.amazonaws.com/instance-*` replaces `karpenter.k8s.aws/instance-*`
 - **Max node lifetime**: 336h (14 days) — `expireAfter` is capped at this value
-- **Access Entry required**: the node IAM role needs `AmazonEKSAutoNodePolicy` via an EKS Access Entry
+- **Access Entry required**: the node IAM role needs `AmazonEKSAutoNodePolicy` via an EKS Access Entry. The reference Terraform template under [`cluster/automode/`](./cluster/automode/) wires this up for you.
 
-Workload manifests (Deployments, Jobs, etc.) are identical between OSS and Auto Mode.
+Workload manifests (Deployments, Jobs, etc.) are identical between OSS and Auto Mode, with two exceptions called out in their own blueprints:
+- `nvidia-gpu-workload` uses the `eks.amazonaws.com/instance-gpu-name` label key instead of `karpenter.k8s.aws/instance-gpu-name` for GPU pinning.
+- `soci-snapshotter` collapses three NodePools (AL2023 SOCI, Bottlerocket SOCI, non-SOCI baseline) into a single Auto Mode NodePool because Auto Mode runs Bottlerocket only and SOCI is always enabled.
 
 Here's the list of blueprints we have so far:
 
@@ -165,8 +167,8 @@ Here's the list of blueprints we have so far:
 | [Customizing nodes with your own User Data automation](/blueprints/userdata/) | ✅ | ❌ |
 | [Protecting batch jobs during the consolidation process](/blueprints/batch-jobs/) | ✅ | ✅ |
 | [NodePool Disruption Budgets](/blueprints/disruption-budgets/) | ✅ | ✅ |
-| [Deploy an NVIDIA GPU workload](/blueprints/nvidia-gpu-workload/) | ✅ | ❌ |
-| [Accelerating image pull time using SOCI parallel mode](/blueprints/soci-snapshotter/) | ✅ | ❌ |
+| [Deploy an NVIDIA GPU workload](/blueprints/nvidia-gpu-workload/) | ✅ | ✅ |
+| [Accelerating image pull time using SOCI parallel mode](/blueprints/soci-snapshotter/) | ✅ | ✅ |
 | [Reserve node capacity for spiky workloads](/blueprints/node-reserved-headroom/) | ✅ | ✅ |
 | [Using NodeOverlays for instance prioritization and GPU slicing](/blueprints/node-overlay/) | ✅ | ❌ |
 | [Dynamic EBS Volume Sizing](/blueprints/dynamic-disk-ebs-volume) | ✅ | ❌ |

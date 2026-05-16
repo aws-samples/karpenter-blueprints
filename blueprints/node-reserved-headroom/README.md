@@ -184,13 +184,17 @@ You should see that DaemonSet pods get evicted as `demo-burst` pods scale.
 <details>
 <summary><strong>EKS Auto Mode</strong></summary>
 
-This blueprint uses the default NodePool and requires no custom NodePool or EC2NodeClass manifests. The workloads work as-is on an EKS Auto Mode cluster with a default `NodeClass` (`eks.amazonaws.com/v1`).
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+This blueprint uses the default NodePool and requires no custom NodePool or EC2NodeClass manifests. The workload runs as-is on an EKS Auto Mode cluster with the default `NodeClass` (`eks.amazonaws.com/v1`).
 
 ```sh
 kubectl apply -f .
 ```
 
-**Prerequisite:** Auto Mode requires an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role:
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
 
 ```sh
 aws eks create-access-entry \

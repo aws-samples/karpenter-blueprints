@@ -221,6 +221,57 @@ NAME        TYPE           CAPACITY    ZONE         NODE                        
 gpu-f69tm   g4dn.2xlarge   on-demand   eu-west-1c   ip-xxx-xxx-xxx-xxx.eu-west-1.compute.internal True    5m44s
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+GPU support is simpler on Auto Mode: the managed Bottlerocket AMIs already include the NVIDIA drivers, so the `EC2NodeClass` collapses to a minimal `NodeClass` with no `amiSelectorTerms`, no `blockDeviceMappings`, and no `role`. The NodePool's `g` family / `nvidia` GPU manufacturer requirements move to the `eks.amazonaws.com/` label prefix.
+
+You still need to install the NVIDIA device plugin so Kubernetes sees GPU resources on the node:
+
+```sh
+helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
+helm repo update
+helm upgrade -i nvdp nvdp/nvidia-device-plugin \
+  --namespace nvidia-device-plugin \
+  --create-namespace \
+  --version 0.18.0
+```
+
+Then apply the Auto Mode manifests:
+
+```sh
+kubectl apply -f gpu-nodeclass-automode.yaml
+kubectl apply -f gpu-nodepool-automode.yaml
+```
+
+The example workload from the OSS section above uses `nodeSelector: karpenter.k8s.aws/instance-gpu-name: "t4"`. On Auto Mode, that label key is `eks.amazonaws.com/instance-gpu-name`. Update the workload accordingly:
+
+```yaml
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+  eks.amazonaws.com/instance-gpu-name: "t4"
+```
+
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Clean-up
 
 To clean-up execute the following commands:

@@ -11,13 +11,50 @@ data "aws_availability_zones" "available" {
 
 locals {
   name = "eks-auto-mode-blueprints"
-  
+
   vpc_cidr = "10.0.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
   tags = {
     blueprint = local.name
   }
+}
+
+################################################################################
+# Auto Mode Node IAM Role + Access Entry
+#
+# When cluster_compute_config.enabled = true, EKS Auto Mode launches managed
+# nodes that need an IAM role with AmazonEKSAutoNodePolicy attached and an
+# Access Entry of type EC2. The terraform-aws-modules/eks module creates the
+# role implicitly; we make it explicit here so that every blueprint in this
+# repo can reference cluster/automode/ as the canonical example.
+################################################################################
+
+resource "aws_iam_role" "auto_mode_node" {
+  name = "${local.name}-auto-mode-node"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "auto_mode_node_policies" {
+  for_each = toset([
+    "arn:aws:iam::aws:policy/AmazonEKSWorkerNodeMinimalPolicy",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly",
+  ])
+
+  role       = aws_iam_role.auto_mode_node.name
+  policy_arn = each.value
 }
 
 ################################################################################
@@ -33,10 +70,11 @@ module "eks" {
   cluster_endpoint_public_access           = true
   enable_cluster_creator_admin_permissions = true
 
-  # Enable EKS Auto Mode
+  # Enable EKS Auto Mode with our explicit node IAM role
   cluster_compute_config = {
-    enabled    = true
-    node_pools = ["general-purpose"]
+    enabled       = true
+    node_pools    = ["general-purpose"]
+    node_role_arn = aws_iam_role.auto_mode_node.arn
   }
 
   vpc_id     = module.vpc.vpc_id
@@ -46,6 +84,22 @@ module "eks" {
   eks_managed_node_groups = {}
 
   tags = local.tags
+}
+
+resource "aws_eks_access_entry" "auto_mode_node" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.auto_mode_node.arn
+  type          = "EC2"
+}
+
+resource "aws_eks_access_policy_association" "auto_mode_node" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_iam_role.auto_mode_node.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy"
+
+  access_scope {
+    type = "cluster"
+  }
 }
 
 #---------------------------------------------------------------
