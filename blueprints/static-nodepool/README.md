@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The purpose of this blueprint is to demonstrate how to maintain a fixed number of nodes running in your cluster regardless of workload demand. Setting `spec.replicas` in a NodePool tells Karpenter to maintain a node count. This blueprint walks through setting up a static node pool, including network interface and placement group configuration for a GPU instance.
+The purpose of this blueprint is to demonstrate how to maintain a fixed number of nodes running in your cluster regardless of workload demand. Setting `spec.replicas` in a NodePool tells Karpenter to maintain a node count. This blueprint walks through setting up a static node pool for GPU instances alongside configuring network interfaces and how to configure capacity reservations or placement groups.
 
 You might consider this when:
 - You've purchased capacity via [EC2 Capacity Blocks for ML](https://aws.amazon.com/ec2/capacityblocks/) or [On-Demand Capacity Reservations](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-capacity-reservations.html) and want a fixed node count
@@ -187,7 +187,7 @@ Since `replicas` is set, Karpenter provisions the nodes without any pending pods
 
 ## Results
 
-After a few minutes, Karpenter provisions a `g6e.8xlarge` GPU node matching the `replicas: 1` spec.
+After a few minutes, Karpenter provisions a `g6e.8xlarge` matching the `replicas: 1` spec.
 
 **Check nodes:**
 ```sh
