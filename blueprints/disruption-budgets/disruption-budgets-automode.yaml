@@ -1,0 +1,50 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: disruption-budget
+spec:
+  limits:
+    cpu: 100
+    memory: 100Gi
+  template:
+    metadata:
+      labels:
+        intent: disruption-budget
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        name: disruption-budget
+        kind: NodeClass
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: eks.amazonaws.com/instance-category
+          operator: In
+          values: ["c","m","r"]
+        - key: eks.amazonaws.com/instance-size
+          operator: NotIn
+          values: ["nano","micro","small","medium"]
+        - key: eks.amazonaws.com/instance-hypervisor
+          operator: In
+          values: ["nitro"]
+      expireAfter: 336h
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
+    budgets:
+    - nodes: "0"
+      schedule: "0 0 * * *"
+      duration: 24h
+---
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: disruption-budget
+spec:
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>

@@ -37,3 +37,8 @@ output "oidc_provider_arn" {
   description = "The ARN of the OIDC Provider if enabled"
   value       = module.eks.oidc_provider_arn
 }
+
+output "auto_mode_node_role_arn" {
+  description = "ARN of the IAM role used by EKS Auto Mode nodes (referenced by the per-blueprint README access-entry instructions)"
+  value       = aws_iam_role.auto_mode_node.arn
+}

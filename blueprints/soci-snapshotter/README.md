@@ -305,6 +305,43 @@ The `vllm-soci-br` deployment using SOCI snapshotter's parallel pull/unpack mode
 We can see that using SOCI snapshotter's improved container pull time by about **50%** on Amazon Linux 2023, and about **60%** on Bottlerocket, the reason for that is that Bottlerocket have an improved decompression library for Intel based CPUs ([bottlerocket-core-kit PR #443](https://github.com/bottlerocket-os/bottlerocket-core-kit/pull/443))
 
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+SOCI parallel pull/unpack mode is **built into Auto Mode's Bottlerocket nodes by default** (since the [November 19, 2025 Auto Mode change](https://docs.aws.amazon.com/eks/latest/userguide/auto-change.html#_november_19_2025)). No `userData` configuration is needed. The OSS blueprint's three-way comparison (AL2023 SOCI, Bottlerocket SOCI, non-SOCI baseline) collapses to a single Auto Mode NodePool because Auto Mode runs Bottlerocket only and SOCI is always enabled — there is no opt-out path to demonstrate a non-SOCI baseline.
+
+To deploy on Auto Mode, use the single combined manifest:
+
+```sh
+kubectl apply -f soci-snapshotter-automode.yaml
+```
+
+Differences from the OSS version:
+- Single `NodeClass` + `NodePool` pair instead of three (no AL2023, no non-SOCI baseline)
+- `userData`, `instanceStorePolicy`, and `blockDeviceMappings` are removed — Auto Mode + Bottlerocket handle these
+- Instance label keys use the `eks.amazonaws.com/` prefix instead of `karpenter.k8s.aws/`
+- The OSS workload's `karpenter.k8s.aws/instance-ebs-bandwidth` and `karpenter.k8s.aws/instance-network-bandwidth` node-affinity keys become `eks.amazonaws.com/instance-ebs-bandwidth` and `eks.amazonaws.com/instance-network-bandwidth`
+
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Cleanup
 
 To remove all objects created, simply run the following commands:

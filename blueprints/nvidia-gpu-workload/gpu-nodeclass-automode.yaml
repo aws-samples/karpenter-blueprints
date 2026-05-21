@@ -1,0 +1,13 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: gpu
+spec:
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: <<CLUSTER_NAME>>
+  ephemeralStorage:
+    size: "100Gi"

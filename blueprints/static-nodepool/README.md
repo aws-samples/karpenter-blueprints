@@ -212,6 +212,49 @@ gpu-static               gpu-static               1       True    48s
 ...
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+EKS Auto Mode supports static capacity NodePools with the same `spec.replicas` field — see the [Static Capacity Node Pools in EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/auto-static-capacity.html) documentation. **No `StaticCapacity` feature gate flip is needed** — the managed Karpenter in Auto Mode exposes this directly.
+
+The Auto Mode NodeClass collapses to a minimal form: no `amiSelectorTerms`, no `role`, no `blockDeviceMappings`, no `instanceStorePolicy`, and no `networkInterfaces`. EFA, ENA, and instance store policy are managed by Auto Mode. NVIDIA drivers and the device plugin are also included automatically — no extra install needed.
+
+To deploy on Auto Mode, replace `<<CLUSTER_NAME>>` and apply:
+
+```sh
+sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" static-nodeclass-automode.yaml
+kubectl apply -f static-nodeclass-automode.yaml
+kubectl apply -f static-nodepool-automode.yaml
+```
+
+Differences from the OSS version:
+- `NodeClass` (`eks.amazonaws.com/v1`) replaces `EC2NodeClass` (`karpenter.k8s.aws/v1`)
+- `networkInterfaces`, `instanceStorePolicy`, `amiSelectorTerms`, `role`, and `blockDeviceMappings` are removed — Auto Mode manages these
+- The `vpc.amazonaws.com/efa.present` label is dropped from the NodePool template (Auto Mode handles EFA differently — see the [EFA on Auto Mode docs](https://docs.aws.amazon.com/eks/latest/userguide/manage-efa.html))
+- No `StaticCapacity` feature gate flip — `spec.replicas` is supported natively
+
+The OSS blueprint demonstrates `placementGroupSelector` and `capacityReservationSelectorTerms` for ODCR / Capacity Blocks. Auto Mode handles capacity reservations through different mechanisms — refer to the [EKS Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/automode.html) for the current support matrix.
+
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Clean-up
 
 To clean-up execute the following commands:

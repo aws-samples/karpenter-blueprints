@@ -1,0 +1,28 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu-static
+spec:
+  replicas: 1
+  limits:
+    nodes: 2
+  template:
+    metadata:
+      labels:
+        capacity-type: gpu-static
+        nvidia.com/gpu.present: "true"
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        name: gpu-static
+        kind: NodeClass
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values: ["g6e.8xlarge"]
+      taints:
+        - key: nvidia.com/gpu
+          effect: NoSchedule
