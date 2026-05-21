@@ -1,0 +1,32 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: neuron
+spec:
+  limits:
+    cpu: 100
+    memory: 100Gi
+    aws.amazon.com/neuron: 5
+  template:
+    metadata:
+      labels:
+        intent: neuron
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        name: neuron
+        kind: NodeClass
+      requirements:
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand", "spot"]
+        - key: eks.amazonaws.com/instance-category
+          operator: In
+          values: ["inf", "trn"]
+      expireAfter: 336h
+      taints:
+         - key: aws.amazon.com/neuron
+           effect: NoSchedule
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

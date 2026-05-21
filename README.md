@@ -147,9 +147,11 @@ The differences boil down to:
 - **Max node lifetime**: 336h (14 days) — `expireAfter` is capped at this value
 - **Access Entry required**: the node IAM role needs `AmazonEKSAutoNodePolicy` via an EKS Access Entry. The reference Terraform template under [`cluster/automode/`](./cluster/automode/) wires this up for you.
 
-Workload manifests (Deployments, Jobs, etc.) are identical between OSS and Auto Mode, with two exceptions called out in their own blueprints:
-- `nvidia-gpu-workload` uses the `eks.amazonaws.com/instance-gpu-name` label key instead of `karpenter.k8s.aws/instance-gpu-name` for GPU pinning.
+Workload manifests (Deployments, Jobs, etc.) are identical between OSS and Auto Mode, with these exceptions called out in their own blueprints:
+- `nvidia-gpu-workload` uses the `eks.amazonaws.com/instance-gpu-name` label key instead of `karpenter.k8s.aws/instance-gpu-name` for GPU pinning, and **skips the NVIDIA device plugin install** since Auto Mode includes it.
+- `neuron-workload` **skips the neuron-helm-chart install** since Auto Mode includes the AWS Neuron device plugin and drivers automatically.
 - `soci-snapshotter` collapses three NodePools (AL2023 SOCI, Bottlerocket SOCI, non-SOCI baseline) into a single Auto Mode NodePool because Auto Mode runs Bottlerocket only and SOCI is always enabled.
+- `static-nodepool` keeps the `replicas` field but drops the OSS-specific `networkInterfaces` block — Auto Mode manages EFA networking through other mechanisms.
 
 Here's the list of blueprints we have so far:
 
@@ -172,7 +174,8 @@ Here's the list of blueprints we have so far:
 | [Reserve node capacity for spiky workloads](/blueprints/node-reserved-headroom/) | ✅ | ✅ |
 | [Using NodeOverlays for instance prioritization and GPU slicing](/blueprints/node-overlay/) | ✅ | ❌ |
 | [Dynamic EBS Volume Sizing](/blueprints/dynamic-disk-ebs-volume) | ✅ | ❌ |
-| [Deploy an AWS Trainium or AWS Inferentia workload](/blueprints/neuron-workload) | ✅ | ❌ |
+| [Deploy an AWS Trainium or AWS Inferentia workload](/blueprints/neuron-workload) | ✅ | ✅ |
+| [Using Static NodePools for static capacity](/blueprints/static-nodepool) | ✅ | ✅ |
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 

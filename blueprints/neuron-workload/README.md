@@ -206,6 +206,57 @@ instance-id: <redacted>
 +--------+--------+----------+--------+-----------+--------------+----------+------+
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+**Prerequisite:** an EKS cluster with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+Trainium / Inferentia support is simpler on Auto Mode: the managed Bottlerocket AMIs include the AWS Neuron drivers, **and Auto Mode also includes the Neuron Kubernetes device plugin automatically** ([docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-accelerated.html)). You do **not** need to install the `neuron-helm-chart` — skip that entire step.
+
+To deploy on Auto Mode, replace `<<CLUSTER_NAME>>` and apply the Auto Mode manifests:
+
+```sh
+sed -i "s/<<CLUSTER_NAME>>/$CLUSTER_NAME/g" neuron-nodeclass-automode.yaml
+kubectl apply -f neuron-nodeclass-automode.yaml
+kubectl apply -f neuron-nodepool-automode.yaml
+```
+
+Differences from the OSS version:
+- **Skip the `neuron-helm-chart` install** — Auto Mode includes the Neuron device plugin and drivers
+- `NodeClass` (`eks.amazonaws.com/v1`) replaces `EC2NodeClass` (`karpenter.k8s.aws/v1`)
+- `amiSelectorTerms`, `role`, and `blockDeviceMappings` are removed — Auto Mode manages these
+- Instance label keys use the `eks.amazonaws.com/` prefix (`eks.amazonaws.com/instance-category`)
+
+The example workload from the OSS section above uses `nodeSelector: karpenter.k8s.aws/instance-accelerator-name: inferentia` and `schedulerName: neuron-scheduler`. On Auto Mode:
+- The label key becomes `eks.amazonaws.com/instance-accelerator-name`
+- **Drop `schedulerName: neuron-scheduler`** — the Neuron scheduler extension is not installed by Auto Mode. Workloads requiring more than one Neuron core/device can still run, but won't get the topology-aware scheduling that the optional scheduler extension provides.
+
+Updated workload nodeSelector:
+
+```yaml
+nodeSelector:
+  intent: neuron
+  eks.amazonaws.com/instance-accelerator-name: inferentia
+```
+
+If you are **not** using the `cluster/automode/` Terraform template, configure the Access Entry manually:
+
+```sh
+aws eks create-access-entry \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --type EC2
+
+aws eks associate-access-policy \
+  --cluster-name $CLUSTER_NAME \
+  --principal-arn <node-role-arn> \
+  --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSAutoNodePolicy \
+  --access-scope type=cluster
+```
+</details>
+
 ## Clean-up
 
 To clean-up execute the following commands:

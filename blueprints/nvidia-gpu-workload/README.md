@@ -228,20 +228,11 @@ gpu-f69tm   g4dn.2xlarge   on-demand   eu-west-1c   ip-xxx-xxx-xxx-xxx.eu-west-1
 
 > If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
 
-GPU support is simpler on Auto Mode: the managed Bottlerocket AMIs already include the NVIDIA drivers, so the `EC2NodeClass` collapses to a minimal `NodeClass` with no `amiSelectorTerms`, no `blockDeviceMappings`, and no `role`. The NodePool's `g` family / `nvidia` GPU manufacturer requirements move to the `eks.amazonaws.com/` label prefix.
+GPU support is simpler on Auto Mode: the managed Bottlerocket AMIs include the NVIDIA drivers, **and Auto Mode also includes the NVIDIA Kubernetes device plugin automatically** ([docs](https://docs.aws.amazon.com/eks/latest/userguide/auto-accelerated.html)). You do **not** need to `helm install` the device plugin — skip that step entirely.
 
-You still need to install the NVIDIA device plugin so Kubernetes sees GPU resources on the node:
+The `EC2NodeClass` collapses to a minimal `NodeClass` with no `amiSelectorTerms`, no `blockDeviceMappings`, and no `role`. The NodePool's `g` family / `nvidia` GPU manufacturer requirements move to the `eks.amazonaws.com/` label prefix.
 
-```sh
-helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
-helm repo update
-helm upgrade -i nvdp nvdp/nvidia-device-plugin \
-  --namespace nvidia-device-plugin \
-  --create-namespace \
-  --version 0.18.0
-```
-
-Then apply the Auto Mode manifests:
+Apply the Auto Mode manifests directly:
 
 ```sh
 kubectl apply -f gpu-nodeclass-automode.yaml
