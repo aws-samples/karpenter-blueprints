@@ -52,11 +52,9 @@ To create the cluster, clone this repository and open the `cluster/terraform` fo
 
 ```sh
 cd cluster/terraform
-helm registry logout public.ecr.aws
 export TF_VAR_region=$AWS_REGION
 terraform init
 terraform apply -target="module.vpc" -auto-approve
-terraform apply -target="module.eks" -auto-approve
 terraform apply --auto-approve
 ```
 
@@ -126,7 +124,6 @@ kubectl delete --all nodeclaim
 kubectl delete --all nodepool
 kubectl delete --all ec2nodeclass
 export TF_VAR_region=$AWS_REGION
-terraform destroy -target="module.eks_blueprints_addons" --auto-approve
 terraform destroy -target="module.eks" --auto-approve
 terraform destroy --auto-approve
 ```

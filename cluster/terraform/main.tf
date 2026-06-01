@@ -1,7 +1,9 @@
-## THIS TO AUTHENTICATE TO ECR, DON'T CHANGE IT
-provider "aws" {
+ephemeral "aws_eks_cluster_auth" "this" {
+  name = module.eks.cluster_name
+}
+
+ephemeral "aws_ecrpublic_authorization_token" "token" {
   region = "us-east-1"
-  alias  = "virginia"
 }
 
 provider "aws" {
@@ -11,15 +13,23 @@ provider "aws" {
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
+  token                  = ephemeral.aws_eks_cluster_auth.this.token
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.this.token
+    token                  = ephemeral.aws_eks_cluster_auth.this.token
   }
+
+  registries = [
+    {
+      url      = "oci://public.ecr.aws"
+      username = ephemeral.aws_ecrpublic_authorization_token.token.user_name
+      password = ephemeral.aws_ecrpublic_authorization_token.token.password
+    }
+  ]
 }
 
 provider "kubectl" {
@@ -27,15 +37,8 @@ provider "kubectl" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
   load_config_file       = false
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
-}
-
-data "aws_ecrpublic_authorization_token" "token" {
-  provider = aws.virginia
+  lazy_load              = true
+  token                  = ephemeral.aws_eks_cluster_auth.this.token
 }
 
 data "aws_availability_zones" "available" {
@@ -63,10 +66,10 @@ locals {
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.10.1"
+  version = "~> 21.6"
 
   name                                     = local.name
-  kubernetes_version                    = "1.34"
+  kubernetes_version                       = "1.34"
   endpoint_public_access                   = true
   enable_cluster_creator_admin_permissions = true
 
@@ -93,6 +96,13 @@ module "eks" {
           WARM_PREFIX_TARGET       = "1"
         }
       })
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = module.aws_ebs_csi_iam_role.arn
+        service_account = "ebs-csi-controller-sa"
+      }]
     }
   }
 
@@ -133,59 +143,30 @@ module "eks" {
   tags = local.tags
 }
 
-module "eks_blueprints_addons" {
-  source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "1.21.0"
+module "aws_ebs_csi_iam_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
+  version = "~> 6.4"
 
-  cluster_name      = module.eks.cluster_name
-  cluster_endpoint  = module.eks.cluster_endpoint
-  cluster_version   = module.eks.cluster_version
-  oidc_provider_arn = module.eks.oidc_provider_arn
+  name            = "${local.name}-ebs-csi"
+  use_name_prefix = true
 
-  create_delay_dependencies = [for grp in module.eks.eks_managed_node_groups : grp.node_group_arn]
-
-  eks_addons = {
-    # Amazon EKS add-ons
-    aws-ebs-csi-driver = {
-      most_recent = true
+  trust_policy_permissions = {
+    EKSPodIdentity = {
+      principals = [{
+        type = "Service"
+        identifiers = [
+          "pods.eks.amazonaws.com",
+        ]
+      }]
+      actions = [
+        "sts:AssumeRole",
+        "sts:TagSession",
+      ]
     }
   }
 
-  enable_aws_load_balancer_controller = true
-
-  enable_aws_for_fluentbit = true
-  aws_for_fluentbit = {
-    set = [
-      {
-        name  = "cloudWatchLogs.region"
-        value = var.region
-      }
-    ]
-  }
-
-  tags = local.tags
-
-  depends_on = [module.aws_ebs_csi_pod_identity]
-}
-
-module "aws_ebs_csi_pod_identity" {
-  source = "terraform-aws-modules/eks-pod-identity/aws"
-
-  name    = "aws-ebs-csi"
-  version = "2.5.0"
-
-  attach_aws_ebs_csi_policy = true
-
-  # Pod Identity Associations
-  association_defaults = {
-    namespace       = "kube-system"
-    service_account = "ebs-csi-controller-sa"
-  }
-
-  associations = {
-    default = {
-      cluster_name = module.eks.cluster_name
-    }
+  policies = {
+    AmazonEBSCSIDriverPolicy = "arn:aws:iam::aws:policy/AmazonEBSCSIDriverPolicyV2"
   }
 
   tags = local.tags
