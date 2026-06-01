@@ -260,9 +260,8 @@ kind: EC2NodeClass
 metadata:
   name: soci-snapshotter
 spec:
-  amiSelectorTerms:
-    - alias: al2023@latest
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+...
+...
   instanceStorePolicy: RAID0
   blockDeviceMappings:
   - deviceName: /dev/xvda
@@ -271,12 +270,8 @@ spec:
       volumeType: gp3
       throughput: 1000
       iops: 16000
-  securityGroupSelectorTerms:
-  - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
-  subnetSelectorTerms:
-  - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+...
+...
   userData: |
     MIME-Version: 1.0
     Content-Type: multipart/mixed; boundary="//"
@@ -327,9 +322,8 @@ kind: EC2NodeClass
 metadata:
   name: soci-snapshotter-br
 spec:
-  amiSelectorTerms:
-    - alias: bottlerocket@latest
-  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+...
+...
   # NOTE: No instanceStorePolicy here — we manage it manually via bootstrap commands
   blockDeviceMappings:
     - deviceName: /dev/xvda
@@ -344,12 +338,8 @@ spec:
         throughput: 1000
         iops: 16000
         encrypted: true
-  securityGroupSelectorTerms:
-  - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
-  subnetSelectorTerms:
-  - tags:
-      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+...
+...
   userData: |
     [settings.container-runtime]
     snapshotter = "soci"
@@ -385,10 +375,10 @@ What this does:
 
 | OS | Approach | SOCI data lives on | Runtime dirs on NVMe |
 |----|----------|-------------------|---------------------|
-| AL2023 | Keep `instanceStorePolicy: RAID0`, redirect SOCI root via systemd + containerd config | EBS (`/var/lib/soci-snapshotter`) | Yes |
+| AL2023 | Keep `instanceStorePolicy: RAID0`, configure SOCI root via systemd + containerd config | EBS (`/var/lib/soci-snapshotter`) | Yes |
 | Bottlerocket | Remove `instanceStorePolicy`, manually init RAID0 and bind specific dirs | EBS (`/var/lib/soci-snapshotter`) | Yes |
 
-This pattern is particularly useful for GPU instances (e.g., `g5`, `g6`) where NVMe capacity is limited but you still want fast I/O for kubelet and containerd operations, while giving SOCI the full capacity and consistent performance of a provisioned EBS volume.
+This pattern is particularly useful for GPU instances (e.g., `g5`, `g6`) where NVMe performance vary by instance size but you still want fast I/O for kubelet and containerd operations, while giving SOCI the full capacity and consistent performance of a provisioned EBS volume.
 
 ## Results
 
