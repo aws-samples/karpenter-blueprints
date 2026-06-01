@@ -12,6 +12,7 @@ This blueprint demonstrate how to setup SOCI snapshotter parallel pull/unpack mo
 
 If you would like to learn more about SOCI snapshotter's new parallel pull/unpack mode you can visit the following resources:
 1. [SOCI snapshotter parallel mode feature docs](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md) in the [SOCI project repository](https://github.com/awslabs/soci-snapshotter) on GitHub.
+2. [Introducing Seekable OCI Parallel Pull mode for Amazon EKS](https://aws.amazon.com/blogs/containers/introducing-seekable-oci-parallel-pull-mode-for-amazon-eks/) Blog post.
 
 ## Requirements
 
@@ -69,7 +70,9 @@ Those commands creates the following:
 
 The SOCI snapshotter `EC2NodeClass` configuration have several configuration parameters that affect SOCI parallel mode performance.
 
-The `blockDeviceMapping` field is used to increase root volume EBS performance and storage size. The `instanceStorePolicy: RAID0` tells Karpenter to automatically configure a `RAID-0` array from all available NVMe instance store disks on the node. It then moves `/var/lib/containerd`, `/var/lib/kubelet`, and `/var/log/pods` to that array and symlinks them back.
+The `blockDeviceMapping` field is used to increase root volume EBS performance and storage size.\
+The `instanceStorePolicy: RAID0` tells Karpenter to automatically configure a `RAID0` array from all available NVMe instance store disks on the node. It then moves `/var/lib/containerd`, `/var/lib/kubelet`, `/var/log/pods` and SOCI's data dir (`/var/lib/soci-snapshotter-grpc` or `/var/lib/soci-snapshotter` on AL2023 and Bottlerocket accordingly) to that array and symlinks them back.
+
 As SOCI parallel mode downloads layers, it buffers them on disk instead of in-memory, having a high performant storage subsystem is crucial to support it as well as enough storage to hold the container images.
 The example configure the root volume with IOPs of 16,000 and throughput of 1,000MiB/s which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
 > ***NOTE***: From our benchmarks, we have also seen a good starting point by setting the throughput to 600MiB/s and keeping base IOPs to 3,000.
@@ -85,7 +88,6 @@ metadata:
 ...
 ...
 spec:
-  instanceStorePolicy: RAID0
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -110,7 +112,6 @@ metadata:
 ...
 ...
 spec:
-  instanceStorePolicy: RAID0
   blockDeviceMappings:
     - deviceName: /dev/xvda
       ebs:
@@ -147,8 +148,7 @@ As installing a snapshotter to containerd and EKS requires several configuration
 <details>
 <summary>Amazon Linux 2023</summary>
 
-SOCI snapshotter parallel mode can be enabled in AL2023 through featureGate named "FastImagePull", in AL2023 we use [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/doc/examples/#enabling-fast-image-pull-experimental) simplify various data plane configurations. The SOCI configuration values are the default ones, but we left it as guidance in case you want to override them. 
-
+SOCI snapshotter parallel mode can be enabled in AL2023 through featureGate named "FastImagePull", in AL2023 we use [`NodeConfig`](https://awslabs.github.io/amazon-eks-ami/nodeadm/doc/examples/#enabling-fast-image-pull-experimental) simplify various data plane configurations.
 
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
@@ -161,28 +161,11 @@ spec:
 ...
 ...
   userData: |
-    MIME-Version: 1.0
-    Content-Type: multipart/mixed; boundary="BOUNDARY"
-
-    --BOUNDARY
-    Content-Type: application/node.eks.aws
-
-    ---
     apiVersion: node.eks.aws/v1alpha1
     kind: NodeConfig
     spec:
       featureGates:
         FastImagePull: true
-      containerd:
-        config: |
-          [plugins."io.containerd.snapshotter.v1.soci"]
-            [plugins."io.containerd.snapshotter.v1.soci".blob]
-              max_concurrent_downloads_per_image = 20
-              concurrent_download_chunk_size = "16mb"
-              max_concurrent_unpacks_per_image = 12
-              discard_unpacked_layers = true
-
-    --BOUNDARY--
 ```
 
 Modifying SOCI snapshotter parallel mode configuration in AL2023 requires modifying the `/etc/soci-snapshotter-grpc/config.toml` file, this can be achieved by a `userData` script as additional to the `NodeConfig` configuration.
@@ -231,8 +214,6 @@ spec:
 
 SOCI snapshotter parallel mode can be enabled and configured in Bottlerocket through the [Settings API](https://bottlerocket.dev/en/os/1.44.x/api/settings/container-runtime-plugins/#tag-soci-parallel-pull-configuration).
 
-In Bottlerocket, SOCI's data dir is configured at `/var/lib/soci-snapshotter`, to take advantage of instances with NVMe disks, we will need to configure ephemeral storage through Bottlerocket's Settings API, with `[settings.bootstrap-commands.k8s-ephemeral-storage]` as you can see below, we added `/var/lib/soci-snapshotter` as a bind dir.
-
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -246,10 +227,136 @@ spec:
   userData: |
     [settings.container-runtime]
     snapshotter = "soci"
-    
+
     [settings.container-runtime-plugins.soci-snapshotter]
     pull-mode = "parallel-pull-unpack"
-    
+
+    [settings.container-runtime-plugins.soci-snapshotter.parallel-pull-unpack]
+    max-concurrent-downloads-per-image = 20
+    concurrent-download-chunk-size = "16mb"
+    max-concurrent-unpacks-per-image = 12
+    discard-unpacked-layers = true
+```
+</details>
+
+## Using `instanceStorePolicy: RAID0` with EBS for SOCI Data
+
+### Background
+
+When `instanceStorePolicy: RAID0` is configured, Karpenter assembles all available NVMe instance store disks into a RAID0 array and moves container runtime directories onto it, including SOCI's data directory. This provides maximum I/O throughput for image pulls.
+
+However, not all NVMe instance store disks are equal, different instance types have varying NVMe storage capacity, read/write IOPS, and throughput specifications (see [EC2 instance type specifications](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-type-specifications.html)). In these cases, you may want SOCI's data directory to remain on EBS (where you control size, IOPS, and throughput) while still benefiting from the RAID0 array for containerd, kubelet, and pod logs.
+
+The workaround is to keep the RAID0 array for container runtime paths but have SOCI's data directory on EBS, giving you consistent and predictable storage performance.
+
+<details>
+<summary><strong>Amazon Linux 2023</strong></summary>
+
+On AL2023, `instanceStorePolicy: RAID0` binds `/var/lib/soci-snapshotter-grpc` to the NVMe RAID0 array by default. To override this and keep SOCI data on EBS, create a separate directory and modify the SOCI systemd service to use it before the service starts:
+
+```yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  instanceStorePolicy: RAID0
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      volumeSize: 100Gi
+      volumeType: gp3
+      throughput: 1000
+      iops: 16000
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  userData: |
+    MIME-Version: 1.0
+    Content-Type: multipart/mixed; boundary="//"
+
+    --//
+    Content-Type: text/x-shellscript; charset="us-ascii"
+
+    #!/bin/bash
+    mkdir /var/lib/soci-snapshotter
+    sed -i "s|ExecStart=/usr/bin/soci-snapshotter-grpc|ExecStart=/usr/bin/soci-snapshotter-grpc --root /var/lib/soci-snapshotter|" /etc/systemd/system/soci-snapshotter.service
+    systemctl daemon-reload
+
+    --//
+    Content-Type: application/node.eks.aws
+
+    apiVersion: node.eks.aws/v1alpha1
+    kind: NodeConfig
+    spec:
+      featureGates:
+        FastImagePull: true
+      containerd:
+        config: |
+          [proxy_plugins."soci"]
+            type = "snapshot"
+            address = "/run/soci-snapshotter-grpc/soci-snapshotter-grpc.sock"
+          [proxy_plugins."soci".exports]
+            root = "/var/lib/soci-snapshotter"
+    --//
+```
+
+What this does:
+
+1. **Creates `/var/lib/soci-snapshotter`** on the EBS root volume, this path is *not* one of the directories that `instanceStorePolicy: RAID0` moves to the NVMe array.
+2. **Modifies the SOCI systemd service** to use `--root /var/lib/soci-snapshotter` instead of the default `/var/lib/soci-snapshotter-grpc` (which lives on the RAID0 array).
+3. **Configures containerd** to point its SOCI proxy plugin's `root` export to the new EBS backed path.
+4. **Result**: containerd, kubelet, and pod logs benefit from NVMe RAID0 speed, while SOCI's layer data uses the high-IOPS EBS volume with predictable capacity.
+
+</details>
+
+<details>
+<summary><strong>Bottlerocket</strong></summary>
+
+On Bottlerocket, the approach is different: remove `instanceStorePolicy: RAID0` from the `EC2NodeClass` and manually initialize the NVMe RAID0 array via bootstrap commands, binding only the directories you want on instance store, explicitly excluding `/var/lib/soci-snapshotter`:
+
+```yaml
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: soci-snapshotter-br
+spec:
+  amiSelectorTerms:
+    - alias: bottlerocket@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  # NOTE: No instanceStorePolicy here — we manage it manually via bootstrap commands
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 4Gi
+        volumeType: gp3
+        encrypted: true
+    - deviceName: /dev/xvdb
+      ebs:
+        volumeSize: 100Gi
+        volumeType: gp3
+        throughput: 1000
+        iops: 16000
+        encrypted: true
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: "<<CLUSTER_NAME>>"
+  userData: |
+    [settings.container-runtime]
+    snapshotter = "soci"
+
+    [settings.container-runtime-plugins.soci-snapshotter]
+    pull-mode = "parallel-pull-unpack"
+
     [settings.container-runtime-plugins.soci-snapshotter.parallel-pull-unpack]
     max-concurrent-downloads-per-image = 20
     concurrent-download-chunk-size = "16mb"
@@ -259,12 +366,29 @@ spec:
     [settings.bootstrap-commands.k8s-ephemeral-storage]
     commands = [
         ["apiclient", "ephemeral-storage", "init"],
-        ["apiclient", "ephemeral-storage" ,"bind", "--dirs", "/var/lib/soci-snapshotter"]
+        ["apiclient", "ephemeral-storage", "bind", "--dirs", "/var/lib/containerd", "/var/lib/kubelet", "/var/log/pods"]
     ]
     essential = true
     mode = "always"
 ```
+
+What this does:
+
+1. **Removes `instanceStorePolicy: RAID0`** from the EC2NodeClass so Karpenter doesn't automatically binds all directories (including SOCI's) to the NVMe array.
+2. **Manually initializes the RAID0 array** using `apiclient ephemeral-storage init` this stripes all NVMe disks into a RAID0.
+3. **Selectively binds only `/var/lib/containerd`, `/var/lib/kubelet`, and `/var/log/pods`** to the NVMe array, deliberately omitting `/var/lib/soci-snapshotter`.
+4. **Result**: SOCI's data directory stays on the EBS data volume (`/dev/xvdb`) with guaranteed IOPS and throughput, while containerd and kubelet benefit from NVMe speed.
+
 </details>
+
+### Summary
+
+| OS | Approach | SOCI data lives on | Runtime dirs on NVMe |
+|----|----------|-------------------|---------------------|
+| AL2023 | Keep `instanceStorePolicy: RAID0`, redirect SOCI root via systemd + containerd config | EBS (`/var/lib/soci-snapshotter`) | Yes |
+| Bottlerocket | Remove `instanceStorePolicy`, manually init RAID0 and bind specific dirs | EBS (`/var/lib/soci-snapshotter`) | Yes |
+
+This pattern is particularly useful for GPU instances (e.g., `g5`, `g6`) where NVMe capacity is limited but you still want fast I/O for kubelet and containerd operations, while giving SOCI the full capacity and consistent performance of a provisioned EBS volume.
 
 ## Results
 
