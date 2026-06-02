@@ -3,14 +3,18 @@ kind: NodeClass
 metadata:
   name: soci-snapshotter
 spec:
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  networkPolicy: DefaultAllow
+  networkPolicyEventLogs: Disabled
+  snatPolicy: Random
+  ephemeralStorage:
+    size: "100Gi"
   securityGroupSelectorTerms:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
   subnetSelectorTerms:
   - tags:
       karpenter.sh/discovery: <<CLUSTER_NAME>>
-  ephemeralStorage:
-    size: "100Gi"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -30,22 +34,19 @@ spec:
         kind: NodeClass
         name: soci-snapshotter
       requirements:
-      - key: kubernetes.io/os
-        operator: In
-        values:
-        - linux
-      - key: eks.amazonaws.com/instance-category
-        operator: In
-        values:
-        - c
-        - m
-        - r
-      - key: kubernetes.io/arch
-        operator: In
-        values:
-        - amd64
-      - key: karpenter.sh/capacity-type
-        operator: In
-        values:
-        - spot
-        - on-demand
+        - key: eks.amazonaws.com/instance-category
+          operator: In
+          values:
+            - g
+        - key: eks.amazonaws.com/instance-generation
+          operator: Gt
+          values:
+            - "4"
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - spot
+            - on-demand
+      taints:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
