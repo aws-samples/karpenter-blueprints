@@ -377,6 +377,47 @@ What this does:
 
 This pattern is particularly useful for GPU instances (e.g., `g5`, `g6`) where NVMe performance vary by instance size but you still want fast I/O for kubelet and containerd operations, while giving SOCI the full capacity and consistent performance of a provisioned EBS volume.
 
+### Provisioning instances with NVMe instance store disks
+
+Since this pattern relies on NVMe instance store disks being available on the node, you need to ensure Karpenter provisions instances that actually have local NVMe storage.
+
+To guarantee Karpenter selects instance types with NVMe, add the `karpenter.k8s.aws/instance-local-nvme` requirement to your workload's node affinity or to the `NodePool` requirements. This well-known label represents the total NVMe instance store capacity in GB, so using the `Gt` (greater than) operator with a value of `"100"` ensures only instances with a minimum of NVMe capacity storage (e.g., at least 100 GB) are considered:
+
+**On the workload (nodeAffinity)**
+
+```yaml
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: karpenter.k8s.aws/instance-local-nvme
+                operator: Gt
+                values:
+                - "100"
+```
+
+**On the NodePool (requirements)**
+
+```yaml
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: soci-snapshotter
+spec:
+  template:
+    spec:
+      requirements:
+      - key: karpenter.k8s.aws/instance-local-nvme
+        operator: Gt
+        values:
+        - "100"
+```
+> ***NOTE: For EKS Auto Mode:***\
+> ***1. Only when the NodeClass's `ephemeralStorage.size` equals or exceeds the local NVMe capacity, Auto Mode will use the NVMe drives.***\
+> ***2. Use the `eks.amazonaws.com/instance-local-nvme` label prefix instead of `karpenter.k8s.aws/instance-local-nvme`.***
+
+
 ## Results
 
 Wait until the pods from the sample workload are in running status:
@@ -424,6 +465,8 @@ We can see that using SOCI snapshotter's improved container pull time by about *
 > If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
 
 SOCI parallel pull/unpack mode is **built into Auto Mode's Bottlerocket nodes by default** (since the [November 19, 2025 Auto Mode change](https://docs.aws.amazon.com/eks/latest/userguide/auto-change.html#_november_19_2025)). No `userData` configuration is needed. The OSS blueprint's three-way comparison (AL2023 SOCI, Bottlerocket SOCI, non-SOCI baseline) collapses to a single Auto Mode NodePool because Auto Mode runs Bottlerocket variant only and SOCI is always enabled **only** on selected G, P, and Trn family instances with local NVMe storage only, there is no opt-out path to demonstrate a non-SOCI baseline.
+
+> ***NOTE***: At the time of writing this blueprint, SOCI parallel mode in Auto Mode is enabled on G, P, and Trn instance families that have local NVMe instance store. This list of supported instance families may expand over time. refer to the [EKS Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-change.html) for the latest supported instance types.
 
 To deploy on Auto Mode, use the single combined manifest:
 
