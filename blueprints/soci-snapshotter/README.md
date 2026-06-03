@@ -266,7 +266,7 @@ The workaround is to keep the RAID0 array for container runtime paths but have S
 <details>
 <summary><strong>Amazon Linux 2023</strong></summary>
 
-On AL2023, `instanceStorePolicy: RAID0` binds `/var/lib/soci-snapshotter-grpc` to the NVMe RAID0 array by default. To override this and keep SOCI data on EBS, remove `instanceStorePolicy` from the `EC2NodeClass` and use nodeadm's `NodeConfig` to manually stripe the NVMe disks into a RAID0 array while excluding SOCI's data directory from the bind:
+On AL2023, `instanceStorePolicy: RAID0` binds `/var/lib/soci-snapshotter-grpc` to the NVMe RAID0 array by default. To override this and keep SOCI data on EBS, add a userData snippet with `disabledMounts: [SOCI]` — nodeadm merges it with Karpenter's generated NodeConfig, so you can keep `instanceStorePolicy: RAID0` on the EC2NodeClass:
 
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
@@ -276,7 +276,7 @@ metadata:
 spec:
 ...
 ...
-  # NOTE: No instanceStorePolicy here — we manage it manually through NodeConfig
+  instanceStorePolicy: RAID0
   blockDeviceMappings:
   - deviceName: /dev/xvda
     ebs:
@@ -292,26 +292,24 @@ spec:
     spec:
       instance:
         localStorage:
-          strategy: RAID0
           disabledMounts:
             - SOCI
       featureGates:
         FastImagePull: true
-    --//
 ```
 
 What this does:
 
-1. **Removes `instanceStorePolicy: RAID0`** from the EC2NodeClass so Karpenter doesn't automatically binds all directories (including SOCI's) to the NVMe array.
-2. **Uses nodeadm's `localStorage` configuration** with `strategy: RAID0` to stripe all NVMe instance store disks into a RAID0 array, and `disabledMounts: [SOCI]` to exclude SOCI's data directory from being moved to the array.
-3. **Result**: containerd, kubelet, and pod logs benefit from NVMe RAID0 speed, while SOCI's layer data (`/var/lib/soci-snapshotter-grpc`) remains on the  EBS volume with predictable capacity & performance.
+1. **Keeps `instanceStorePolicy: RAID0`** on the EC2NodeClass so Karpenter stripes all NVMe instance store disks into a RAID0 array and moves container runtime directories onto it.
+2. **Adds `disabledMounts: [SOCI]`** in the userData NodeConfig. Since nodeadm merges user-provided userData with Karpenter's generated configuration, this excludes SOCI's data directory from being moved to the NVMe array.
+3. **Result**: containerd, kubelet, and pod logs benefit from NVMe RAID0 speed, while SOCI's layer data (`/var/lib/soci-snapshotter-grpc`) remains on the EBS volume with predictable capacity & performance.
 
 </details>
 
 <details>
 <summary><strong>Bottlerocket</strong></summary>
 
-On Bottlerocket, the approach is similar to AL2023: remove `instanceStorePolicy: RAID0` from the `EC2NodeClass` and manually initialize the NVMe RAID0 array via bootstrap commands, binding only the directories you want on instance store, explicitly excluding `/var/lib/soci-snapshotter`:
+On Bottlerocket, nodeadm is not available, so the approach differs from AL2023. Remove `instanceStorePolicy: RAID0` from the `EC2NodeClass` and manually initialize the NVMe RAID0 array via bootstrap commands, binding only the directories you want on instance store, explicitly excluding `/var/lib/soci-snapshotter`:
 
 ```yaml
 apiVersion: karpenter.k8s.aws/v1
@@ -372,7 +370,7 @@ What this does:
 
 | OS | Approach | SOCI data lives on | Runtime dirs on NVMe |
 |----|----------|-------------------|---------------------|
-| AL2023 | Remove `instanceStorePolicy`, use nodeadm `localStorage` with `disabledMounts: [SOCI]` | EBS (`/var/lib/soci-snapshotter-grpc`) | Yes |
+| AL2023 | Keep `instanceStorePolicy: RAID0`, add `disabledMounts: [SOCI]` in userData | EBS (`/var/lib/soci-snapshotter-grpc`) | Yes |
 | Bottlerocket | Remove `instanceStorePolicy`, manually init RAID0 and bind specific dirs | EBS (`/var/lib/soci-snapshotter`) | Yes |
 
 This pattern is particularly useful for GPU instances (e.g., `g5`, `g6`) where NVMe performance vary by instance size but you still want fast I/O for kubelet and containerd operations, while giving SOCI the full capacity and consistent performance of a provisioned EBS volume.
