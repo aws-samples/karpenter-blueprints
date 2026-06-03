@@ -21,28 +21,11 @@ spec:
   - tags:
       karpenter.sh/discovery: "<<CLUSTER_NAME>>"
   userData: |
-    MIME-Version: 1.0
-    Content-Type: multipart/mixed; boundary="BOUNDARY"
-
-    --BOUNDARY
-    Content-Type: application/node.eks.aws
-
-    ---
     apiVersion: node.eks.aws/v1alpha1
     kind: NodeConfig
     spec:
       featureGates:
         FastImagePull: true
-      containerd:
-        config: |
-          [plugins."io.containerd.snapshotter.v1.soci"]
-            [plugins."io.containerd.snapshotter.v1.soci".blob]
-              max_concurrent_downloads_per_image = 20
-              concurrent_download_chunk_size = "16mb"
-              max_concurrent_unpacks_per_image = 12
-              discard_unpacked_layers = true
-
-    --BOUNDARY--
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
@@ -116,20 +99,12 @@ spec:
 
     [settings.container-runtime-plugins.soci-snapshotter]
     pull-mode = "parallel-pull-unpack"
-    
+
     [settings.container-runtime-plugins.soci-snapshotter.parallel-pull-unpack]
     max-concurrent-downloads-per-image = 20
     concurrent-download-chunk-size = "16mb"
     max-concurrent-unpacks-per-image = 12
     discard-unpacked-layers = true
-
-    [settings.bootstrap-commands.k8s-ephemeral-storage]
-    commands = [
-        ["apiclient", "ephemeral-storage", "init"],
-        ["apiclient", "ephemeral-storage" ,"bind", "--dirs", "/var/lib/soci-snapshotter"]
-    ]
-    essential = true
-    mode = "always"
 ---
 apiVersion: karpenter.sh/v1
 kind: NodePool
