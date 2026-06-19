@@ -22,19 +22,6 @@ spec:
       nodeSelector:
         intent: soci-snapshotter
         kubernetes.io/arch: amd64
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: karpenter.k8s.aws/instance-ebs-bandwidth
-                operator: Gt
-                values:
-                - "8000"
-              - key: karpenter.k8s.aws/instance-network-bandwidth
-                operator: Gt
-                values:
-                - "8000"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -60,19 +47,6 @@ spec:
       nodeSelector:
         intent: soci-snapshotter-br
         kubernetes.io/arch: amd64
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: karpenter.k8s.aws/instance-ebs-bandwidth
-                operator: Gt
-                values:
-                - "8000"
-              - key: karpenter.k8s.aws/instance-network-bandwidth
-                operator: Gt
-                values:
-                - "8000"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -98,16 +72,3 @@ spec:
       nodeSelector:
         intent: non-soci-snapshotter
         kubernetes.io/arch: amd64
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: karpenter.k8s.aws/instance-ebs-bandwidth
-                operator: Gt
-                values:
-                - "8000"
-              - key: karpenter.k8s.aws/instance-network-bandwidth
-                operator: Gt
-                values:
-                - "8000"

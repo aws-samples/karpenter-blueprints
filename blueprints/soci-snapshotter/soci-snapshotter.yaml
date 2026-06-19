@@ -64,6 +64,14 @@ spec:
         values:
         - spot
         - on-demand
+      - key: karpenter.k8s.aws/instance-ebs-bandwidth
+        operator: Gt
+        values:
+        - "8000"
+      - key: karpenter.k8s.aws/instance-network-bandwidth
+        operator: Gt
+        values:
+        - "8000" 
 ---
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -143,6 +151,14 @@ spec:
         values:
         - spot
         - on-demand
+      - key: karpenter.k8s.aws/instance-ebs-bandwidth
+        operator: Gt
+        values:
+        - "8000"
+      - key: karpenter.k8s.aws/instance-network-bandwidth
+        operator: Gt
+        values:
+        - "8000" 
 ---
 apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
@@ -203,3 +219,11 @@ spec:
         values:
         - spot
         - on-demand
+      - key: karpenter.k8s.aws/instance-ebs-bandwidth
+        operator: Gt
+        values:
+        - "8000"
+      - key: karpenter.k8s.aws/instance-network-bandwidth
+        operator: Gt
+        values:
+        - "8000" 

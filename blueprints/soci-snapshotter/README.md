@@ -51,28 +51,22 @@ Those commands creates the following:
 5. Kubernetes `Deployment` named `vllm-soci-br` that uses the `soci-snapshotter-br` `NodePool`
 6. Kubernetes `Deployment` named `vllm` that uses the `non-soci-snapshotter` `NodePool`
 
-> ***NOTE***: For our example both deployments will request instances that have network and ebs bandwidth greater than 8000 Mbps by using `nodeAffinity` in order to eliminate network and storage I/O bottlenecks to demonstrate SOCI parallel mode capabilities.
+> ***NOTE***: For our example the NodePools require to have network and ebs bandwidth greater than 8000 Mbps to eliminate network and storage I/O bottlenecks to demonstrate SOCI parallel mode capabilities.
 ```
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: karpenter.k8s.aws/instance-ebs-bandwidth
-                operator: Gt
-                values:
-                - "8000"
-              - key: karpenter.k8s.aws/instance-network-bandwidth
-                operator: Gt
-                values:
-                - "8000"
+      - key: karpenter.k8s.aws/instance-ebs-bandwidth
+        operator: Gt
+        values:
+        - "8000"
+      - key: karpenter.k8s.aws/instance-network-bandwidth
+        operator: Gt
+        values:
+        - "8000" 
 ```
 ## Configuration
 
 The SOCI snapshotter `EC2NodeClass` configuration have several configuration parameters that affect SOCI parallel mode performance.
 
 The `blockDeviceMapping` field is used to increase root volume EBS performance and storage size.\
-The `instanceStorePolicy: RAID0` tells Karpenter to automatically configure a `RAID0` array from all available NVMe instance store disks on the node. It then moves `/var/lib/containerd`, `/var/lib/kubelet`, `/var/log/pods` and SOCI's data dir (`/var/lib/soci-snapshotter-grpc` or `/var/lib/soci-snapshotter` on AL2023 and Bottlerocket accordingly) to that array and symlinks them back.
 
 As SOCI parallel mode downloads layers, it buffers them on disk instead of in-memory, having a high performant storage subsystem is crucial to support it as well as enough storage to hold the container images.
 The example configure the root volume with IOPs of 16,000 and throughput of 1,000MiB/s which is the maximum for GP3, it is recommended that you modify those settings accordingly to trade-off between performance and cost.
@@ -149,7 +143,7 @@ SOCI parallel mode configuration is controlled by several key settings. While th
 | `concurrent_download_chunk_size` | 16mb | unlimited | 16mb (if registry supports HTTP range requests) |
 | `discard_unpacked_layers` | true | false | true on EKS nodes |
 
-To learn more about other configuration options, visit the [official SOCI snapshotter doc](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md#configuration)
+To learn more about other configuration options, visit the [official SOCI snapshotter doc](https://github.com/awslabs/soci-snapshotter/blob/main/docs/parallel-mode.md#configuration).
 
 As installing a snapshotter to containerd and EKS requires several configuration, this is all being done for you automatically in AL2023 and Bottlerocket as SOCI is already pre-installed in the latest AMIs.
 
