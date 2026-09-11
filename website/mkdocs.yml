@@ -1,0 +1,45 @@
+site_name: Karpenter Blueprints for Amazon EKS
+site_description: >-
+  Common workload scenarios showing how to configure Karpenter and Kubernetes
+  objects on Amazon EKS, with deployment steps and expected results.
+# Overridden in CI so the sitemap and canonical URLs match the host
+# (fork or aws-samples). See .github/workflows/deploy-docs.yml.
+site_url: !ENV [SITE_URL, "https://aws-samples.github.io/karpenter-blueprints/"]
+repo_url: https://github.com/aws-samples/karpenter-blueprints
+repo_name: aws-samples/karpenter-blueprints
+edit_uri: ""
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
