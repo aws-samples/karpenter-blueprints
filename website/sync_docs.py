@@ -221,6 +221,16 @@ def main() -> None:
         )
         pages.append((name, nav_title, description, body))
 
+    # Google Search Console ownership verification, if configured.
+    # Set the GOOGLE_SITE_VERIFICATION repository variable to the token
+    # from the "HTML file" verification method (e.g. google1234abcd).
+    token = os.environ.get("GOOGLE_SITE_VERIFICATION", "").strip()
+    if token:
+        fname = token if token.endswith(".html") else f"{token}.html"
+        (OUT_DIR / fname).write_text(
+            f"google-site-verification: {fname}\n", encoding="utf-8"
+        )
+
     # robots.txt
     (OUT_DIR / "robots.txt").write_text(
         f"User-agent: *\nAllow: /\n\nSitemap: {SITE_URL}sitemap.xml\n",

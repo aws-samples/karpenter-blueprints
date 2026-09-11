@@ -1,5 +1,7 @@
 # Karpenter Blueprints for Amazon EKS
 
+You can browse all blueprints on the documentation website: https://aws-samples.github.io/karpenter-blueprints/
+
 ## Motivation
 
 [Karpenter](https://karpenter.sh/), a node provisioning project built for Kubernetes has been helping many companies to improve the efficiency and cost of running workloads on Kubernetes. However, as Karpenter takes an application-first approach to provision compute capacity for the Kubernetes data plane, there are common workload scenarios that you might be wondering how to configure them properly. This repository includes a list of common workload scenarios, some of them go in depth with the explanation of why configuring Karpenter and Kubernetes objects in such a way is important.
