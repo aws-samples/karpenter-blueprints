@@ -13,7 +13,7 @@ Karpenter can actively reduce the cluster cost by identifying when nodes can be 
 
 You are going to use the `default` NodePool.
 
-If you want to first observe the default behaviour of pods being disrupted during the consolidation process, jump to [(Optional) Simulating the default behaviour](#(optional)-simulating-the-default-behaviour).
+If you want to first observe the default behaviour of pods being disrupted during the consolidation process, jump to [(Optional) Simulating the default behaviour](#optional-simulating-the-default-behaviour).
 
 If you want to directly see how to avoid the disruption of jobs by the consolidation process, jump to [Preventing jobs of being evicted](#preventing-jobs-of-being-evicted).
 
