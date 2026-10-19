@@ -9,7 +9,7 @@ Use this blueprint to get started with the NVIDIA DRA driver on Karpenter.
 ## Requirements
 
 * An Amazon EKS cluster with Karpenter installed. You can use the blueprint we've used to test this pattern at the `cluster` folder in the root of this repository.
-  * **Kubernetes 1.34 or later**, for the `resource.k8s.io` DRA APIs.
+  * **EKS 1.34 or later**, for the `resource.k8s.io` DRA APIs.
   * **Karpenter v1.15 or later**, which adds Alpha support for NVIDIA DRA and EFA DRA provisioning.
 * Karpenter's DRA support must be enabled with the `settings.enableDRA` Helm value (Alpha, default `false`):
 
@@ -277,7 +277,7 @@ kubectl get nodeclaims -l karpenter.sh/nodepool=gpu-dra -o custom-columns="NAME:
 
 **Expected output:**
 ```
-NAME        INSTANCE     READY
+NAME            INSTANCE     READY
 gpu-dra-xxxxx   g5.xlarge    True
 ```
 
