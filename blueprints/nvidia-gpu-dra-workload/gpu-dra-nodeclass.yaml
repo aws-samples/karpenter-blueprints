@@ -1,0 +1,18 @@
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: gpu-dra
+spec:
+  amiSelectorTerms:
+  - alias: bottlerocket@latest
+  role: "$KARPENTER_NODE_IAM_ROLE_NAME"
+  instanceStorePolicy: RAID0
+  userData: |
+    [settings.kubelet-device-plugins.nvidia]
+    enabled = false
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: $CLUSTER_NAME
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: $CLUSTER_NAME

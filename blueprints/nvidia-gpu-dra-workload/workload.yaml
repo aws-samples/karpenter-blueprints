@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-dra-demo
+  labels:
+    app: gpu-dra-demo
+spec:
+  nodeSelector:
+    karpenter.sh/nodepool: gpu-dra
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  restartPolicy: Always
+  containers:
+    - name: gpu-demo
+      image: public.ecr.aws/amazonlinux/amazonlinux:2023-minimal
+      command: ["/bin/sh", "-c", "nvidia-smi --query-gpu=name,uuid --format=csv,noheader; sleep infinity"]
+      resources:
+        claims:
+        - name: gpu
+  resourceClaims:
+    - name: gpu
+      resourceClaimTemplateName: gpu-a10g
