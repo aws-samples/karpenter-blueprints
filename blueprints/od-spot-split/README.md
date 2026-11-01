@@ -81,6 +81,38 @@ And the `spot` has the following requirement:
       values: ["2","3","4","5"]
 ```
 
+### Keeping Spot diversified with `minValues`
+
+Spot works best when EC2 can pick from many capacity pools. The `node-spot` NodePool allows hundreds of instance types, but the set Karpenter actually sends to EC2 Fleet for a given launch can be much narrower: pod constraints, consolidation, and cached `InsufficientInstanceCapacity` errors all trim it. Launching into only one or two pools raises the chance of interruptions and failed launches.
+
+[`minValues`](https://karpenter.sh/docs/concepts/nodepools/#min-values) sets a floor on that flexibility. The `node-spot` NodePool requires every launch to span at least 2 instance categories, 5 instance families, and 15 instance types:
+
+```yaml
+    - key: karpenter.k8s.aws/instance-category
+      operator: In
+      values: ["c", "m", "r"]
+      minValues: 2
+    - key: karpenter.k8s.aws/instance-family
+      operator: Exists
+      minValues: 5
+    - key: node.kubernetes.io/instance-type
+      operator: Exists
+      minValues: 15
+```
+
+The 15 instance types also match the minimum Karpenter needs before it will do [Spot-to-Spot consolidation](https://karpenter.sh/docs/concepts/disruption/#spot-consolidation), so the same floor covers both launches and replacements. The `node-od` NodePool doesn't set `minValues`, because On-Demand capacity isn't reclaimed and cheapest-first is usually what you want there.
+
+You can check how diversified a launch was by looking at the requirements Karpenter recorded on a Spot NodeClaim:
+
+```sh
+kubectl get nodeclaims -l karpenter.sh/nodepool=node-spot \
+  -o jsonpath='{.items[0].spec.requirements[?(@.key=="node.kubernetes.io/instance-type")]}' | jq '{minValues, count: (.values | length)}'
+```
+
+The `count` should be at least `15`.
+
+When Karpenter can't meet a `minValues` floor, what happens next depends on the controller's `--min-values-policy` setting (Helm: `settings.minValuesPolicy`). With `Strict`, the default, Karpenter won't launch from this NodePool and the pods stay pending, or fall back to another NodePool if one matches. With `BestEffort`, Karpenter lowers the floor until a launch succeeds. Keep `Strict` if a narrow Spot launch is worse for you than a short delay.
+
 <details>
 <summary><strong>EKS Auto Mode</strong></summary>
 

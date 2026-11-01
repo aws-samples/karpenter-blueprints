@@ -21,7 +21,7 @@ score = savings_fraction / disruption_fraction
 An action is approved when `score >= 1/k`. Balanced uses `k = 2`, so the effective **approval threshold is 0.5** — the savings must cover at least half the disruption in fractional terms. Both sides are dimensionless, so the threshold is scale-invariant across cluster sizes. Two levers change per-pod disruption weight in the numerator:
 
 - **Pod priority.** Higher-priority pods count as more disruptive, making their host less consolidation-worthy.
-- **`controller.kubernetes.io/pod-deletion-cost` annotation.** Per-pod override on disruption weight.
+- **`karpenter.sh/disruption-cost` annotation.** Per-pod override on disruption weight. Since Karpenter v1.15, this replaces `controller.kubernetes.io/pod-deletion-cost` for steering consolidation. Karpenter still falls back to the old annotation when the new one is absent, but that fallback is deprecated (see the [v1.15 upgrade guide](https://karpenter.sh/docs/upgrading/upgrade-guide/)).
 
 Reference: [Karpenter Balanced consolidation docs](https://karpenter.sh/docs/concepts/disruption/#balanced-consolidation) and the [design RFC](https://github.com/kubernetes-sigs/karpenter/blob/main/designs/balanced-consolidation.md) (see "Why k=2" for the choice of threshold).
 

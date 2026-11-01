@@ -1,0 +1,82 @@
+---
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: kubelet-cel-sizing
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest
+  role: "<<KARPENTER_NODE_IAM_ROLE_NAME>>"
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: <<CLUSTER_NAME>>
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: <<CLUSTER_NAME>>
+  # Each value below is a CEL expression that Karpenter evaluates per
+  # instance type (Karpenter v1.15+, NodeClassCEL AWS feature gate). One
+  # EC2NodeClass therefore configures a 2-vCPU and a 32-vCPU node correctly,
+  # instead of one static value that is wrong for one of them.
+  # Results are unitless: cpu is in millicores (rounded up to 10m) and memory
+  # in MiB (rounded up to 16Mi).
+  kubelet:
+    # Same limits EKS managed node groups use with prefix delegation (enabled
+    # on this repo's cluster): 110 pods below 30 vCPUs, 250 above. min() keeps the value
+    # within what the ENI prefixes can actually address (16 IPs per prefix).
+    maxPods: "min(vcpus < 30 ? 110 : 250, default_enis * (ips_per_eni - 1) * 16 + 2)"
+    kubeReserved:
+      # 60m base plus 5m per vCPU.
+      cpu: "60 + vcpus * 5"
+      # EKS AMI formula, driven by the maxPods resolved above. Without this,
+      # Karpenter's AL2023 default sizes this from the ENI-limited pod count
+      # and under-reserves once maxPods is raised.
+      memory: "11 * max_pods + 255"
+    systemReserved:
+      # 100m floor, 10m per vCPU on larger instances.
+      cpu: "max(100, vcpus * 10)"
+      # 100Mi floor, ~1.5% of instance memory on larger instances.
+      memory: "max(100, memory_mib / 64)"
+  tags:
+    blueprint: kubelet-cel-sizing
+---
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: kubelet-cel-sizing
+spec:
+  template:
+    metadata:
+      labels:
+        blueprint: kubelet-cel-sizing
+    spec:
+      nodeClassRef:
+        group: karpenter.k8s.aws
+        kind: EC2NodeClass
+        name: kubelet-cel-sizing
+      taints:
+        - key: blueprint
+          value: kubelet-cel-sizing
+          effect: NoSchedule
+      requirements:
+        - key: karpenter.k8s.aws/instance-category
+          operator: In
+          values: ["c", "m", "r"]
+        - key: karpenter.k8s.aws/instance-generation
+          operator: Gt
+          values: ["5"]
+        # The sample workload pins one pod to each end of this range so you
+        # can compare how the same expressions resolve on each size.
+        - key: karpenter.k8s.aws/instance-cpu
+          operator: In
+          values: ["2", "4", "8", "16", "32"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+  limits:
+    cpu: "64"
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 1m
