@@ -92,12 +92,23 @@ spec:
         operator: In
         values:
         - linux
+      # minValues keeps every Spot launch diversified. Karpenter only launches
+      # a NodeClaim if its remaining instance-type options still span at least
+      # this many distinct values per key, so EC2 Fleet always has enough
+      # Spot pools to pick from with price-capacity-optimized allocation.
       - key: karpenter.k8s.aws/instance-category
         operator: In
         values:
         - c
         - m
         - r
+        minValues: 2
+      - key: karpenter.k8s.aws/instance-family
+        operator: Exists
+        minValues: 5
+      - key: node.kubernetes.io/instance-type
+        operator: Exists
+        minValues: 15
       - key: karpenter.k8s.aws/instance-generation
         operator: Gt
         values:
