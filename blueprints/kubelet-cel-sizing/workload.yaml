@@ -1,0 +1,64 @@
+---
+# Lands on a 2-vCPU instance from the kubelet-cel-sizing NodePool.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubelet-cel-small
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubelet-cel-small
+  template:
+    metadata:
+      labels:
+        app: kubelet-cel-small
+        blueprint: kubelet-cel-sizing
+    spec:
+      nodeSelector:
+        blueprint: kubelet-cel-sizing
+        karpenter.k8s.aws/instance-cpu: "2"
+      tolerations:
+        - key: blueprint
+          operator: Equal
+          value: kubelet-cel-sizing
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+---
+# Lands on a 32-vCPU instance from the same NodePool and EC2NodeClass.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubelet-cel-large
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubelet-cel-large
+  template:
+    metadata:
+      labels:
+        app: kubelet-cel-large
+        blueprint: kubelet-cel-sizing
+    spec:
+      nodeSelector:
+        blueprint: kubelet-cel-sizing
+        karpenter.k8s.aws/instance-cpu: "32"
+      tolerations:
+        - key: blueprint
+          operator: Equal
+          value: kubelet-cel-sizing
+          effect: NoSchedule
+      containers:
+        - name: pause
+          image: public.ecr.aws/eks-distro/kubernetes/pause:3.7
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
