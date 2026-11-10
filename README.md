@@ -179,7 +179,7 @@ Here's the list of blueprints we have so far:
 | [Using Static NodePools for static capacity](/blueprints/static-nodepool) | ✅ | ✅ |
 | [ARC Zonal Shift — Native Karpenter integration with Amazon Application Recovery Controller](/blueprints/arc-zonal-shift/) | ✅ | ❌ |
 | [Nested virtualization on EC2](/blueprints/nested-virtualization) | ✅ | ❌ |
-| [Deploy an NVIDIA GPU workload with Dynamic Resource Allocation](/blueprints/nvidia-gpu-dra-workload) | ✅ | ❌ |
+| [Deploy an NVIDIA GPU workload with Dynamic Resource Allocation](/blueprints/nvidia-gpu-dra-workload) | ✅ | ✅ |
 
 **NOTE:** Each blueprint is independent from each other, so you can deploy and test multiple blueprints at the same time in the same Kubernetes cluster. However, to reduce noise, we recommend you to test one blueprint at a time.
 

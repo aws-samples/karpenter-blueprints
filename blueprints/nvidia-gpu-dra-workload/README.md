@@ -299,6 +299,36 @@ kubectl logs gpu-dra-demo
 NVIDIA A10G, GPU-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
+<details>
+<summary><strong>EKS Auto Mode</strong></summary>
+
+**Prerequisite:** an EKS cluster (1.36+) with Auto Mode enabled, and an EKS Access Entry granting `AmazonEKSAutoNodePolicy` to the node IAM role used by Auto Mode.
+
+> If you're using the Terraform template under [`cluster/automode/`](../../cluster/automode/) in this repo, the cluster, node IAM role, and Access Entry are all created for you — you can skip the manual access entry steps below.
+
+NVIDIA GPU DRA support is simpler on EKS Auto Mode: the managed Bottlerocket AMIs include the NVIDIA DRA driver. You do **not** need to install the NVIDIA DRA or EFA DRA driver (DRANET).
+
+For more details with using DRA and EKS Auto Mode review the [AWS doc](https://docs.aws.amazon.com/eks/latest/userguide/device-management.html#dra-auto-mode)
+
+To deploy on Auto Mode, create the EKS Auto Mode GPU NodePool, that uses the default NodeClass:
+
+```sh
+kubectl apply -f gpu-dra-nodepool-automode.yaml
+```
+
+Next create the NVIDIA deviceclass. A DeviceClass names a category of devices and the expression that selects them. Every `ResourceClaim` and `ResourceClaimTemplate` references one by name.
+
+```sh
+kubectl apply -f deviceclass.yaml
+```
+
+Next, deploy the workload with DRA resourceclaim:
+```sh
+kubectl apply -f resourceclaim-gpu-a10g.yaml
+kubectl apply -f workload.yaml
+```
+</details>
+
 ## Clean-up
 
 To clean-up execute the following commands:
